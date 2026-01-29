@@ -53,3 +53,43 @@
   font-size: 13px;
   text-shadow: 1px 1px 2px #000;
 }
+
+@media (max-width: 768px) {
+  .desktop-icons {
+    top: 12px;
+    left: 12px;
+    gap: 10px;
+  }
+
+  .icon {
+    width: 90px;
+    padding: 2px;
+  }
+
+  .icon-img {
+    width: 34px;
+    margin: 0 auto 4px;
+  }
+
+  .icon span {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .desktop-icons {
+    gap: 8px;
+  }
+
+  .icon {
+    width: 78px;
+  }
+
+  .icon-img {
+    width: 30px;
+  }
+
+  .icon span {
+    font-size: 10px;
+  }
+}

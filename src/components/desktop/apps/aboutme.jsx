@@ -35,6 +35,7 @@ import maximizeIcon from "../../../assets/window/Maximize.png";
 import closeIcon from "../../../assets/window/Exit.png";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
+import { getDesktopPoint } from "../utils/desktopTransform";
 import "../../../styles/desktop/window.css";
 import "../../../styles/desktop/apps/aboutme.css";
 
@@ -152,9 +153,10 @@ const AboutMeWindow = ({
   const handleMouseDown = (event) => {
     if (isMaximized || event.button !== 0) return;
     setIsDragging(true);
+    const point = getDesktopPoint(event);
     dragOffset.current = {
-      x: event.clientX - position.x,
-      y: event.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown(windowId);
   };
@@ -165,9 +167,10 @@ const AboutMeWindow = ({
 
   const handleMouseMove = (event) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(event);
     setPosition({
-      x: event.clientX - dragOffset.current.x,
-      y: event.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

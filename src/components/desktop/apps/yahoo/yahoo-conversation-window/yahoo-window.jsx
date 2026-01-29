@@ -6,6 +6,7 @@ import closeIcon from "../../../../../assets/yahoo/header/close.png";
 import YahooConversationWindowDesign from "./yahoo-window-design";
 import ResizeHandles from "../../../ResizeHandles";
 import useWindowResize from "../../../hooks/useWindowResize";
+import { getDesktopPoint } from "../../../utils/desktopTransform";
 import "../../../../../styles/desktop/window.css";
 import "../../../../../styles/desktop/apps/yahoo/yahoo-conversation-window/yahoo-window.css";
 
@@ -77,9 +78,10 @@ const YahooConversationWindow = ({
   const handleMouseDown = (event) => {
     if (isMaximized || event.button !== 0) return;
     setIsDragging(true);
+    const point = getDesktopPoint(event);
     dragOffset.current = {
-      x: event.clientX - position.x,
-      y: event.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown?.(windowId);
   };
@@ -90,9 +92,10 @@ const YahooConversationWindow = ({
 
   const handleMouseMove = (event) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(event);
     setPosition({
-      x: event.clientX - dragOffset.current.x,
-      y: event.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

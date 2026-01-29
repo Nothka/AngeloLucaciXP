@@ -18,6 +18,7 @@ import resumeIcon from "../../assets/startmenu/Pdf.png";
 import aboutMeIcon from "../../assets/startmenu/about.png";
 import DesktopIcons from "./DesktopIcons";
 import "../../styles/desktop/desktop-icons.css";
+import { getDesktopPoint } from "./utils/desktopTransform";
 
 const formatTimeWithPeriod = (date) =>
   date
@@ -29,6 +30,8 @@ const formatTimeWithPeriod = (date) =>
     .replace(/\u202f/g, " "); // Normalize any narrow spaces some locales add
 
 let windowIdCounter = 0; // To ensure unique IDs
+const MIN_DESKTOP_WIDTH = 1280;
+const MIN_DESKTOP_HEIGHT = 720;
 
 const Desktop = ({ onLogOff, onShutdown }) => {
   const [time, setTime] = useState("");
@@ -44,6 +47,49 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectionEnd, setSelectionEnd] = useState(null);
   const desktopRef = useRef(null);
+  const [desktopMetrics, setDesktopMetrics] = useState({
+    scale: 1,
+    width: MIN_DESKTOP_WIDTH,
+    height: MIN_DESKTOP_HEIGHT,
+    offsetX: 0,
+    offsetY: 0,
+  });
+
+  useEffect(() => {
+    const updateMetrics = () => {
+      if (typeof window === "undefined") return;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const baseWidth = Math.max(MIN_DESKTOP_WIDTH, viewportWidth);
+      const baseHeight = Math.max(MIN_DESKTOP_HEIGHT, viewportHeight);
+      const scale = Math.min(
+        1,
+        viewportWidth / baseWidth,
+        viewportHeight / baseHeight
+      );
+      const scaledWidth = baseWidth * scale;
+      const scaledHeight = baseHeight * scale;
+      setDesktopMetrics({
+        scale,
+        width: baseWidth,
+        height: baseHeight,
+        offsetX: Math.max(0, (viewportWidth - scaledWidth) / 2),
+        offsetY: Math.max(0, (viewportHeight - scaledHeight) / 2),
+      });
+    };
+    updateMetrics();
+    window.addEventListener("resize", updateMetrics);
+    return () => window.removeEventListener("resize", updateMetrics);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.__desktopTransform = {
+      scale: desktopMetrics.scale,
+      offsetX: desktopMetrics.offsetX,
+      offsetY: desktopMetrics.offsetY,
+    };
+  }, [desktopMetrics]);
 
   const getTopmostWindowId = (windowList) => {
     const topmost = windowList.reduce((current, window) => {
@@ -194,11 +240,10 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     if (!isSelecting) return;
 
     const handleMouseMove = (event) => {
-      const rect = desktopRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = Math.min(Math.max(rect.left, event.clientX), rect.right);
-      const y = Math.min(Math.max(rect.top, event.clientY), rect.bottom);
-      setSelectionEnd({ x, y });
+      const { x, y } = getDesktopPoint(event);
+      const clampedX = Math.min(Math.max(0, x), desktopMetrics.width);
+      const clampedY = Math.min(Math.max(0, y), desktopMetrics.height);
+      setSelectionEnd({ x: clampedX, y: clampedY });
     };
 
     const handleMouseUp = () => {
@@ -222,12 +267,11 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     setActiveWindowId(null);
     if (event.target?.closest?.(".taskbar")) return;
     if (event.target?.closest?.(".desktop-icons")) return;
-    const rect = desktopRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = Math.min(Math.max(rect.left, event.clientX), rect.right);
-    const y = Math.min(Math.max(rect.top, event.clientY), rect.bottom);
-    setSelectionStart({ x, y });
-    setSelectionEnd({ x, y });
+    const { x, y } = getDesktopPoint(event);
+    const clampedX = Math.min(Math.max(0, x), desktopMetrics.width);
+    const clampedY = Math.min(Math.max(0, y), desktopMetrics.height);
+    setSelectionStart({ x: clampedX, y: clampedY });
+    setSelectionEnd({ x: clampedX, y: clampedY });
     setIsSelecting(true);
     event.preventDefault();
   };
@@ -235,32 +279,49 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const selectionRectClient =
     selectionStart && selectionEnd
       ? {
-          left: Math.min(selectionStart.x, selectionEnd.x),
-          top: Math.min(selectionStart.y, selectionEnd.y),
-          right: Math.max(selectionStart.x, selectionEnd.x),
-          bottom: Math.max(selectionStart.y, selectionEnd.y),
-          width: Math.abs(selectionEnd.x - selectionStart.x),
-          height: Math.abs(selectionEnd.y - selectionStart.y),
+          left:
+            Math.min(selectionStart.x, selectionEnd.x) * desktopMetrics.scale +
+            desktopMetrics.offsetX,
+          top:
+            Math.min(selectionStart.y, selectionEnd.y) * desktopMetrics.scale +
+            desktopMetrics.offsetY,
+          right:
+            Math.max(selectionStart.x, selectionEnd.x) * desktopMetrics.scale +
+            desktopMetrics.offsetX,
+          bottom:
+            Math.max(selectionStart.y, selectionEnd.y) * desktopMetrics.scale +
+            desktopMetrics.offsetY,
+          width:
+            Math.abs(selectionEnd.x - selectionStart.x) * desktopMetrics.scale,
+          height:
+            Math.abs(selectionEnd.y - selectionStart.y) * desktopMetrics.scale,
         }
       : null;
   const desktopRect = selectionRectClient ? desktopRef.current?.getBoundingClientRect() : null;
   const selectionRect =
     selectionRectClient && desktopRect
       ? {
-          left: selectionRectClient.left - desktopRect.left,
-          top: selectionRectClient.top - desktopRect.top,
-          width: selectionRectClient.width,
-          height: selectionRectClient.height,
+          left: Math.min(selectionStart.x, selectionEnd.x),
+          top: Math.min(selectionStart.y, selectionEnd.y),
+          width: Math.abs(selectionEnd.x - selectionStart.x),
+          height: Math.abs(selectionEnd.y - selectionStart.y),
         }
       : null;
 
   return (
-    <div
-      className="desktop-body"
-      style={{ backgroundImage: `url(${wallpaper})` }}
-      onMouseDown={handleDesktopMouseDown}
-    >
-      <div className="desktop" ref={desktopRef}>
+    <div className="desktop-viewport" style={{ backgroundImage: `url(${wallpaper})` }}>
+      <div
+        className="desktop-body"
+        style={{
+          backgroundImage: `url(${wallpaper})`,
+          width: desktopMetrics.width,
+          height: desktopMetrics.height,
+          transform: `translate(${desktopMetrics.offsetX}px, ${desktopMetrics.offsetY}px) scale(${desktopMetrics.scale})`,
+          transformOrigin: "top left",
+        }}
+        onMouseDown={handleDesktopMouseDown}
+      >
+        <div className="desktop" ref={desktopRef}>
         <DesktopIcons
           openApp={openApp}
           selectionRect={selectionRectClient}
@@ -425,19 +486,20 @@ const Desktop = ({ onLogOff, onShutdown }) => {
           />
         ) : null}
 
-        <Taskbar
-          time={time}
-          onToggleWelcome={() => setShowWelcome((prev) => !prev)}
-          windows={windows}
-          onMinimize={minimizeWindow}
-          onMaximize={maximizeWindow}
-          onBringToFront={bringToFront}
-          openApp={openApp}
-          extraApps={yahooConversationEntries}
-          onExtraAppClick={handleConversationTaskbarClick}
-          onLogOff={onLogOff}
-          onShutdown={onShutdown}
-        />
+          <Taskbar
+            time={time}
+            onToggleWelcome={() => setShowWelcome((prev) => !prev)}
+            windows={windows}
+            onMinimize={minimizeWindow}
+            onMaximize={maximizeWindow}
+            onBringToFront={bringToFront}
+            openApp={openApp}
+            extraApps={yahooConversationEntries}
+            onExtraAppClick={handleConversationTaskbarClick}
+            onLogOff={onLogOff}
+            onShutdown={onShutdown}
+          />
+        </div>
       </div>
     </div>
   );

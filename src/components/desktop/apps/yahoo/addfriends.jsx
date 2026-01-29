@@ -5,6 +5,7 @@ import maximizeIcon from "../../../../assets/yahoo/header/maximise.png";
 import closeIcon from "../../../../assets/yahoo/header/close.png";
 import ResizeHandles from "../../ResizeHandles";
 import useWindowResize from "../../hooks/useWindowResize";
+import { getDesktopPoint } from "../../utils/desktopTransform";
 import "../../../../styles/desktop/window.css";
 import "../../../../styles/desktop/apps/yahoo/yahoo.css";
 import "../../../../styles/desktop/apps/yahoo/addfriends.css";
@@ -73,9 +74,10 @@ const YahooAddFriendsWindow = ({
   const handleMouseDown = (event) => {
     if (isMaximized || event.button !== 0) return;
     setIsDragging(true);
+    const point = getDesktopPoint(event);
     dragOffset.current = {
-      x: event.clientX - position.x,
-      y: event.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown?.(windowId);
   };
@@ -86,9 +88,10 @@ const YahooAddFriendsWindow = ({
 
   const handleMouseMove = (event) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(event);
     setPosition({
-      x: event.clientX - dragOffset.current.x,
-      y: event.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

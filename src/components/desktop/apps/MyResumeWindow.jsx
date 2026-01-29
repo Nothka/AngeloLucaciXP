@@ -12,6 +12,7 @@ import closeIcon from "../../../assets/window/Exit.png";
 import resumePdf from "../../../assets/cv/CV_AngeloLucaci.pdf";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
+import { getDesktopPoint } from "../utils/desktopTransform";
 import "../../../styles/desktop/window.css";
 import "../../../styles/desktop/apps/resume.css";
 
@@ -111,9 +112,10 @@ const MyResumeWindow = ({
   const handleMouseDown = (e) => {
     if (isMaximized || e.button !== 0) return;
     setIsDragging(true);
+    const point = getDesktopPoint(e);
     dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown(windowId);
   };
@@ -124,9 +126,10 @@ const MyResumeWindow = ({
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(e);
     setPosition({
-      x: e.clientX - dragOffset.current.x,
-      y: e.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

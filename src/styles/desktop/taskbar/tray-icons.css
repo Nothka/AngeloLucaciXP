@@ -11,3 +11,21 @@
   cursor: pointer;
   image-rendering: -webkit-optimize-contrast;
 }
+
+@media (max-width: 768px) {
+  .tray-icons {
+    gap: 4px;
+  }
+
+  .tray-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tray-icon {
+    width: 12px;
+    height: 12px;
+  }
+}

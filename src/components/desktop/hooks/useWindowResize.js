@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getDesktopPoint } from "../utils/desktopTransform";
 
 const DEFAULT_MIN_WIDTH = 320;
 const DEFAULT_MIN_HEIGHT = 200;
@@ -21,10 +22,11 @@ const useWindowResize = ({
     event.preventDefault();
     event.stopPropagation();
     if (onFocus) onFocus();
+    const startPoint = getDesktopPoint(event);
     resizeRef.current = {
       direction,
-      startX: event.clientX,
-      startY: event.clientY,
+      startX: startPoint.x,
+      startY: startPoint.y,
       startWidth: size.width,
       startHeight: size.height,
       startLeft: position.x,
@@ -47,8 +49,9 @@ const useWindowResize = ({
         startLeft,
         startTop,
       } = resizeRef.current;
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
+      const currentPoint = getDesktopPoint(event);
+      const dx = currentPoint.x - startX;
+      const dy = currentPoint.y - startY;
       let newWidth = startWidth;
       let newHeight = startHeight;
       let newLeft = startLeft;

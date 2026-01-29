@@ -20,6 +20,7 @@ import videoIcon from "../../../assets/my-projects/video.png";
 import profilePhotoAsset from "../../../assets/my-projects/profilepic.jpeg";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
+import { getDesktopPoint } from "../utils/desktopTransform";
 import "../../../styles/desktop/window.css";
 import "../../../styles/desktop/apps/myprojects.css";
 
@@ -171,10 +172,11 @@ const MyProjectWindow = ({
     if (isMaximized || e.button !== 0) return; // Prevent dragging when maximized or not left-clicked
 
     setIsDragging(true);
+    const point = getDesktopPoint(e);
     // Record the offset between the mouse position and the window's top-left corner.
     dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown(windowId); // Bring window to front
   };
@@ -185,10 +187,11 @@ const MyProjectWindow = ({
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(e);
     // Set the new position of the window based on the current mouse position and the initial offset.
     setPosition({
-      x: e.clientX - dragOffset.current.x,
-      y: e.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

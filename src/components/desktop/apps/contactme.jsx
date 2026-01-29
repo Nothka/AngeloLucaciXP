@@ -11,6 +11,7 @@ import maximizeIcon from "../../../assets/window/Maximize.png";
 import closeIcon from "../../../assets/window/Exit.png";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
+import { getDesktopPoint } from "../utils/desktopTransform";
 import "../../../styles/desktop/window.css";
 import "../../../styles/desktop/apps/contactme.css";
 
@@ -76,9 +77,10 @@ const ContactMeWindow = ({
   const handleMouseDown = (e) => {
     if (isMaximized || e.button !== 0) return;
     setIsDragging(true);
+    const point = getDesktopPoint(e);
     dragOffset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: point.x - position.x,
+      y: point.y - position.y,
     };
     onMouseDown(windowId);
   };
@@ -89,9 +91,10 @@ const ContactMeWindow = ({
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
+    const point = getDesktopPoint(e);
     setPosition({
-      x: e.clientX - dragOffset.current.x,
-      y: e.clientY - dragOffset.current.y,
+      x: point.x - dragOffset.current.x,
+      y: point.y - dragOffset.current.y,
     });
   };
 

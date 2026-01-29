@@ -2,7 +2,7 @@
 /* Taskbar Principal */
 /* ---------------------------------- */
 .taskbar {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
@@ -38,4 +38,20 @@
   display: flex;
   align-items: stretch;
   height: 100%;
+}
+
+@media (max-width: 768px) {
+  .taskbar {
+    height: 26px;
+  }
+
+  .taskbar-windows {
+    padding: 0 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .taskbar {
+    height: 24px;
+  }
 }

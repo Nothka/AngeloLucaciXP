@@ -9,6 +9,7 @@ import closeIcon from "../../assets/window/Exit.png";
 import goIcon from "../../assets/startmenu/adressbar/Go.png";
 import ResizeHandles from "./ResizeHandles";
 import useWindowResize from "./hooks/useWindowResize";
+import { getDesktopPoint } from "./utils/desktopTransform";
 
 const getDefaultWindowSize = () => {
   if (typeof window === "undefined") return { width: 780, height: 520 };
@@ -74,7 +75,7 @@ const Window = ({
   const handleMouseDown = (e) => {
     if (isMaximized) return; // Prevent dragging when maximized
     setIsDragging(true);
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragStartPos.current = getDesktopPoint(e);
     onMouseDown(windowId);
   };
 
@@ -85,13 +86,14 @@ const Window = ({
 
   const handleMouseMove = (e) => {
     if (!isDragging || isMaximized) return;
-    const dx = e.clientX - dragStartPos.current.x;
-    const dy = e.clientY - dragStartPos.current.y;
+    const point = getDesktopPoint(e);
+    const dx = point.x - dragStartPos.current.x;
+    const dy = point.y - dragStartPos.current.y;
     setPosition({
       x: position.x + dx,
       y: position.y + dy,
     });
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragStartPos.current = point;
   };
 
   const toggleMaximize = () => {
