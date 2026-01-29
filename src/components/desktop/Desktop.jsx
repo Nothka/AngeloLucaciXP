@@ -69,12 +69,14 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       );
       const scaledWidth = baseWidth * scale;
       const scaledHeight = baseHeight * scale;
+      const centerOffsetX = Math.max(0, (viewportWidth - scaledWidth) / 2);
+      const centerOffsetY = Math.max(0, (viewportHeight - scaledHeight) / 2);
       setDesktopMetrics({
         scale,
         width: baseWidth,
         height: baseHeight,
-        offsetX: Math.max(0, (viewportWidth - scaledWidth) / 2),
-        offsetY: Math.max(0, (viewportHeight - scaledHeight) / 2),
+        offsetX: centerOffsetX,
+        offsetY: viewportWidth <= 768 ? 0 : centerOffsetY,
       });
     };
     updateMetrics();
@@ -309,7 +311,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       : null;
 
   return (
-    <div className="desktop-viewport" style={{ backgroundImage: `url(${wallpaper})` }}>
+    <div className="desktop-viewport">
       <div
         className="desktop-body"
         style={{

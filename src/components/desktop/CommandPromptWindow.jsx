@@ -25,7 +25,7 @@ const CommandPromptWindow = ({
   const [position, setPosition] = useState({ x: 100, y: 100 });
   const [size, setSize] = useState({ width: 640, height: 400 });
   const [lines, setLines] = useState([
-    "Microsoft Windows XP [Version 5.1.2600]",
+    "Angelo Lucaci XP [Version 5.1.2600]",
     "(C) Copyright 1985-2001 Microsoft Corp.",
     "",
   ]);
