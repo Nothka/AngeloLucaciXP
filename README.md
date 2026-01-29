@@ -1,16 +1,42 @@
-# React + Vite
+# AngeloLucaciXP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Windows XP-style interactive portfolio built with React + Vite. It recreates a classic desktop experience with draggable windows, a taskbar, and themed apps (Yahoo Messenger chat, Contact Me, Projects, Resume, etc.).
 
-Currently, two official plugins are available:
+## Features
+- Windows XP inspired UI with movable/resizable windows
+- Yahoo Messenger-style chat (with Buzz + emoticons)
+- Contact Me window that opens your default mail client
+- Portfolio apps for projects, resume, and social links
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting started
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Chat API (optional)
+The Yahoo chat can connect to OpenAI through a small local proxy.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1) Create `.env` in the project root:
+```bash
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_PROXY_PORT=5174
+```
 
-## Expanding the ESLint configuration
+2) Run the proxy:
+```bash
+npm run dev:api
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The frontend proxies `/api` to `http://localhost:5174` via Vite.
+
+## Scripts
+- `npm run dev` - start the Vite dev server
+- `npm run dev:api` - start the OpenAI proxy server
+- `npm run build` - build for production
+- `npm run preview` - preview the production build
+
+## Tech stack
+- React 19
+- Vite 7
