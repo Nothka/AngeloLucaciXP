@@ -1,0 +1,80 @@
+.github-window {
+  --window-surface-color: #f3f0de;
+}
+
+.github-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px 22px 16px;
+  background: #f3f0de;
+  text-align: center;
+  color: #1a1a1a;
+  user-select: none;
+}
+
+.github-title-icon {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.github-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.github-body h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+
+.github-body p {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.github-actions {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 0 8px;
+}
+
+.github-btn {
+  min-width: 120px;
+  padding: 6px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f2f2f2 55%, #dcdcdc 100%);
+  border: 1px solid #6a8bd3;
+  border-radius: 3px;
+  box-shadow: inset -1px -1px 0 #ffffff, inset 1px 1px 0 #c5c5c5;
+  font-size: 12px;
+  color: #1a1a1a;
+  cursor: default;
+}
+
+.github-btn:active {
+  background: linear-gradient(180deg, #dcdcdc 0%, #f2f2f2 100%);
+  box-shadow: inset 1px 1px 0 #b5b5b5;
+}
+
+.github-btn.is-primary:hover {
+  border: 1px solid #cdac37;
+}
+
+.github-btn.is-primary {
+  position: relative;
+}
+
+.github-btn.is-primary::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px dotted #1a1a1a;
+  pointer-events: none;
+}

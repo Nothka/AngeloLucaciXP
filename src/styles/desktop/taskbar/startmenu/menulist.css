@@ -1,0 +1,115 @@
+.menu-list-right {
+  position: relative;
+  overflow: visible;
+}
+
+.menu-item-right {
+  position: relative; /* Added this */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  font-size: 12px;
+  color: #0f1f36;
+  font-weight: 600;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.menu-item-right:hover {
+  background: #316ac5;
+  color: #fff;
+}
+
+.menu-item-title,
+.recently-used-menu-item span {
+  user-select: none;
+}
+
+.menu-item-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.menu-separator-horizontal-recent {
+  display: flex;
+  align-self: center;
+  justify-content:  center;
+  gap: 10px;
+  height: 1px;
+  width: 130px;
+  background: linear-gradient(180deg, rgba(248, 248, 248, 0.17) 20%, rgba(74, 72, 72, 0.15) 10%);
+}
+
+.recently-used-item::after {
+  content: "▶";
+  font-size: 7px;
+  position: absolute;
+  right: 10px; /* Adjust as needed */
+  top: 50%;
+  transform: translateY(-50%);
+  color: #000000; /* Using the same color as the 'All Programs' arrow */
+}
+
+.menu-item-right.recently-used-item:hover::after {
+  color: #ffffff;
+}
+
+.recently-used-menu {
+  position: absolute;
+  top:-186px;
+  left: calc(100% - 4px);
+  min-width: 190px;
+  background: #f4f4f4;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  padding: 6px 0;
+  display: none;
+  z-index: 20;
+}
+
+.recently-used-menu::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: 1px;
+  background: linear-gradient(180deg, #0353c9 0%, #0552ce 60%, #043a81 100%);
+  border-right: 1px solid rgba(120, 138, 160, 0.45);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.recently-used-item:hover .recently-used-menu {
+  display: block;
+}
+
+.recently-used-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #6b6b6b;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.recently-used-menu-item:hover {
+  background: transparent;
+  color: #6b6b6b;
+  opacity: 0.6;
+}
+
+.recently-used-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}

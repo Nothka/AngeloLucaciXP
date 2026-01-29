@@ -1,0 +1,49 @@
+.yahoo-emoticon-menu {
+  position: absolute;
+  left: 6px;
+  bottom: calc(100% + 6px);
+  width: 260px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 6px;
+  background: #fbf7ff;
+  border: 1px solid #bdb1c3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  z-index: 5;
+}
+
+.yahoo-emoticon-item {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.yahoo-emoticon-item img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.yahoo-emoticon-item:hover {
+  border-color: #9a78a8;
+  background: #efe1f5;
+}
+
+.yahoo-emoticon-empty {
+  grid-column: 1 / -1;
+  padding: 8px 6px;
+  font-size: 11px;
+  color: #6a5b73;
+}

@@ -1,0 +1,140 @@
+/* ====== LOGIN BRAND ====== */
+
+.login-screen-center .left {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(calc(-100% - var(--login-divider-gap)), -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.xp-logo-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 55px;
+  padding-bottom: 10px;
+}
+
+.xp-logo-image {
+  height: 100px;
+  width: auto;
+  display: block;
+  position: relative;
+  left: 30px;
+}
+
+.xp-wordmark-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.xp-wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: Tahoma, "Trebuchet MS", sans-serif;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px #000;
+  text-align: left;
+}
+
+.xp-wordmark-name {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+ user-select: none;
+}
+
+.xp-wordmark-xp {
+  font-size: 30px;
+  font-weight: 400;
+  color: #d15c02;
+  display: inline-block;
+  transform: translateY(-22px);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+user-select: none;
+}
+
+.xp-wordmark-role {
+  font-size: 15px;
+  font-weight: 400;
+  color: #eaf2ff;
+  text-align: left;
+  margin-left: 3px;
+  margin-top: -3px;
+  letter-spacing: 0.3px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+.left-text {
+  margin-top: 16px;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.25px;
+  text-align: right;
+  color: #eaf2ff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  font-family: Tahoma, "Trebuchet MS", sans-serif;
+  user-select: none;
+}
+
+.desktop-login-instruction {
+  display: inline;
+}
+
+.mobile-login-instruction {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .login-screen-center .left {
+    position: static;
+    transform: none;
+    align-items: center;
+    margin: 0 auto;
+  }
+
+  .xp-logo-lockup {
+    padding: 0;
+  }
+
+  .xp-logo-image {
+    height: 100px;
+    margin: 0 auto;
+    left: 0;
+  }
+
+  .xp-wordmark-block {
+    align-items: center;
+  }
+
+  .xp-wordmark {
+    text-align: center;
+  }
+
+  .xp-wordmark-role {
+    text-align: center;
+    margin-left: 0;
+  }
+
+  .left-text {
+    margin: 8px auto 0;
+    text-align: center;
+    font-size: 15px;
+  }
+
+  .desktop-login-instruction {
+    display: none;
+  }
+
+  .mobile-login-instruction {
+    display: inline;
+  }
+}

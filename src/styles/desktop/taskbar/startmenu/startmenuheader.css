@@ -1,0 +1,41 @@
+/* Header styling for the Start menu */
+.start-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(
+    180deg,
+    #579ffd  0%,
+    #0750ed 20%,
+    #0750ed 70%,
+    #0750ed 100%
+  );
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+ 
+}
+
+.start-menu-user-picture {
+  width: 40px;
+  height: 40px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+.start-menu-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.start-menu-user-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+  user-select: none;
+}

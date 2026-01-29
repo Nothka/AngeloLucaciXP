@@ -1,0 +1,466 @@
+/* My Projects window styles */
+.myprojects-window .address-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.myprojects-window .address-bar > :not(.loading-bar) {
+  position: relative;
+  z-index: 1;
+}
+
+.myprojects-window .loading-bar {
+  position: absolute;
+  inset: 0;
+  background: #a2c2f4;
+  opacity: 0.6;
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: myprojectsAddressLoad 4s linear forwards;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.projects-content {
+  background: #0d1117;
+  color: #f2f2f2;
+  padding: 0;
+}
+
+.projects-loading {
+  flex: 1;
+  background: #0d1117;
+}
+
+.myprojects-window .window-menu-bar {
+  position: relative;
+}
+
+.projects-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.projects-menu-trigger.is-open {
+  background: #2d63f0;
+  box-shadow: inset 0 2px 0 #1859f0;
+  color: #ffffff;
+}
+
+.projects-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 160px;
+  margin-top: 2px;
+  background: #f4f4f4;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  padding: 4px 0;
+  z-index: 6;
+}
+
+.projects-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+  color: #1f1f1f;
+  cursor: default;
+  user-select: none;
+}
+
+.projects-menu-item:hover {
+  background: #0a61d8;
+  color: #ffffff;
+}
+
+.projects-menu-item.is-disabled {
+  color: #9a9a9a;
+}
+
+.projects-menu-item.is-disabled:hover {
+  background: transparent;
+  color: #9a9a9a;
+}
+
+.projects-menu-divider {
+  height: 1px;
+  margin: 4px 4px;
+  background: #b7b7b7;
+  box-shadow: inset 0 1px 0 #ffffff;
+}
+
+.projects-ig {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100%;
+}
+
+.projects-ig-sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 28px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  background: #0b0f14;
+}
+
+.projects-ig-logo {
+  font-family: "Brush Script MT", "Lucida Handwriting", "Segoe Script", cursive;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.projects-ig-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.projects-ig-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #d8d8d8;
+}
+
+.projects-ig-nav-item.is-active {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.projects-ig-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.projects-ig-footer {
+  margin-top: auto;
+  font-size: 12px;
+  color: #b8b8b8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1;
+}
+
+.projects-ig-nav-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: invert(1);
+  opacity: 0.85;
+}
+
+.projects-ig-nav-item.is-active .projects-ig-nav-icon {
+  opacity: 1;
+}
+
+.projects-ig-nav-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.projects-ig-footer-icon {
+  width: 18px;
+  height: 12px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  color: #f2f2f2;
+}
+
+.projects-ig-footer-icon::before {
+  content: "";
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-6px);
+  box-shadow: 0 5px 0 currentColor, 0 10px 0 currentColor;
+}
+
+.projects-ig-main {
+  padding: 32px 30px 40px;
+  overflow: auto;
+}
+
+.projects-ig-profile {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 28px;
+  align-items: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.projects-profile-ring {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: #0d1117;
+  border: 2px solid #2a2f36;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.projects-profile-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #0b0f14;
+}
+
+.projects-profile-note {
+  position: absolute;
+  top: -20px;
+  right: 12px;
+  background: #2a2f36;
+  color: #f0f0f0;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.projects-ig-username-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.projects-ig-username {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.projects-ig-settings-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(1);
+  opacity: 0.85;
+}
+
+.projects-ig-actions {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.projects-ig-button {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #2a2f36;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f2f2f2;
+  font-size: 12px;
+  cursor: default;
+  min-width: 140px;
+}
+
+.projects-ig-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #d8d8d8;
+}
+
+.projects-ig-stats strong {
+  margin-right: 4px;
+}
+
+.projects-ig-bio {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #d0d0d0;
+  line-height: 1.4;
+  max-width: 480px;
+}
+
+.projects-stories {
+  display: flex;
+  gap: 18px;
+  margin: 26px auto 18px;
+  max-width: 900px;
+}
+
+.project-story {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: #e4e4e4;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.project-story-ring {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #0d1117;
+  border: 2px solid #2a2f36;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.project-story-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #0b0f14;
+}
+
+.project-story-label {
+  max-width: 72px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.projects-ig-tabs {
+  display: flex;
+  gap: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 0 12px;
+  margin: 0 auto 16px;
+  max-width: 900px;
+  justify-content: center;
+}
+
+.projects-ig-tab {
+  border: none;
+  background: transparent;
+  color: #bdbdbd;
+  cursor: default;
+  padding: 4px;
+}
+
+.projects-ig-tab.is-active {
+  color: #ffffff;
+}
+
+.projects-ig-tab-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: contain;
+  filter: invert(1);
+  opacity: 0.7;
+}
+
+.projects-ig-tab-icon.is-grid {
+  filter: none;
+  position: relative;
+}
+
+.projects-ig-tab-icon.is-grid::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  box-shadow:
+    6px 0 0 currentColor,
+    12px 0 0 currentColor,
+    0 6px 0 currentColor,
+    6px 6px 0 currentColor,
+    12px 6px 0 currentColor,
+    0 12px 0 currentColor,
+    6px 12px 0 currentColor,
+    12px 12px 0 currentColor;
+}
+
+.projects-ig-tab.is-active .projects-ig-tab-icon {
+  opacity: 1;
+}
+
+.projects-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.project-tile {
+  position: relative;
+  border: none;
+  padding: 0;
+  background: #1b1f26;
+  border-radius: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.project-tile img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  display: block;
+}
+
+.project-tile-overlay {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+  color: #ffffff;
+  font-size: 11px;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.project-tile:hover .project-tile-overlay {
+  opacity: 1;
+}
+
+@keyframes myprojectsAddressLoad {
+  0% {
+    transform: scaleX(0);
+  }
+  12.00% {
+    transform: scaleX(0.301);
+  }
+  57.5% {
+    transform: scaleX(0.344);
+  }
+   69.5% {
+    transform: scaleX(1.0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}

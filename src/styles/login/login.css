@@ -1,0 +1,141 @@
+/* ====== LOGIN — MitchIvin XP replica ====== */
+
+:root {
+  --login-divider-gap: 72px;
+  --login-separator-opacity: 0.35;
+}
+
+#login-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100%;
+  background: linear-gradient(180deg, #0a2f8f 0%, #0a2f8f 70%, #0a2f8f 100%);
+  color: #ffffff;
+  overflow: hidden;
+  z-index: 3000;
+}
+
+.login-screen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  box-sizing: border-box;
+}
+
+.login-divider {
+  position: absolute;
+  top: 22%;
+  bottom: 22%;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgba(186, 215, 248, 0) 0%,
+    #bad7f8 40%,
+    #bad7f8 60%,
+    rgba(186, 215, 248, 0) 100%
+  );
+  opacity: var(--login-separator-opacity);
+}
+
+.login-screen-inner {
+  position: relative;
+  flex: 1;
+  background: linear-gradient(180deg, #5f84df 0%, #567cd7 50%, #4d6ec9 100%);
+  z-index: 2;
+}
+
+#login-screen.login-screen--shutdown {
+  background: linear-gradient(
+    180deg,
+    #000000 0%,
+    #000000 10%,
+    #7f7f7f 10%,
+    #7f7f7f 90%,
+    #000000 90%,
+    #000000 100%
+  );
+}
+
+#login-screen.login-screen--shutdown .login-screen-inner {
+  background: #808080;
+  box-shadow: none;
+}
+
+#login-screen.login-screen--shutdown .login-screen-center {
+  position: relative;
+  z-index: 2;
+  filter: grayscale(1) brightness(0.85);
+}
+
+#login-screen.login-screen--shutdown .back-gradient {
+  background: transparent;
+  color: inherit;
+}
+
+#login-screen.login-screen--shutdown .back-gradient:before {
+  background: none;
+}
+
+#login-screen.login-screen--shutdown .back-gradient .user img {
+  border-color: rgba(255, 255, 255, 0.385);
+  filter: grayscale(1);
+}
+
+#login-screen.login-screen--shutdown .back-gradient .user-title {
+  color: inherit;
+}
+
+#login-screen.login-screen--shutdown .login-screen,
+#login-screen.login-screen--shutdown .turn-off,
+#login-screen.login-screen--shutdown .right-bottom {
+  z-index: 3;
+  filter: grayscale(1) brightness(0.65);
+}
+
+.welcome-message {
+  color: #ffffff;
+  display: none;
+  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-size: 3rem;
+  left: 50%;
+  letter-spacing: 2px;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  text-shadow: 1px 1px 3px #000;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.7s;
+  z-index: 4000;
+}
+
+.welcome-message.visible {
+  display: block;
+  opacity: 1;
+}
+
+
+
+/* mobile layout */
+@media (max-width: 900px) {
+  #login-screen,
+  .login-screen,
+  .welcome-message {
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .login-screen-inner {
+    inset: 80px 0;
+  }
+
+}

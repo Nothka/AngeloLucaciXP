@@ -1,0 +1,406 @@
+/* Generic Window Styles */
+.window {
+  --window-frame-edge-color: rgb(8, 49, 217);
+  --window-frame-color: var(--window-frame-edge-color);
+  --window-frame-color-inactive: #0e60ca;
+  --window-frame-edge-color-inactive: #0e60ca;
+  --window-header-color: linear-gradient(rgb(0, 88, 238) 0%, rgb(46, 135, 237) 4%, rgb(40, 142, 255) 6%, rgb(18, 125, 255) 8%, rgb(3, 111, 252) 10%, rgb(2, 98, 238) 14%, rgb(0, 87, 229) 20%, rgb(0, 84, 227) 24%, rgb(0, 85, 235) 56%, rgb(0, 91, 245) 66%, rgb(2, 106, 254) 76%, rgb(0, 98, 239) 86%, rgb(0, 82, 214) 92%, rgb(4, 66, 216) 96%, var(--window-frame-edge-color) 100%);
+  --window-header-color-inactive: var(--window-frame-edge-color-inactive);
+  --window-header-border-color: var(--window-frame-edge-color);
+  --window-header-border-color-inactive: var(--window-frame-edge-color-inactive);
+  --window-frame-width: 1px;
+  --window-header-height: 28px;
+  --window-body-inset: 2px;
+  --window-chrome-inset: calc(var(--window-frame-width) + var(--window-body-inset));
+  --window-surface-color: #E0DFE3;
+  position: absolute;
+  min-width: 400px; /* Typical XP default width */
+  min-height: 300px; /* Typical XP default height */
+  background: var(--window-frame-color);
+  border: none;
+  padding: 0 var(--window-chrome-inset) var(--window-chrome-inset);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* Subtle drop shadow */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px 6px 0 0; /* Rounded top corners */
+}
+
+.window-resize-handles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.window-resize-handle {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+  z-index: 5;
+}
+
+.window-resize-handle--n {
+  top: 0;
+  left: 6px;
+  right: 6px;
+  height: 6px;
+  cursor: n-resize;
+}
+
+.window-resize-handle--s {
+  bottom: 0;
+  left: 6px;
+  right: 6px;
+  height: 6px;
+  cursor: s-resize;
+}
+
+.window-resize-handle--e {
+  top: 6px;
+  bottom: 6px;
+  right: 0;
+  width: 6px;
+  cursor: e-resize;
+}
+
+.window-resize-handle--w {
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  width: 6px;
+  cursor: w-resize;
+}
+
+.window-resize-handle--ne {
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: ne-resize;
+}
+
+.window-resize-handle--nw {
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nw-resize;
+}
+
+.window-resize-handle--se {
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: se-resize;
+}
+
+.window-resize-handle--sw {
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: sw-resize;
+}
+
+.window.maximized {
+  --window-frame-width: 0px;
+  --window-body-inset: 0px;
+  width: 100vw !important;
+  height: calc(100vh - 30px) !important; /* Adjust for taskbar height */
+  top: 0 !important;
+  left: 0 !important;
+  border-radius: 0;
+  box-shadow: none;
+  border: none; /* Maximized windows typically have no border */
+}
+
+.window-header {
+  height: var(--window-header-height); /* Standard XP title bar height */
+  background: var(--window-header-color);
+  padding: 10px calc(4px + var(--window-chrome-inset)); /* Adjusted padding */
+  margin: 0 calc(-1 * var(--window-chrome-inset));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  font-size: 11px; /* Precise XP font size */
+  font-weight: bold; /* Bold font for header title */
+  cursor: move;
+  user-select: none;
+  text-shadow: 1px 1px #000000; /* Stronger text shadow for XP look */
+}
+
+.window.is-inactive {
+  --window-frame-color: var(--window-frame-color-inactive);
+  --window-frame-edge-color: var(--window-frame-edge-color-inactive);
+  --window-header-color: var(--window-header-color-inactive);
+  --window-header-border-color: var(--window-header-border-color-inactive);
+}
+
+.window.is-inactive .window-header {
+  background: var(--window-header-color);
+  color: #f4f8ff;
+  text-shadow: 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+.window-title {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Smaller gap */
+  flex-grow: 1;
+}
+
+.window-title-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.window-buttons {
+  display: flex;
+  gap: 0; /* Buttons are flush in XP */
+  align-items: center;
+}
+
+.window-btn {
+  width: 22px; /* Adjusted width */
+  height: 22px; /* Adjusted height */
+  padding: 0;
+  border: none; /* No visible border in normal state */
+  background: none; /* No background in normal state */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0; /* Remove margin */
+  transition: background 120ms ease, border 120ms ease;
+}
+
+.window-btn:hover {
+ filter: brightness(1.25);
+}
+
+.window-btn:active {
+  background: #C0C0C0; /* Darker gray when pressed */
+  border-top: 1px solid #808080; /* Invert borders on active */
+  border-left: 1px solid #808080;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+}
+
+.window-btn img {
+  width: 18px; /* Adjusted icon size */
+  height: 18px;
+}
+.window-menu-bar {
+  display: flex;
+  align-items: stretch;
+  min-height: 22px;
+  background: linear-gradient(180deg, #f8f8f8 0%, #ececec 100%);
+  border-bottom: 1px solid #d3d3d3;
+  color: #1f1f1f;
+  font-size: 12px;
+  user-select: none;
+}
+
+.window-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: #2b2b2b;
+  font-size: 12px;
+  padding: 0 10px;
+  cursor: default;
+}
+
+.window-menu-btn:hover {
+  background: #2d63f0;
+  box-shadow: inset 0 2px 0 #1859f0;
+  color: #ffffff;
+}
+
+.window-menu-btn.is-muted {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
+}
+
+.window-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  background:linear-gradient(180deg, #f1f1f1 0%, #d6d6d6 100%);
+  border-bottom: 1px solid #d6d6d6;
+  flex-wrap: wrap;
+}
+
+.window-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.window-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  min-height: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: #103a82;
+  font-size: 12px;
+  cursor: default;
+  box-shadow: none;
+  opacity: 0.6;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.window-nav-btn img {
+  width: 18px;
+  height: 18px;
+  
+}
+
+
+.window-theme-toggle {
+  padding: 6px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #e5edff 45%, #d6e3ff 100%);
+  border: 1px solid #9fb4dc;
+  border-radius: 2px;
+  color: #0f3f8c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset -1px -1px 0 #fdfdfd, inset 1px 1px 0 #c8d3ec;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.window-theme-toggle:active {
+  box-shadow: inset 1px 1px 0 #b8c8e6;
+}
+
+.window-address {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 6px 8px;
+  background: linear-gradient(180deg, #f1f1f1 0%, #d6d6d6 100%);
+  border-bottom: 1px solid #cfcfcf;
+  font-size: 12px;
+  color: #1e1e1e;
+}
+
+.address-label {
+  font-weight: 600;
+  color: #2a2a2a;
+  user-select: none;
+  opacity: 0.6;
+}
+
+.address-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #ffffff;
+  border: 1px solid #9aa7c2;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+
+.address-bar img {
+  width: 14px;
+  height: 14px;
+}
+
+.address-bar input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 12px;
+  color: #1f396a;
+  background: transparent;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE 10+ */
+  user-select: none;         /* Standard */
+}
+
+.address-bar-text {
+  width: 100%;
+  font-size: 12px;
+  color: #1f396a;
+  background: transparent;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE 10+ */
+  user-select: none;         /* Standard */
+}
+
+.address-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a7a7a;
+  background: linear-gradient(180deg, #f1f1f1 0%, #d6d6d6 100%);
+  border: none;
+  border-radius: 2px;
+  box-shadow: none;
+  cursor: default;
+  user-select: none;
+}
+
+.address-go img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  filter: grayscale(1) brightness(1);
+}
+
+.window-content {
+  flex-grow: 1;
+  padding: 12px;
+  font-size: 14px;
+  color: #000;
+  overflow: auto;
+  background: #fdfdfd;
+
+}
+
+.window-content h2 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.window-content ul {
+  padding-left: 18px;
+  margin-bottom: 8px;
+}
+
+
+@media (max-width: 768px) {
+  .window {
+    width: calc(100% - 20px);
+    left: 10px !important;
+    top: 60px !important;
+  }
+
+  .window-content {
+    max-height: 260px;
+  }
+
+  .task-button {
+    min-width: 90px;
+  }
+}

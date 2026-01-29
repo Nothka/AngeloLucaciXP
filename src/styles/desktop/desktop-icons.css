@@ -1,0 +1,55 @@
+/* iconițe desktop */
+
+.desktop-icons {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1;
+}
+
+.icon {
+  width: 110px;
+  text-align: center;
+  user-select: none;
+  background: none;
+  border: 1px solid transparent;
+  color: #fff;
+  padding: 4px;
+}
+
+.icon:hover {
+  background: rgba(0, 0, 255, 0.1);
+  border: 1px solid rgba(0, 0, 255, 0.2);
+}
+
+.icon.active {
+  background: rgba(36, 80, 255, 0.3);
+  border: 1px solid rgba(0, 0, 255, 0.4);
+}
+
+.icon.is-selected {
+  background: rgba(36, 80, 255, 0.3);
+  border: 1px solid rgba(0, 0, 255, 0.4);
+}
+
+.icon-img {
+  width: 46px;
+
+  margin: 0 auto 6px;
+  display: grid;
+  place-items: center;
+}
+
+.icon-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.icon span {
+  font-size: 13px;
+  text-shadow: 1px 1px 2px #000;
+}

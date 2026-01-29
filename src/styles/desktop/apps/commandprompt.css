@@ -1,0 +1,65 @@
+.command-prompt-window .window-header {
+  height: 24px; /* Standard XP title bar height */
+  background: linear-gradient(
+    180deg,
+    #579ffd  0%,
+    #0750ed 20%,
+    #0750ed 70%,
+    #0750ed 100%
+  ); /* Vibrant XP blue gradient */
+  padding: 0 4px; /* Adjusted padding */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  font-size: 11px; /* Precise XP font size */
+  font-weight: bold; /* Bold font for header title */
+  cursor: move;
+  border-bottom: 1px solid #0640B2; /* Darker blue border for depth */
+  user-select: none;
+  text-shadow: 1px 1px #000000; /* Stronger text shadow for XP look */
+}
+
+.command-prompt-window .window-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.command-prompt-window .window-content {
+  background-color: black;
+  color: white;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  padding: 10px;
+  overflow-y: auto;
+  height: calc(100% - 28px); /* Full height minus header */
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.command-prompt-window .window-title-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.command-input {
+  display: flex;
+}
+
+.command-input span {
+  white-space: pre;
+}
+
+.command-input input {
+  flex: 1;
+  background-color: black;
+  color: white;
+  border: none;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+

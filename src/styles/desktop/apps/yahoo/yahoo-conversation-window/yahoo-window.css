@@ -1,0 +1,66 @@
+.yahoo-conversation-window {
+  --window-frame-edge-color: #5a1e57;
+  --window-frame-color: #8f3c87;
+  --window-frame-color-inactive: #a778a3;
+  --window-frame-edge-color-inactive: #a778a3;
+  --window-header-color: linear-gradient(180deg, #c07ab8 0%, #a3519a 45%, #7a2f74 100%);
+  --window-header-color-inactive: #b987b5;
+  --window-surface-color: #7a2f74;
+  --window-header-height: 24px;
+  min-width: 650px;
+  min-height: 650px;
+  overflow: hidden;
+}
+
+.yahoo-conversation-window .window-header {
+  height: auto;
+  min-height: 30px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  overflow: visible;
+}
+
+.yahoo-conversation-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+  padding: 3px calc(6px + var(--window-chrome-inset)) 3px;
+}
+
+.yahoo-conversation-title-text {
+  font-weight: 600;
+  font-size: 11px;
+  color: #f5ecff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.yahoo-conversation-title-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.yahoo-conversation-window .window-buttons .window-btn {
+  width: 14px;
+  height: 14px;
+}
+
+.yahoo-conversation-window .window-buttons {
+  gap: 5px;
+}
+
+.yahoo-conversation-window .window-buttons .window-btn img {
+  width: 10px;
+  height: 10px;
+  filter: brightness(0) invert(1);
+}
+
+.yahoo-conversation-body-wrapper {
+  flex: 1;
+  background: #7a2f74;
+  display: flex;
+  min-height: 0;
+}

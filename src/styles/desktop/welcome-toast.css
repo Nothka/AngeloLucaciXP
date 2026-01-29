@@ -1,0 +1,86 @@
+/* XP-style welcome balloon */
+.welcome-toast {
+  position: fixed;
+  right: 72px;
+  bottom: 38px;
+  width: 245px;
+  background: linear-gradient(180deg, #fff6c9 0%, #eeebe2 100%);
+  border: 1px solid #c7a43a;
+  border-radius: 6px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font-family: Tahoma, Arial, sans-serif;
+  color: #2f2f2f;
+  z-index: 12000;
+  transform-origin: bottom right;
+  user-select: none; /* Added this */
+}
+
+.welcome-toast::after {
+  content: "";
+  position: absolute;
+  bottom: -12px;
+  right: 32px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 12px solid #fff6c9;
+  filter: drop-shadow(0 -1px 0 #ffe395);
+}
+
+.welcome-toast__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 6px 10px;
+}
+
+.welcome-toast__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.welcome-toast__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e2a3e;
+}
+
+.welcome-toast__close {
+  border: none;
+  background: transparent;
+  color: #1e2a3e;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.welcome-toast__body {
+  padding: 0 10px 10px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.welcome-toast__text {
+  margin: 0 0 6px 0;
+}
+
+.welcome-toast__links {
+  margin: 0;
+}
+
+.welcome-toast__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #1a4fad;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.welcome-toast__link:hover {
+  color: #0f377d;
+}

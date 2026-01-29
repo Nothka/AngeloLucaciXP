@@ -1,0 +1,353 @@
+.yahoo-window {
+  --window-frame-edge-color: #7e78b3;
+  --window-frame-color:  #8a3f86;
+  --window-frame-color-inactive: #7f7a9d;
+  --window-frame-edge-color-inactive: #7f7a9d;
+  --window-header-color: linear-gradient(180deg, #9f4a97 0%, #8a3f86 55%, #9f4a97 100%);
+  --window-header-color-inactive: #8d87b1;
+  --window-surface-color: #8a3f86;
+  --window-header-height: 24px;
+  min-width: 280px;
+  min-height: 680px;
+  overflow: visible;
+}
+
+.yahoo-window .window-header {
+  height: auto;
+  min-height: 44px;
+  padding: 0;
+  color: #fff;
+  font-weight: 600;
+  text-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+.yahoo-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+  padding: 4px calc(6px + var(--window-chrome-inset)) 2px;
+  z-index: 1;
+}
+
+.yahoo-header-menu {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-weight: 300;
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0 calc(6px + var(--window-chrome-inset)) 4px;
+  font-size: 11px;
+  color: #ffffff;
+  position: relative;
+}
+
+.yahoo-header-menu button {
+  background: none;
+  border: none;
+  padding: 1px 4px;
+  font: inherit;
+  color: inherit;
+  border-radius: 0;
+  cursor: default;
+  user-select: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.yahoo-header-menu button:hover {
+  background: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.yahoo-header-menu button.is-active {
+  background: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+}
+
+.yahoo-header-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  min-width: 260px;
+  background: #f4f1f6;
+  color: #2b2b2b;
+  border: 1px solid #b8a9bb;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+  padding: 4px 0;
+  z-index: 5;
+}
+
+.yahoo-header-dropdown-item {
+  display: grid;
+  grid-template-columns: 14px 1fr auto 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.yahoo-header-dropdown-item:hover {
+  background: #c9d8f2;
+  color: #1a1a1a;
+}
+
+.yahoo-header-dropdown-item.is-disabled:hover {
+  background: transparent;
+  color: #a5a5a5;
+}
+
+.yahoo-header-dropdown-item.is-disabled {
+  color: #a5a5a5;
+}
+
+.yahoo-header-dropdown-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  display: inline-block;
+}
+
+.yahoo-header-dropdown-marker.is-selected {
+  background: #2b2b2b;
+}
+
+.yahoo-header-dropdown-shortcut,
+.yahoo-header-dropdown-submenu {
+  font-size: 11px;
+  color: #5a5a5a;
+}
+
+.yahoo-header-dropdown-item.is-disabled .yahoo-header-dropdown-shortcut,
+.yahoo-header-dropdown-item.is-disabled .yahoo-header-dropdown-submenu {
+  color: #bcbcbc;
+}
+
+.yahoo-header-dropdown-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: #d9ccd9;
+}
+
+.yahoo-window .window-title {
+  gap: 0;
+  padding: 3px;
+}
+
+.yahoo-title-icon {
+  width: auto;
+  height: 20px;
+  max-width: 220px;
+  object-fit: contain;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.yahoo-window .window-buttons .window-btn {
+  width: 14px;
+  height: 14px;
+}
+
+.yahoo-window .window-buttons {
+  gap: 5px;
+}
+
+.yahoo-window .window-buttons .window-btn img {
+  width: 10px;
+  height: 10px;
+  filter: brightness(0) invert(1);
+}
+
+.yahoo-body {
+  flex: 1;
+  background: var(--window-surface-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+ 
+  color: #f5ecff;
+}
+
+.yahoo-body.is-signed-in {
+  align-items: stretch;
+
+}
+
+.yahoo-login-image {
+  width: 120px;
+  max-width: 100%;
+  margin: 0px 0px 20px 0;
+  height: auto;
+  display: block;
+  transform:scale(1.2);
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+.yahoo-login-image.is-afterlogin {
+  margin-left: 25px;
+}
+
+.yahoo-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.yahoo-label {
+  width: 180px;
+  font-size: 12px;
+  color: #f5ecff;
+}
+
+.yahoo-input {
+  width: 180px;
+  padding: 4px 6px;
+  border: 1px solid #e2d2ef;
+  background: #ffffff;
+  box-shadow: inset 1px 1px 0 #efe7f6;
+  font-size: 12px;
+}
+
+.yahoo-link {
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-size: 12px;
+  color: #cfe9ff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.yahoo-options {
+  display: grid;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 2px;
+  width: 220px;
+}
+
+.yahoo-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #f5ecff;
+  white-space: nowrap;
+}
+
+.yahoo-accelerator {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.yahoo-option input {
+  width: 12px;
+  height: 12px;
+}
+
+.yahoo-signin {
+  align-self: center;
+  margin: 16px 0 8px;
+  padding: 4px 20px;
+  font-size: 12px;
+  color: #f5eefe;
+  background: linear-gradient(180deg, #6b2f72 0%, #51245c 55%, #3f1c47 100%);
+  border: 1px solid #a07bb5;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px #5a2a6a, inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.yahoo-signin:active {
+  box-shadow: 0 0 0 2px #5a2a6a, inset 1px 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.yahoo-signin:hover {
+  box-shadow: 0 0 0 2px #d8842a, inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+  color: #fdf3ff;
+}
+
+.yahoo-language {
+  width: 180px;
+  margin: 2px 0 8px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: #f5ecff;
+}
+
+.yahoo-language-select {
+  width: 100%;
+  padding: 3px 4px;
+  border: 1px solid #e2d2ef;
+  background: #ffffff;
+  font-size: 12px;
+  color: #3b3b3b;
+}
+
+.yahoo-links-bottom {
+  display: grid;
+  gap: 6px;
+  margin-top: 100px;
+}
+
+.yahoo-links-bottom .yahoo-link {
+  align-self: center;
+}
+
+.yahoo-signing {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 8px;
+  text-align: center;
+}
+
+.yahoo-signing-image {
+  width: 120px;
+  height: auto;
+  margin-top: 8px;
+  transform: none;
+}
+
+.yahoo-signing-text {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: #f5ecff;
+}
+
+.yahoo-signing-user {
+  font-weight: 600;
+}
+
+.yahoo-signing-cancel {
+  padding: 4px 18px;
+  font-size: 12px;
+  color: #f5eefe;
+  background: linear-gradient(180deg, #6b2f72 0%, #51245c 55%, #3f1c47 100%);
+  border: 1px solid #a07bb5;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px #5a2a6a, inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.yahoo-signing-cancel:hover {
+  box-shadow: 0 0 0 2px #d8842a, inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+  color: #fdf3ff;
+}

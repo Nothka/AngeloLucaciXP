@@ -1,0 +1,43 @@
+.taskbar-app {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  width: 160px;
+  height: 24px;
+  background: #4295e9;
+  border: 1px solid #33749c;
+  box-shadow: inset 1px 1px 1px 0px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: normal;
+  cursor: pointer;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-right: 2px;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+  border-radius: 4px;
+}
+
+.taskbar-app:hover {
+  background: linear-gradient(to bottom, #4295e9 0%, #8aadf1 100%);
+}
+
+.taskbar-app.active {
+  background: linear-gradient(to bottom, #0e57bf 0%, #2363b5 100%);
+  border: 1px solid #234784;
+  color: white;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.4);
+}
+
+.taskbar-app-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.taskbar-app-title {
+  flex-grow: 1;
+  text-align: left;
+}

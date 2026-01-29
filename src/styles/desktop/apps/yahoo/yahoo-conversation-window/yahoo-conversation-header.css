@@ -1,0 +1,146 @@
+.yahoo-conversation-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #f5ecff;
+  padding: 4px 8px 8px;
+  background:#7a2f74;
+  border-bottom: 1px solid rgba(58, 17, 55, 0.7);
+
+}
+
+.yahoo-conversation-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.yahoo-conversation-menu-item {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  user-select: none;
+  border-radius: 3px;
+}
+
+.yahoo-conversation-menu-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.yahoo-conversation-tools {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 2px 2px 0;
+}
+
+.yahoo-conversation-tool {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  cursor: default;
+  user-select: none;
+  width: 74px;
+  position: relative;
+}
+
+.yahoo-conversation-tool.is-right-start {
+  margin-left: auto;
+}
+
+.yahoo-conversation-tool.is-divider::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 2px;
+  bottom: 6px;
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.45),
+    rgba(255, 255, 255, 0)
+  );
+  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.3);
+}
+
+
+.yahoo-conversation-tool.is-faded {
+  opacity: 0.4;
+}
+
+.yahoo-conversation-tool-icon-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yahoo-conversation-tool-icon {
+  width: 42px;
+  height: 42px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+}
+
+.yahoo-conversation-tool-label {
+  font-size: 11px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.yahoo-conversation-tool-caret {
+  position: absolute;
+  right: -8px;
+  top: 52%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #807e81;
+  transform: translateY(-50%);
+}
+
+.yahoo-conversation-tool.is-divider .yahoo-conversation-tool-caret {
+  right: -18px;
+}
+
+.yahoo-conversation-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.yahoo-conversation-contact-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffcf4d;
+  border: 1px solid #ffbc63;
+}
+
+.yahoo-conversation-contact-name {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}

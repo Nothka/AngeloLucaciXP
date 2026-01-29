@@ -1,0 +1,153 @@
+/* ====== BOOT ====== */
+
+.boot-body {
+  position: fixed;
+  inset: 0;
+  height: 100%;
+  background: #000;
+  color: #fff;
+font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  overflow: hidden;
+}
+
+.boot-screen {
+  position: absolute;
+  inset: 0;
+  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  
+}
+
+.boot-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  text-align: center;
+}
+
+.boot-brand .xp-logo-lockup {
+  padding: 0;
+  gap: 12px;
+  align-items: center;
+  user-select: none;
+}
+
+.boot-brand .xp-logo-image {
+  width: min(180px, 38vw);
+  height: auto;
+  left: 0;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.65));
+  user-select: none;
+}
+
+.boot-brand .xp-wordmark {
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  color: #f8f8f8;
+  text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.65);
+  user-select: none;
+}
+
+.boot-brand .xp-wordmark-name {
+  font-size: clamp(32px, 4.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+.boot-brand .xp-wordmark-xp {
+  font-size: clamp(48px, 3.6vw, 30px);
+  color: #d15c02;
+  bottom: 40px;
+  font-weight: 500;
+  transform: none;
+   transform: translateY(-22px);
+}
+
+.boot-brand .xp-wordmark-role {
+  font-size: clamp(15px, 2.2vw, 18px);
+  font-weight: 400;
+  color: #e6e6e6;
+  text-shadow: 1px 2px 3px rgba(0, 0, 0, 0.55);
+  margin-top: -4px;
+}
+
+.boot-bar {
+  margin-top: 12px;
+}
+
+.boot-bar-track {
+  position: relative;
+  width: min(160px, 50vw);
+  height: 16px;
+  border: 2px solid #bdbdbd;
+  border-radius: 5px;
+  background: #0a0a0a;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px #3b3b3b, inset 0 0 0 1px #151515;
+}
+
+.boot-bar-fill {
+  position: absolute;
+  top: 50%;
+  left: -50px;
+  display: flex;
+  gap: 3px;
+  transform: translateY(-50%);
+  animation: boot-block 2.8s linear infinite;
+}
+
+.boot-bar-block {
+  width: 14px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid #1b2e73;
+  background: linear-gradient(
+    to bottom,
+    #2d55d6 0%,
+    #8ca5f7 28%,
+    #4567cd 55%,
+    #2f4fc8 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 5px rgba(36, 72, 170, 0.5);
+}
+
+@keyframes boot-block {
+  0% {
+    left: -50px;
+  }
+  100% {
+    left: calc(100% + 50px);
+  }
+}
+
+.boot-footnote {
+  position: absolute;
+  left: 100px;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 16px;
+  color: #dcdcdc;
+  text-shadow: 1px 2px 3px rgba(0, 0, 0, 0.75);
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .boot-footnote {
+    left: 16px;
+    bottom: 16px;
+    font-size: 12px;
+  }
+}

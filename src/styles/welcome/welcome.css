@@ -1,0 +1,19 @@
+
+.welcome-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
+.welcome-word {
+  font-size: 48px;
+  font-weight: 700;
+  font-style: italic;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+  user-select: none;
+}

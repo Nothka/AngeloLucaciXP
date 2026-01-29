@@ -1,0 +1,51 @@
+.tray-content {
+  /* Box Model & Layout */
+  position: relative;
+  height: 30px; 
+  /* width: auto; Let the icons and time dictate the width */
+  padding: 0 0 0 12px; /* Left padding for icon spacing, no right padding */
+  display: flex; /* Enables horizontal arrangement of icons and time */
+  align-items: center; /* Vertically centers the items */
+  justify-content: flex-start; /* Aligns contents to the start of the tray area */
+  /* Background - The iconic XP blue gradient */
+  background: linear-gradient(
+    180deg,
+    #1bb4ec 0%, 
+    #2782dd 20%,
+    #159dcf  95%,
+    #1bb4ec 100% 
+  );
+
+  /* Borders/Shadows - The 'inset' look */
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.22), /* Left highlight */
+    inset 0 1px 0 rgba(255, 255, 255, 0.35), /* Top highlight */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25); /* Bottom dark line */
+  
+  z-index: 2;
+}
+
+.time {
+  /* Box Model & Alignment */
+  height: 100%;
+  width: 60px; /* Fixed width for the time text container */
+  white-space: nowrap; /* Keep time on one line */
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+
+  /* Typography */
+  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-size: 10px;
+  line-height: 16.5px;
+  font-family: Tahoma, sans-serif;
+  color: #fff; 
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.6); /* XP text shadow */
+
+  /* Appearance */
+  background: transparent; 
+  border-left: none;
+  box-shadow: none;
+}

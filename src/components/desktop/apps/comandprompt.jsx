@@ -1,0 +1,13 @@
+import React from "react";
+import commandprompt from "../../../../../assets/startmenu/commandprompt.png";
+import "../../../../../styles/desktop/taskbar/startmenu/apps/comandprompt.css";
+function ControlPanel() {
+  return (
+    <div className="start-menu-app">
+      <img src={commandprompt} alt="commandprompt" />
+      <p>Control Panel</p>
+    </div>
+  );
+}
+
+export default ControlPanel;

@@ -1,0 +1,27 @@
+
+
+
+@import "./styles/boot/boot.css";
+@import "./styles/login/login-brand.css";
+@import "./styles/login/login.css";
+@import "./styles/header/header.css";
+@import "./styles/footer/footer.css";
+@import "./styles/boot/shutdown.css";
+@import "./styles/desktop/desktop.css";
+@import "./styles/desktop/taskbar/buttons/button.css";
+@import "./styles/desktop/taskbar/taskbar.css";
+@import "./styles/desktop/taskbar/tray.css";
+@import "./styles/welcome/welcome.css";
+@import "./styles/overlay.css";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  
+}
+html,
+body,
+#root {
+  height: 100%;
+}

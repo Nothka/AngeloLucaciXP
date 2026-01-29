@@ -1,0 +1,222 @@
+/* startmenu.css */
+
+.start-menu {
+  position: fixed;
+  bottom: 30px; /* align to taskbar height */
+  left: 0;
+  width: 380px;
+  height: 480px;
+  display: flex;
+  flex-direction: column;
+  font-family: "Tahoma", Arial, sans-serif;
+  color: #000;
+  background: #f0f0f0;
+  border-radius: 6px;
+  overflow: visible;
+  z-index: 12000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.start-menu-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: 0;
+  overflow: visible;
+}
+
+.start-menu-left {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+ 
+}
+
+.pinned-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.start-menu-all-programs {
+  position: relative; /* Added this */
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center horizontally */
+  gap: 8px;
+  padding: 8px 10px;
+  font-weight: bold;
+  font-size: 12px;
+  color: #000;
+  margin-top: 6px;
+  border-top: 1px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent,
+    #e0e0e0,
+    transparent
+  );
+  border-image-slice: 1;
+  white-space: nowrap; /* Keep on one line */
+  text-align: center; /* Fallback for centering if flex fails or for other content */
+  user-select: none;
+}
+
+.start-menu-all-programs:hover {
+   background: #316ac5;
+  color: #fff;
+}
+
+.start-menu-all-programs::after {
+  position: absolute;
+  right: 35px; /* Adjust as needed */
+  top: 50%;
+  transform: translateY(-50%);
+  content: "";
+  width: 18px;
+  height: 18px;
+  background: url("../../../../assets/greentriangle.png") no-repeat center;
+  background-size: contain;
+  filter:
+    drop-shadow(1px 0 0 rgba(18, 90, 22, 0.8))
+    drop-shadow(-1px 0 0 rgba(18, 90, 22, 0.8))
+    drop-shadow(0 1px 0 rgba(18, 90, 22, 0.8))
+    drop-shadow(0 -1px 0 rgba(18, 90, 22, 0.8))
+    drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+}
+
+.start-menu-all-programs-accelerator {
+
+}
+
+.all-programs-menu {
+  position: absolute;
+  left: 100%;
+  bottom: 0;
+  min-width: 190px;
+  background: #f4f4f4;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+  padding: 6px 0;
+  display: none;
+  z-index: 30;
+}
+
+.all-programs-menu::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: 1px;
+  background: linear-gradient(180deg, #0353c9 0%, #0552ce 60%, #043a81 100%);
+  border-right: 1px solid rgba(120, 138, 160, 0.45);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.start-menu-all-programs:hover + .all-programs-menu,
+.all-programs-menu:hover {
+  display: block;
+}
+
+.all-programs-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #0f1f36;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.all-programs-menu-item:hover {
+  background: #316ac5;
+  color: #fff;
+}
+
+.all-programs-menu-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+
+
+.start-menu-right {
+  background: #d4e5f7;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.menu-item:hover {
+  background: #316ac5;
+  color: #fff;
+}
+
+.menu-item-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item-title {
+  font-weight: bold;
+  user-select: none;
+}
+
+.menu-item-subtitle {
+  font-size: 10px;
+  color: #666;
+  user-select: none;
+}
+
+.menu-item-left:hover .menu-item-subtitle {
+  color: #fff;
+}
+
+.menu-item-icon-img-left {
+  width: 32px;
+  height: 32px;
+}
+
+.menu-item-icon-img {
+  width: 24px;
+  height: 24px;
+}
+
+.with-gradient-border {
+  margin-bottom: 6px; /* Similar to margin-top for All Programs */
+  border-bottom: 1px solid;
+  border-image-source: linear-gradient(
+    to right,
+    transparent,
+    #e0e0e0,
+    transparent
+  );
+  border-image-slice: 1;
+}

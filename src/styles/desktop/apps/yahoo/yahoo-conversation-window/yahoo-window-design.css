@@ -1,0 +1,47 @@
+.yahoo-conversation-design {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  background: #7a2f74;
+  color: #f5ecff;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  padding: 4px 6px 8px;
+  box-sizing: border-box;
+}
+
+.yahoo-conversation-content {
+  --yahoo-conversation-side-width: 132px;
+  --yahoo-conversation-side-gap: 12px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--yahoo-conversation-side-width);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  column-gap: var(--yahoo-conversation-side-gap);
+  row-gap: 8px;
+  min-height: 0;
+}
+
+.yahoo-conversation-main {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.yahoo-conversation-footer-wrap {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.yahoo-conversation-side {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: stretch;
+}
+
+.yahoo-conversation-tabs-row {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}

@@ -1,0 +1,13 @@
+.tray-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Space between icons */
+}
+
+.tray-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  cursor: pointer;
+  image-rendering: -webkit-optimize-contrast;
+}
