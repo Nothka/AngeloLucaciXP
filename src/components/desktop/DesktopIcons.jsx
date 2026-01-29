@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import aboutIcon from "../../assets/startmenu/about.png";
 import myProjectsIcon from "../../assets/startmenu/myprojects.png";
 import contactIcon from "../../assets/startmenu/contact.png";
-import PdfIcon from "../../assets/startmenu/pdf.png";
+import PdfIcon from "../../assets/startmenu/Pdf.png";
 
 const desktopIcons = [
   { label: "About Me", icon: aboutIcon },
