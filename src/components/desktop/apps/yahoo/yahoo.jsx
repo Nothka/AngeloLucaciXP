@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import yahooIcon from "../../../../assets/yahoo/header/yahoomessenger-cropped.png";
-import yahooAppIcon from "../../../../assets/yahoo/yahooapp.png";
+import typingIcon from "../../../../assets/yahoo/yahoo-window/typing.png";
 import yahooLoginImage from "../../../../assets/yahoo/yahoo-login.gif";
 import yahooAfterLoginImage from "../../../../assets/yahoo/yahoo-afterlogin.gif";
 import messageSound from "../../../../assets/yahoo/audibles/message.mp3";
@@ -8,7 +8,7 @@ import buzzSound from "../../../../assets/yahoo/audibles/buzz.mp3";
 import minimizeIcon from "../../../../assets/yahoo/header/window-minimize.png";
 import maximizeIcon from "../../../../assets/yahoo/header/maximise.png";
 import closeIcon from "../../../../assets/yahoo/header/close.png";
-import YahooSignedIn from "./yahoosignedin";
+import YahooSignedIn, { DEFAULT_FRIEND_CONTACTS } from "./yahoosignedin";
 import YahooAddFriendsWindow from "./addfriends";
 import YahooConversationWindow from "./yahoo-conversation-window/yahoo-window";
 import { EMOTICON_CODES } from "./emoticonData";
@@ -16,6 +16,7 @@ import ResizeHandles from "../../ResizeHandles";
 import useWindowResize from "../../hooks/useWindowResize";
 import "../../../../styles/desktop/window.css";
 import "../../../../styles/desktop/apps/yahoo/yahoo.css";
+import snowmanIcon from "../../../../assets/yahoo/snowman.png";
 
 const WINDOW_SIZE = { width: 320, height: 520 };
 const SIGN_IN_LOGIN_DELAY = 80;
@@ -25,6 +26,12 @@ const EMOTICON_PATTERN = EMOTICON_CODES.map(escapeRegex)
   .sort((a, b) => b.length - a.length)
   .join("|");
 const EMOTICON_ONLY_REGEX = new RegExp(`^(?:\\s*(?:${EMOTICON_PATTERN})\\s*)+$`);
+const formatConversationTaskbarTitle = (name = "") => {
+  const trimmed = name.trim();
+  if (!trimmed) return "Conversation";
+  if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
+  return trimmed;
+};
 
 const MENU_DATA = {
   Messenger: [
@@ -111,8 +118,8 @@ const YahooWindow = ({
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState(getDefaultPosition);
   const [size, setSize] = useState(WINDOW_SIZE);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("angelo_lucaci");
+  const [password, setPassword] = useState("lucaci");
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [signedInUser, setSignedInUser] = useState("");
@@ -120,6 +127,9 @@ const YahooWindow = ({
   const [activeMenu, setActiveMenu] = useState(null);
   const [menuLeft, setMenuLeft] = useState(0);
   const [conversations, setConversations] = useState([]);
+  const [friendContacts, setFriendContacts] = useState(() =>
+    DEFAULT_FRIEND_CONTACTS.map((contact) => ({ ...contact }))
+  );
   const conversationsRef = useRef([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [isConversationWindowMinimized, setIsConversationWindowMinimized] = useState(false);
@@ -135,6 +145,7 @@ const YahooWindow = ({
   const headerMenuRef = useRef(null);
   const menuRef = useRef(null);
   const conversationIdRef = useRef(0);
+  const friendIdRef = useRef(DEFAULT_FRIEND_CONTACTS.length);
   const conversationMessageIdRef = useRef(0);
   const messageAudioRef = useRef(null);
   const buzzAudioRef = useRef(null);
@@ -246,6 +257,26 @@ const YahooWindow = ({
 
   const closeAddFriends = useCallback(() => {
     setIsAddFriendsOpen(false);
+  }, []);
+
+  const handleAddFriend = useCallback((name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setFriendContacts((prev) => {
+      const exists = prev.some(
+        (contact) => contact.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (exists) return prev;
+      return [
+        ...prev,
+        {
+          id: `yahoo-friend-${friendIdRef.current++}`,
+          name: trimmed,
+          icon: snowmanIcon,
+          isFriend: true,
+        },
+      ];
+    });
   }, []);
 
   const handleSignOut = () => {
@@ -577,8 +608,8 @@ const YahooWindow = ({
     if (!onConversationListChange) return;
     const entries = conversations.map((conversation) => ({
       id: conversation.id,
-      title: `Yahoo Messenger - ${conversation.contactName}`,
-      icon: yahooAppIcon,
+      title: formatConversationTaskbarTitle(conversation.contactName),
+      icon: typingIcon,
       minimized: isConversationWindowMinimized,
       isActive: conversation.id === activeConversationId && !isConversationWindowMinimized,
     }));
@@ -735,6 +766,7 @@ const YahooWindow = ({
               username={signedInUser || username.trim()}
               onOpenConversation={openConversation}
               onAddContact={openAddFriends}
+              friends={friendContacts}
             />
           ) : (
             <>
@@ -777,7 +809,7 @@ const YahooWindow = ({
                 />
                 <div className="yahoo-options">
                   <label className="yahoo-option">
-                    <input type="checkbox" />
+                    <input type="checkbox" defaultChecked />
                     <span>
                       <span className="yahoo-accelerator">R</span>emember my ID & password
                     </span>
@@ -860,6 +892,7 @@ const YahooWindow = ({
           isActive={isAddFriendsActive}
           isMinimized={isMinimized}
           onClose={closeAddFriends}
+          onAddFriend={handleAddFriend}
           onMouseDown={() => bringSubWindowToFront("addfriends")}
         />
       ) : null}

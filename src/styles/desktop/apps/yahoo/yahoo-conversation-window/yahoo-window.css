@@ -9,7 +9,7 @@
   --window-header-height: 24px;
   min-width: 650px;
   min-height: 650px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .yahoo-conversation-window .window-header {

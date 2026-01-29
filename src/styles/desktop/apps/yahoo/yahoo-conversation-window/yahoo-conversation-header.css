@@ -12,10 +12,10 @@
 .yahoo-conversation-menu {
   display: flex;
   align-items: center;
-  gap: 24px;
   font-size: 12px;
   font-weight: 500;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  position: relative;
 }
 
 .yahoo-conversation-menu-item {
@@ -26,12 +26,126 @@
   color: inherit;
   cursor: default;
   user-select: none;
-  border-radius: 3px;
 }
 
 .yahoo-conversation-menu-item:hover {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+}
+
+.yahoo-conversation-menu-item.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.yahoo-conversation-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  min-width: 200px;
+  background: #ffffff;
+  color: #2b2b2b;
+  border: 1px solid #b8a9bb;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+  padding: 4px 0;
+  z-index: 20;
+}
+
+.yahoo-conversation-submenu {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 0px);
+  min-width: 220px;
+  background: #ffffff;
+  color: #2b2b2b;
+  border: 1px solid #b8a9bb;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+  padding: 4px 0;
+  z-index: 25;
+}
+
+.yahoo-conversation-dropdown-item {
+  display: grid;
+  grid-template-columns: 12px 1fr auto 12px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.yahoo-conversation-dropdown-marker {
+  width: 10px;
+  height: 10px;
+  position: relative;
+}
+
+.yahoo-conversation-dropdown-marker.is-checked::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 2px;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid #2b2b2b;
+  border-bottom: 2px solid #2b2b2b;
+  transform: rotate(-45deg);
+}
+
+.yahoo-conversation-dropdown-item:hover {
+  background: #c9d8f2;
+  color: #1a1a1a;
+}
+
+.yahoo-conversation-dropdown-item.is-disabled {
+  color: #a5a5a5;
+}
+
+.yahoo-conversation-dropdown-item.is-disabled:hover {
+  background: transparent;
+  color: #a5a5a5;
+}
+
+.yahoo-conversation-dropdown-shortcut {
+  font-size: 11px;
+  color: #5a5a5a;
+}
+
+.yahoo-conversation-dropdown-item.is-disabled .yahoo-conversation-dropdown-shortcut {
+  color: #bcbcbc;
+}
+
+.yahoo-conversation-dropdown-submenu {
+  width: 10px;
+  height: 10px;
+  position: relative;
+}
+
+.yahoo-conversation-dropdown-submenu::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid #5a5a5a;
+}
+
+.yahoo-conversation-dropdown-submenu.is-empty::before {
+  display: none;
+}
+
+.yahoo-conversation-menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: #d9ccd9;
 }
 
 .yahoo-conversation-tools {
@@ -52,29 +166,20 @@
   color: inherit;
   cursor: default;
   user-select: none;
-  width: 74px;
   position: relative;
+}
+
+.yahoo-conversation-tool.is-voice {
+  cursor: pointer;
+}
+
+.yahoo-conversation-tool.is-voice:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
 }
 
 .yahoo-conversation-tool.is-right-start {
   margin-left: auto;
-}
-
-.yahoo-conversation-tool.is-divider::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  top: 2px;
-  bottom: 6px;
-  width: 1px;
-  height: 40px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.45),
-    rgba(255, 255, 255, 0)
-  );
-  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.3);
 }
 
 
@@ -117,10 +222,6 @@
   border-right: 4px solid transparent;
   border-top: 5px solid #807e81;
   transform: translateY(-50%);
-}
-
-.yahoo-conversation-tool.is-divider .yahoo-conversation-tool-caret {
-  right: -18px;
 }
 
 .yahoo-conversation-contact {

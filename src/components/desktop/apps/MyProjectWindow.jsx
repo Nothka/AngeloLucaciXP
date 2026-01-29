@@ -118,8 +118,10 @@ const MyProjectWindow = ({
       repoUrl: "https://github.com/Nothka/AppleWebsite",
     },
   ];
+  const projectTiles = projects.filter((project) => project.liveUrl);
+  const storyProjects = projects.filter((project) => project.repoUrl).slice(0, 1);
   const instagramStats = {
-    posts: projects.length,
+    posts: projectTiles.length,
     followers: 905,
     following: 489,
   };
@@ -257,7 +259,8 @@ const MyProjectWindow = ({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const getProjectLink = (project) => project.liveUrl || project.repoUrl;
+  const getStoryLink = (project) => project.repoUrl;
+  const getTileLink = (project) => project.liveUrl;
 
   return (
     <div
@@ -438,12 +441,12 @@ const MyProjectWindow = ({
               </div>
 
               <div className="projects-stories">
-                {projects.map((project) => (
+                {storyProjects.map((project) => (
                   <button
                     key={project.id}
                     type="button"
                     className="project-story"
-                    onClick={() => handleOpenLink(getProjectLink(project))}
+                    onClick={() => handleOpenLink(getStoryLink(project))}
                   >
                     <span className="project-story-ring">
                       <img src={project.storyImage} alt="" className="project-story-avatar" />
@@ -471,12 +474,12 @@ const MyProjectWindow = ({
               </div>
 
               <div className="projects-grid">
-                {projects.map((project) => (
+                {projectTiles.map((project) => (
                   <button
                     key={project.id}
                     type="button"
                     className="project-tile"
-                    onClick={() => handleOpenLink(getProjectLink(project))}
+                    onClick={() => handleOpenLink(getTileLink(project))}
                   >
                     <img src={project.image} alt={project.title} />
                     <span className="project-tile-overlay">{project.title}</span>

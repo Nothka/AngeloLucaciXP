@@ -26,6 +26,7 @@ const YahooAddFriendsWindow = ({
   onMaximize,
   zIndex,
   onMouseDown,
+  onAddFriend,
   isActive = true,
   isMinimized = false,
 }) => {
@@ -35,6 +36,13 @@ const YahooAddFriendsWindow = ({
   const [size, setSize] = useState(WINDOW_SIZE);
   const [messengerId, setMessengerId] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [step, setStep] = useState(1);
+  const [introText, setIntroText] = useState("");
+  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
+  const [nameFirst, setNameFirst] = useState("victor");
+  const [nameLast, setNameLast] = useState("hari");
+  const displayName = `${nameFirst} ${nameLast}`.trim();
+  const trimmedMessengerId = messengerId.trim();
   const dragOffset = useRef({ x: 0, y: 0 });
   const originalPosition = useRef(getDefaultPosition());
   const originalSize = useRef(WINDOW_SIZE);
@@ -99,6 +107,12 @@ const YahooAddFriendsWindow = ({
     };
   }, [isDragging]);
 
+  const handleAddFriend = () => {
+    if (!trimmedMessengerId) return;
+    onAddFriend?.(trimmedMessengerId);
+    onClose?.(windowId);
+  };
+
   return (
     <div
       className={`window yahoo-window yahoo-addfriends-window${isActive ? "" : " is-inactive"}${
@@ -117,13 +131,7 @@ const YahooAddFriendsWindow = ({
       <div className="window-header" onMouseDown={handleMouseDown} onDoubleClick={toggleMaximize}>
         <div className="yahoo-header-top">
           <div className="window-title">
-            <img
-              src={yahooAppIcon}
-              alt="Yahoo Messenger"
-              className="window-title-icon"
-              draggable="false"
-            />
-            <span>Add a Contact</span>
+            <span>Add to Messenger List</span>
           </div>
           <div className="window-buttons">
             {onMinimize ? (
@@ -142,76 +150,207 @@ const YahooAddFriendsWindow = ({
       </div>
 
       <div className="yahoo-addfriends-body">
-        <div className="yahoo-addfriends-row">
-          <div className="yahoo-addfriends-field">
-            <label className="yahoo-addfriends-label">
-              Enter a Messenger ID or email address:
-            </label>
-            <input
-              type="text"
-              className="yahoo-addfriends-input"
-              value={messengerId}
-              onChange={(event) => setMessengerId(event.target.value)}
-            />
-            <div className="yahoo-addfriends-example">
-              <span className="yahoo-addfriends-example-label">Example:</span>
-              <span>hari</span>
-              <span>example@yahoo.com</span>
-              <span>example@sbcglobal.net</span>
-              <span>example@hotmail.com</span>
+        {step === 1 ? (
+          <>
+            <div className="yahoo-addfriends-row">
+              <div className="yahoo-addfriends-field">
+                <label className="yahoo-addfriends-label">
+                  Enter a Messenger ID or email address:
+                </label>
+                <input
+                  type="text"
+                  className="yahoo-addfriends-input"
+                  value={messengerId}
+                  onChange={(event) => setMessengerId(event.target.value)}
+                />
+               
+                <div className="yahoo-addfriends-example">
+                  <span className="yahoo-addfriends-example-label">Example:</span>
+                  <span>hari</span>
+                  <span>example@yahoo.com</span>
+                  <span>example@sbcglobal.net</span>
+                  <span>example@hotmail.com</span>
+                </div>
+              </div>
+              <div className="yahoo-addfriends-network">
+                <label className="yahoo-addfriends-label">Network:</label>
+                <select className="yahoo-addfriends-select" defaultValue="yahoo">
+                  <option value="yahoo">Yahoo! Messenger</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <div className="yahoo-addfriends-network">
-            <label className="yahoo-addfriends-label">Network:</label>
-            <select className="yahoo-addfriends-select" defaultValue="yahoo">
-              <option value="yahoo">Yahoo! Messenger</option>
-            </select>
-          </div>
-        </div>
 
-        <div className="yahoo-addfriends-row is-mobile">
-          <div className="yahoo-addfriends-field">
+            <div className="yahoo-addfriends-row is-mobile">
+              <div className="yahoo-addfriends-field">
+                <label className="yahoo-addfriends-label">
+                  Enter a mobile device number (optional):
+                </label>
+                <input
+                  type="text"
+                  className="yahoo-addfriends-input"
+                  value={mobileNumber}
+                  onChange={(event) => setMobileNumber(event.target.value)}
+                />
+                <div className="yahoo-addfriends-example">
+                  <span className="yahoo-addfriends-example-label">
+                    Send SMS (text) messages from your computer.
+                  </span>
+                  <span>Example: (408) 555-1212</span>
+                  <span>+1 408-555-1212</span>
+                  <span>+91 98 222 49494</span>
+                </div>
+              </div>
+              <div className="yahoo-addfriends-tip">
+                Add a mobile number so you can send an SMS (text) message right from Messenger!
+              </div>
+            </div>
+
+            <div className="yahoo-addfriends-or">Or</div>
+            <button type="button" className="yahoo-addfriends-book">
+              Choose a Contact from Your Address Book...
+            </button>
+
+            <div className="yahoo-addfriends-divider" />
+
+            <div className="yahoo-addfriends-actions">
+              <button type="button" className="yahoo-addfriends-btn" disabled>
+                &lt; Back
+              </button>
+              <button
+                type="button"
+                className="yahoo-addfriends-btn is-primary"
+                onClick={() => setStep(2)}
+              >
+                Next &gt;
+              </button>
+              <button
+                type="button"
+                className="yahoo-addfriends-btn"
+                onClick={() => onClose?.(windowId)}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="yahoo-addfriends-step">
             <label className="yahoo-addfriends-label">
-              Enter a mobile device number (optional):
-            </label>
-            <input
-              type="text"
-              className="yahoo-addfriends-input"
-              value={mobileNumber}
-              onChange={(event) => setMobileNumber(event.target.value)}
-            />
-            <div className="yahoo-addfriends-example">
-              <span className="yahoo-addfriends-example-label">
-                Send SMS (text) messages from your computer.
+              Choose or enter a Messenger List group for{" "}
+              <span className="yahoo-addfriends-strong">
+                {messengerId.trim() || "this contact"}
               </span>
-              <span>Example: (408) 555-1212</span>
-              <span>+1 408-555-1212</span>
-              <span>+91 98 222 49494</span>
+              :
+            </label>
+            <select className="yahoo-addfriends-select yahoo-addfriends-select-wide" defaultValue="friends">
+              <option value="friends">Friends</option>
+            </select>
+
+            <div className="yahoo-addfriends-divider is-soft" />
+
+            <p className="yahoo-addfriends-help">
+              A message will be sent asking this person to approve your request to add
+              him or her to your Messenger List.
+            </p>
+
+            <label className="yahoo-addfriends-label">
+              Enter a brief introduction (optional):
+            </label>
+            <input
+              type="text"
+              className="yahoo-addfriends-input"
+              value={introText}
+              onChange={(event) => setIntroText(event.target.value)}
+            />
+
+            <div className="yahoo-addfriends-name-row">
+              <div>
+                <div className="yahoo-addfriends-label">Send your name with this request as:</div>
+                <div className="yahoo-addfriends-name">{displayName || "victor hari"}</div>
+              </div>
+              <button
+                type="button"
+                className="yahoo-addfriends-btn is-secondary"
+                onClick={() => setIsNameDialogOpen(true)}
+              >
+                Change...
+              </button>
+            </div>
+
+            <div className="yahoo-addfriends-divider" />
+
+            <div className="yahoo-addfriends-actions">
+              <button type="button" className="yahoo-addfriends-btn" onClick={() => setStep(1)}>
+                &lt; Back
+              </button>
+              <button
+                type="button"
+                className="yahoo-addfriends-btn is-primary"
+                onClick={handleAddFriend}
+              >
+                Next &gt;
+              </button>
+              <button
+                type="button"
+                className="yahoo-addfriends-btn"
+                onClick={() => onClose?.(windowId)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
-          <div className="yahoo-addfriends-tip">
-            Add a mobile number so you can send an SMS (text) message right from Messenger!
+        )}
+        {isNameDialogOpen ? (
+          <div className="yahoo-addfriends-name-overlay" role="dialog" aria-modal="true">
+            <div className="yahoo-addfriends-name-dialog">
+              <div className="yahoo-addfriends-name-header">
+                <span className="yahoo-addfriends-name-title-text">Change Name</span>
+              </div>
+              <div className="yahoo-addfriends-name-title">
+                Enter your name as you want it to appear in this request:
+              </div>
+              <div className="yahoo-addfriends-name-fields">
+                <label className="yahoo-addfriends-name-field">
+                  <input
+                    type="text"
+                    className="yahoo-addfriends-input"
+                    value={nameFirst}
+                    onChange={(event) => setNameFirst(event.target.value)}
+                  />
+                  <span className="yahoo-addfriends-name-label">
+                    <span className="yahoo-addfriends-accelerator">F</span>irst
+                  </span>
+                </label>
+                <label className="yahoo-addfriends-name-field">
+                  <input
+                    type="text"
+                    className="yahoo-addfriends-input"
+                    value={nameLast}
+                    onChange={(event) => setNameLast(event.target.value)}
+                  />
+                  <span className="yahoo-addfriends-name-label">
+                    <span className="yahoo-addfriends-accelerator">L</span>ast
+                  </span>
+                </label>
+              </div>
+              <div className="yahoo-addfriends-name-actions">
+                <button
+                  type="button"
+                  className="yahoo-addfriends-btn is-primary"
+                  onClick={() => setIsNameDialogOpen(false)}
+                >
+                  OK
+                </button>
+                <button
+                  type="button"
+                  className="yahoo-addfriends-btn is-cancel"
+                  onClick={() => setIsNameDialogOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="yahoo-addfriends-or">Or</div>
-        <button type="button" className="yahoo-addfriends-book">
-          Choose a Contact from Your Address Book...
-        </button>
-
-        <div className="yahoo-addfriends-divider" />
-
-        <div className="yahoo-addfriends-actions">
-          <button type="button" className="yahoo-addfriends-btn" disabled>
-            &lt; Back
-          </button>
-          <button type="button" className="yahoo-addfriends-btn is-primary">
-            Next &gt;
-          </button>
-          <button type="button" className="yahoo-addfriends-btn" onClick={() => onClose?.(windowId)}>
-            Cancel
-          </button>
-        </div>
+        ) : null}
       </div>
 
       <ResizeHandles onResizeStart={startResize} disabled={isMaximized} />

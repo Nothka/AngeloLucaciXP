@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import userAvatar from "../../../../assets/yahoo/soccer.png";
-import chatgptIcon from "../../../../assets/about-me/chatgpt.png";
+import chatgptIcon from "../../../../assets/yahoo/chatgpt.jpg";
 import geminiIcon from "../../../../assets/about-me/gemini.png";
 import diceIcon from "../../../../assets/yahoo/dice.png";
 import emailIcon from "../../../../assets/yahoo/fastemail.png";
@@ -26,12 +26,17 @@ const SHARE_TARGETS = [
   { label: "Facebook", icon: facebookIcon },
   { label: "Twitter", icon: twitterIcon },
 ];
-const FRIEND_CONTACTS = [
+export const DEFAULT_FRIEND_CONTACTS = [
   { id: "chatgpt", name: "ChatGPT", icon: chatgptIcon, isFriend: true },
   { id: "gemini", name: "Gemini", icon: geminiIcon, isFriend: true },
 ];
 
-const YahooSignedIn = ({ username = "angelo_lucaci", onOpenConversation, onAddContact }) => {
+const YahooSignedIn = ({
+  username = "angelo_lucaci",
+  onOpenConversation,
+  onAddContact,
+  friends = DEFAULT_FRIEND_CONTACTS,
+}) => {
   const [statusText, setStatusText] = useState(DEFAULT_STATUS);
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false);
   const [isShareToMenuOpen, setIsShareToMenuOpen] = useState(false);
@@ -106,7 +111,7 @@ const YahooSignedIn = ({ username = "angelo_lucaci", onOpenConversation, onAddCo
   };
 
   const recentCount = recentContacts.length;
-  const friendsCount = FRIEND_CONTACTS.length;
+  const friendsCount = friends.length;
 
   return (
     <div className="yahoo-signedin">
@@ -365,7 +370,7 @@ const YahooSignedIn = ({ username = "angelo_lucaci", onOpenConversation, onAddCo
           </span>
         </div>
         {!collapsedGroups.friends
-          ? FRIEND_CONTACTS.map((contact) => (
+          ? friends.map((contact) => (
               <div
                 key={contact.id}
                 className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}

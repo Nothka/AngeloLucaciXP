@@ -408,8 +408,8 @@
 .projects-grid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  max-width: 900px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  max-width: 320px;
   margin: 0 auto;
 }
 

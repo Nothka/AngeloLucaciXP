@@ -44,4 +44,6 @@
 .yahoo-conversation-tabs-row {
   grid-column: 1 / -1;
   grid-row: 3;
+  min-width: 0;
+  overflow: hidden;
 }
