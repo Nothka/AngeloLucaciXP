@@ -4,13 +4,14 @@ import Footer from "../login/Footer";
 import { instructions, productName } from "../login/User/UserProfile";
 import "../../styles/welcome/welcome.css";
 
-const Welcome = ({ onContinue }) => {
+const Welcome = ({ onContinue, isReady = true }) => {
   useEffect(() => {
+    if (!isReady) return;
     const timer = setTimeout(() => {
       onContinue?.();
     }, 2000);
     return () => clearTimeout(timer);
-  }, [onContinue]);
+  }, [onContinue, isReady]);
 
   return (
     <div id="login-screen">
