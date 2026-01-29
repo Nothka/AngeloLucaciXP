@@ -32,6 +32,10 @@ const formatConversationTaskbarTitle = (name = "") => {
   if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
   return trimmed;
 };
+const API_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
+  "https://monumental-croissant-e8ec10.netlify.app";
+const CHAT_API_URL = `${API_BASE.replace(/\/$/, "")}/api/chat`;
 
 const MENU_DATA = {
   Messenger: [
@@ -527,7 +531,7 @@ const YahooWindow = ({
         .filter((message) => message.content);
 
       try {
-        const response = await fetch("/api/chat", {
+        const response = await fetch(CHAT_API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
