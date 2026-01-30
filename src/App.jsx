@@ -61,6 +61,37 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleContextMenu = (event) => {
+      event.preventDefault();
+    };
+
+    const isBlockedShortcut = (event) => {
+      const key = event.key?.toLowerCase();
+      const isMac = navigator.platform?.toLowerCase().includes("mac");
+      const cmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
+
+      if (event.key === "F12") return true;
+      if (cmdOrCtrl && event.shiftKey && ["i", "j", "c"].includes(key)) return true;
+      if (cmdOrCtrl && key === "u") return true;
+      return false;
+    };
+
+    const handleKeyDown = (event) => {
+      if (isBlockedShortcut(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    window.addEventListener("contextmenu", handleContextMenu);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    };
+  }, []);
+
   // trecere automată boot → login
   useEffect(() => {
     if (screen === "boot") {
