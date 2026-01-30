@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import yahooIcon from "../../../../assets/yahoo/header/yahoomessenger-cropped.png";
 import typingIcon from "../../../../assets/yahoo/yahoo-window/typing.png";
-import yahooLoginImage from "../../../../assets/yahoo/yahoo-login.gif";
-import yahooAfterLoginImage from "../../../../assets/yahoo/yahoo-afterlogin.gif";
+import yahooLoginImage from "../../../../assets/yahoo/yahoo.gif";
 import messageSound from "../../../../assets/yahoo/audibles/message.mp3";
 import buzzSound from "../../../../assets/yahoo/audibles/buzz.mp3";
 import minimizeIcon from "../../../../assets/yahoo/header/window-minimize.png";
@@ -20,8 +19,8 @@ import snowmanIcon from "../../../../assets/yahoo/snowman.png";
 import { getDesktopPoint } from "../../utils/desktopTransform";
 
 const WINDOW_SIZE = { width: 320, height: 520 };
-const SIGN_IN_LOGIN_DELAY = 80;
-const SIGN_IN_AFTERLOGIN_DELAY = 2750;
+const SIGN_IN_LOGIN_DELAY = 0;
+const SIGN_IN_AFTERLOGIN_DELAY = 2020;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const EMOTICON_PATTERN = EMOTICON_CODES.map(escapeRegex)
   .sort((a, b) => b.length - a.length)
@@ -33,6 +32,7 @@ const formatConversationTaskbarTitle = (name = "") => {
   if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
   return trimmed;
 };
+const LOGIN_GIF_LOOP_MS = 1420;
 const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
   "https://monumental-croissant-e8ec10.netlify.app";
@@ -157,6 +157,7 @@ const YahooWindow = ({
   const dragOffset = useRef({ x: 0, y: 0 });
   const originalPosition = useRef(getDefaultPosition());
   const originalSize = useRef(WINDOW_SIZE);
+  const [loginGifSeed, setLoginGifSeed] = useState(0);
   const { startResize } = useWindowResize({
     position,
     size,
@@ -179,6 +180,14 @@ const YahooWindow = ({
       setSize(originalSize.current);
     }
   }, [isMaximized]);
+
+  useEffect(() => {
+    if (isSigningIn) return;
+    const id = setInterval(() => {
+      setLoginGifSeed((prev) => prev + 1);
+    }, LOGIN_GIF_LOOP_MS);
+    return () => clearInterval(id);
+  }, [isSigningIn]);
 
   const bringSubWindowToFront = useCallback(
     (key) => {
@@ -778,7 +787,7 @@ const YahooWindow = ({
           ) : (
             <>
               <img
-                src={isSigningIn && showAfterLogin ? yahooAfterLoginImage : yahooLoginImage}
+                src={`${yahooLoginImage}?v=${loginGifSeed}`}
                 alt="Yahoo Messenger"
                 className={`yahoo-login-image${
                   isSigningIn && showAfterLogin ? " is-afterlogin" : ""
