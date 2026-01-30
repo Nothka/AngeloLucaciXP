@@ -1,18 +1,54 @@
-/* Global pixelated overlay applied above all screens */
+/* Global pixelated + CRT overlay applied above all screens */
 body {
   position: relative;
+  --pixel-size: 3px;
+  --scanline-size: 3px;
 }
 
+body::before,
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 3px 3px, 3px 3px;
-  mix-blend-mode: soft-light;
-  opacity: 0.35;
   z-index: 5000;
+}
+
+/* Scanlines */
+body::before {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.28) 0,
+    rgba(0, 0, 0, 0.28) 2px,
+    transparent 1px,
+    transparent var(--scanline-size)
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.45;
+}
+
+/* Pixel grid + vignette */
+body::after {
+  background-image:
+    radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(0, 0, 0, 0.25) 70%,
+      rgba(0, 0, 0, 0.45) 100%
+    ),
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    var(--pixel-size) var(--pixel-size),
+    var(--pixel-size) var(--pixel-size);
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+}
+
+@media (max-width: 768px) {
+  body {
+    --pixel-size: 2px;
+    --scanline-size: 2px;
+  }
 }
