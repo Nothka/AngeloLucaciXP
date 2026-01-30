@@ -31,21 +31,51 @@ const CRITICAL_ASSETS = [
   yahooIcon,
 ];
 
-const preloadImages = (sources, timeoutMs = 6000) =>
-  Promise.race([
-    Promise.all(
-      sources.map(
-        (src) =>
-          new Promise((resolve) => {
-            const img = new Image();
-            img.onload = resolve;
-            img.onerror = resolve;
-            img.src = src;
-          })
-      )
-    ),
-    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
-  ]);
+const IMAGE_GLOBS = import.meta.glob("./assets/**/*.{png,jpg,jpeg,webp,gif,ico,svg}", {
+  eager: true,
+  as: "url",
+});
+const AUDIO_GLOBS = import.meta.glob("./assets/**/*.{mp3,wav,ogg}", {
+  eager: true,
+  as: "url",
+});
+
+const ALL_IMAGE_ASSETS = Object.values(IMAGE_GLOBS);
+const ALL_AUDIO_ASSETS = Object.values(AUDIO_GLOBS);
+
+const preloadImages = (sources) =>
+  Promise.all(
+    sources.map(
+      (src) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = src;
+        })
+    )
+  );
+
+const preloadAudio = (sources, timeoutMs = 4000) =>
+  Promise.all(
+    sources.map(
+      (src) =>
+        new Promise((resolve) => {
+          const audio = new Audio();
+          const finish = () => {
+            audio.removeEventListener("canplaythrough", finish);
+            audio.removeEventListener("error", finish);
+            resolve();
+          };
+          audio.preload = "auto";
+          audio.addEventListener("canplaythrough", finish, { once: true });
+          audio.addEventListener("error", finish, { once: true });
+          audio.src = src;
+          audio.load();
+          setTimeout(finish, timeoutMs);
+        })
+    )
+  );
 
 const App = () => {
   const [screen, setScreen] = useState("boot"); // "boot" | "login" | "desktop"
@@ -53,7 +83,10 @@ const App = () => {
 
   useEffect(() => {
     let cancelled = false;
-    preloadImages(CRITICAL_ASSETS).then(() => {
+    const imageSources = Array.from(new Set([...CRITICAL_ASSETS, ...ALL_IMAGE_ASSETS]));
+    const preload = Promise.all([preloadImages(imageSources), preloadAudio(ALL_AUDIO_ASSETS)]);
+    const fallback = new Promise((resolve) => setTimeout(resolve, 10000));
+    Promise.race([preload, fallback]).then(() => {
       if (!cancelled) setAssetsReady(true);
     });
     return () => {
