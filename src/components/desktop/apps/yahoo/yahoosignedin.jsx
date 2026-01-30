@@ -5,6 +5,7 @@ import geminiIcon from "../../../../assets/about-me/gemini.png";
 import diceIcon from "../../../../assets/yahoo/dice.png";
 import emailIcon from "../../../../assets/yahoo/fastemail.png";
 import addFriendIcon from "../../../../assets/yahoo/addfriend.png";
+import addFriendHoveredIcon from "../../../../assets/yahoo/addfriendhovered.png";
 import contactViewIcon from "../../../../assets/yahoo/contactview.png";
 import phoneIcon from "../../../../assets/yahoo/phone.png";
 import searchIcon from "../../../../assets/yahoo/search.png";
@@ -42,6 +43,7 @@ const YahooSignedIn = ({
   const [isShareToMenuOpen, setIsShareToMenuOpen] = useState(false);
   const [isShareEmoteOpen, setIsShareEmoteOpen] = useState(false);
   const [linkText, setLinkText] = useState("");
+  const [isAddFriendHovered, setIsAddFriendHovered] = useState(false);
   const [recentContacts, setRecentContacts] = useState([]);
   const [collapsedGroups, setCollapsedGroups] = useState({
     recent: false,
@@ -280,11 +282,13 @@ const YahooSignedIn = ({
 
       <div className="yahoo-signedin-toolbar">
         <img
-          src={addFriendIcon}
+          src={isAddFriendHovered ? addFriendHoveredIcon : addFriendIcon}
           alt="Add friend"
           className="yahoo-signedin-tool-icon is-add"
           draggable="false"
           onClick={() => onAddContact?.()}
+          onMouseEnter={() => setIsAddFriendHovered(true)}
+          onMouseLeave={() => setIsAddFriendHovered(false)}
           role="button"
           tabIndex={0}
         />

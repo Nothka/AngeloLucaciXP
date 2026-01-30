@@ -453,6 +453,8 @@
   object-fit: contain;
   display: block;
   align-self: center;
+  border-radius: 4px;
+  transition: background 0.12s ease;
 
 }
 
@@ -460,6 +462,10 @@
   width: 26px;
   height: 26px;
   cursor: pointer;
+}
+
+.yahoo-signedin-tool-icon.is-add:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .yahoo-signedin-tool-icon.is-contact {
