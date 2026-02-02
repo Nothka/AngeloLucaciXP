@@ -25,6 +25,7 @@
   background: #0d1117;
   color: #f2f2f2;
   padding: 0;
+  min-height: 0;
 }
 
 .projects-loading {
@@ -462,5 +463,183 @@
   }
   100% {
     transform: scaleX(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .myprojects-window .window-content {
+    max-height: none;
+  }
+
+  .projects-ig {
+    grid-template-columns: 130px 1fr;
+  }
+
+  .projects-ig-sidebar {
+    padding: 14px 10px;
+    gap: 12px;
+  }
+
+  .projects-ig-logo {
+    font-size: 18px;
+  }
+
+  .projects-ig-nav {
+    gap: 7px;
+    font-size: 10px;
+  }
+
+  .projects-ig-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .projects-ig-nav-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .projects-ig-nav-avatar {
+    width: 16px;
+    height: 16px;
+  }
+
+  .projects-ig-footer {
+    font-size: 9px;
+    gap: 5px;
+  }
+
+  .projects-ig-main {
+    padding: 16px 12px 20px;
+  }
+
+  .projects-ig-profile {
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+  }
+
+  .projects-profile-ring {
+    width: 96px;
+    height: 96px;
+    padding: 3px;
+  }
+
+  .projects-profile-note {
+    font-size: 8px;
+    padding: 2px 5px;
+    top: -14px;
+  }
+
+  .projects-ig-username {
+    font-size: 14px;
+  }
+
+  .projects-ig-settings-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .projects-ig-actions {
+    gap: 6px;
+    margin: 6px 0 8px;
+    flex-wrap: wrap;
+  }
+
+  .projects-ig-button {
+    padding: 5px 8px;
+    font-size: 9px;
+    min-width: 96px;
+  }
+
+  .projects-ig-stats {
+    gap: 10px;
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .projects-ig-bio {
+    font-size: 10px;
+    max-width: 320px;
+  }
+
+  .projects-stories {
+    gap: 10px;
+    margin: 14px auto 12px;
+  }
+
+  .project-story {
+    font-size: 9px;
+  }
+
+  .project-story-ring {
+    width: 48px;
+    height: 48px;
+  }
+
+  .project-story-label {
+    max-width: 54px;
+  }
+
+  .projects-ig-tabs {
+    gap: 14px;
+    padding: 8px 0 6px;
+    margin: 0 auto 10px;
+  }
+
+  .projects-ig-tab {
+    font-size: 9px;
+  }
+
+  .projects-ig-tab-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .projects-grid {
+    gap: 5px;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    max-width: 210px;
+  }
+
+  .project-tile-overlay {
+    font-size: 8px;
+    padding: 5px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .projects-ig {
+    grid-template-columns: 108px 1fr;
+  }
+
+  .projects-ig-logo {
+    font-size: 16px;
+  }
+
+  .projects-ig-main {
+    padding: 12px 10px 18px;
+  }
+
+  .projects-ig-profile {
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+  }
+
+  .projects-profile-ring {
+    width: 80px;
+    height: 80px;
+  }
+
+  .projects-ig-username {
+    font-size: 13px;
+  }
+
+  .projects-ig-button {
+    min-width: 86px;
+    font-size: 8px;
+  }
+
+  .projects-ig-bio {
+    font-size: 9px;
   }
 }

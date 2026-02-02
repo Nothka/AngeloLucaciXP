@@ -141,3 +141,64 @@
   background: linear-gradient(180deg, #f2f2f2 0%, #e3e3e3 100%);
   border-top: 1px solid #c5c5c5;
 }
+
+@media (max-width: 768px) {
+  .resume-toolbar {
+    gap: 8px;
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .resume-tool {
+    gap: 4px;
+    padding: 2px 4px;
+    font-size: 10px;
+  }
+
+  .resume-tool img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .resume-viewer {
+    padding: 8px;
+  }
+
+  .resume-pdf {
+    gap: 12px;
+  }
+
+  .resume-status {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .resume-toolbar {
+    gap: 6px;
+    padding: 3px 4px;
+    font-size: 9px;
+  }
+
+  .resume-tool {
+    font-size: 9px;
+  }
+
+  .resume-tool img {
+    width: 12px;
+    height: 12px;
+  }
+
+  .resume-viewer {
+    padding: 6px;
+  }
+
+  .resume-pdf {
+    gap: 10px;
+  }
+
+  .resume-status {
+    font-size: 9px;
+  }
+}

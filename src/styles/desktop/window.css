@@ -191,6 +191,31 @@
   width: 18px; /* Adjusted icon size */
   height: 18px;
 }
+
+@media (max-width: 768px) {
+  .window {
+    min-width: 260px;
+    min-height: 200px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 48px);
+    --window-header-height: 24px;
+  }
+
+  .window-header {
+    font-size: 10px;
+    padding: 8px calc(4px + var(--window-chrome-inset));
+  }
+
+  .window-btn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .window-btn img {
+    width: 16px;
+    height: 16px;
+  }
+}
 .window-menu-bar {
   display: flex;
   align-items: stretch;
@@ -396,11 +421,128 @@
     top: 60px !important;
   }
 
+  .window-menu-bar {
+    min-height: 20px;
+    font-size: 10px;
+  }
+
+  .window-menu-btn {
+    font-size: 10px;
+    padding: 0 8px;
+  }
+
+  .window-toolbar {
+    padding: 4px 6px;
+    gap: 6px;
+  }
+
+  .window-nav {
+    gap: 4px;
+  }
+
+  .window-nav-btn {
+    font-size: 10px;
+    padding: 4px 8px 4px 6px;
+    min-height: 22px;
+    gap: 4px;
+  }
+
+  .window-nav-btn img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .window-theme-toggle {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .window-address {
+    padding: 4px 6px;
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  .address-bar {
+    padding: 3px 6px;
+    gap: 4px;
+  }
+
+  .address-bar img {
+    width: 12px;
+    height: 12px;
+  }
+
+  .address-bar input,
+  .address-bar-text {
+    font-size: 10px;
+  }
+
+  .address-go {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .address-go img {
+    width: 14px;
+    height: 14px;
+  }
+
   .window-content {
-    max-height: 260px;
+    max-height: 200px;
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .window-content h2 {
+    font-size: 13px;
   }
 
   .task-button {
     min-width: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .window-menu-bar {
+    min-height: 18px;
+    font-size: 9px;
+  }
+
+  .window-menu-btn {
+    font-size: 9px;
+    padding: 0 6px;
+  }
+
+  .window-nav-btn {
+    font-size: 9px;
+    min-height: 20px;
+  }
+
+  .window-theme-toggle {
+    font-size: 9px;
+  }
+
+  .window-address {
+    font-size: 9px;
+  }
+
+  .address-bar input,
+  .address-bar-text {
+    font-size: 9px;
+  }
+
+  .address-go {
+    font-size: 9px;
+  }
+
+  .window-content {
+    max-height: 170px;
+    padding: 5px;
+    font-size: 10px;
+  }
+
+  .window-content h2 {
+    font-size: 12px;
   }
 }

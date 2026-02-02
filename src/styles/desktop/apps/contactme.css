@@ -258,3 +258,88 @@
   color: #3a3a3a;
   user-select: none;
 }
+
+@media (max-width: 768px) {
+  .contact-toolbar {
+    gap: 6px;
+    padding: 3px 4px;
+  }
+
+  .contact-toolbar-separator {
+    height: 18px;
+  }
+
+  .contact-tool {
+    gap: 4px;
+    padding: 2px 4px;
+    font-size: 10px;
+  }
+
+  .contact-tool img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .contact-body {
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .contact-row {
+    grid-template-columns: 52px 1fr;
+    padding: 3px 5px;
+  }
+
+  .contact-input,
+  .contact-textarea,
+  .contact-static {
+    font-size: 11px;
+    padding: 3px 5px;
+  }
+
+  .contact-message {
+    padding: 4px;
+  }
+
+  .contact-status {
+    height: 18px;
+    font-size: 10px;
+    padding: 0 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .contact-toolbar {
+    gap: 4px;
+    padding: 2px 4px;
+  }
+
+  .contact-tool {
+    font-size: 9px;
+  }
+
+  .contact-tool img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .contact-body {
+    padding: 5px;
+    font-size: 10px;
+  }
+
+  .contact-row {
+    grid-template-columns: 46px 1fr;
+  }
+
+  .contact-input,
+  .contact-textarea,
+  .contact-static {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+
+  .contact-status {
+    font-size: 9px;
+  }
+}
