@@ -51,8 +51,8 @@ body {
 
 @media (max-width: 768px) {
   body {
-    --pixel-size: 2px;
-    --scanline-size: 2px;
+    --pixel-size: 3px;
+    --scanline-size: 3px;
   }
 }
 

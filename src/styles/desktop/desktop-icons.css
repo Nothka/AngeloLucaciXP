@@ -56,8 +56,8 @@
 
 @media (max-width: 768px) {
   .desktop-icons {
-    top: 12px;
-    left: 12px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
     gap: 10px;
   }
 
@@ -79,6 +79,8 @@
 @media (max-width: 480px) {
   .desktop-icons {
     gap: 8px;
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
   }
 
   .icon {

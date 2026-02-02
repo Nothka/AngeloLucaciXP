@@ -47,3 +47,16 @@
   min-width: 0;
   overflow: hidden;
 }
+
+@media (max-width: 768px) {
+  .yahoo-conversation-design {
+    padding: 3px 4px 6px;
+    gap: 2px;
+  }
+
+  .yahoo-conversation-content {
+    --yahoo-conversation-side-width: 96px;
+    --yahoo-conversation-side-gap: 8px;
+    row-gap: 6px;
+  }
+}

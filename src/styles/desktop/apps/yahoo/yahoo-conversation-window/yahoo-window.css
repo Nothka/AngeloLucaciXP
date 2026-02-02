@@ -64,3 +64,35 @@
   display: flex;
   min-height: 0;
 }
+
+@media (max-width: 768px) {
+  .yahoo-conversation-window {
+    min-width: 300px;
+    min-height: 420px;
+    --window-header-height: 22px;
+  }
+
+  .yahoo-conversation-titlebar {
+    min-height: 22px;
+    padding: 2px calc(4px + var(--window-chrome-inset)) 2px;
+  }
+
+  .yahoo-conversation-title-text {
+    font-size: 10px;
+  }
+
+  .yahoo-conversation-title-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .yahoo-conversation-window .window-buttons .window-btn {
+    width: 12px;
+    height: 12px;
+  }
+
+  .yahoo-conversation-window .window-buttons .window-btn img {
+    width: 9px;
+    height: 9px;
+  }
+}

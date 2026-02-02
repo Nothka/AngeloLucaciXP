@@ -216,3 +216,76 @@
 .yahoo-conversation-tab-icon.is-placeholder {
   background: #c9bdcf;
 }
+
+@media (max-width: 768px) {
+  .yahoo-conversation-footer {
+    gap: 6px;
+    padding-top: 4px;
+  }
+
+  .yahoo-conversation-toolbar {
+    gap: 6px;
+    padding: 4px 0 2px 2px;
+  }
+
+  .yahoo-conversation-toolbar-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  .yahoo-conversation-toolbar-button.has-caret {
+    width: 32px;
+    padding-left: 2px;
+  }
+
+  .yahoo-conversation-toolbar-button.is-contacts {
+    width: 32px;
+    padding-left: 2px;
+  }
+
+  .yahoo-conversation-toolbar-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .yahoo-conversation-toolbar-icon.is-contacts {
+    width: 20px;
+    height: 20px;
+  }
+
+  .yahoo-conversation-contacts-arrow {
+    width: 6px;
+    height: 10px;
+  }
+
+  .yahoo-conversation-input {
+    min-height: 56px;
+    padding: 5px 72px 5px 5px;
+    font-size: 11px;
+  }
+
+  .yahoo-conversation-send {
+    height: 26px;
+    padding: 0 12px;
+    right: 6px;
+    font-size: 11px;
+  }
+
+  .yahoo-conversation-tabs {
+    gap: 4px;
+  }
+
+  .yahoo-conversation-tab {
+    flex: 0 0 140px;
+    width: 140px;
+    max-width: 140px;
+    min-width: 140px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .yahoo-conversation-tab-icon {
+    width: 14px;
+    height: 14px;
+  }
+}

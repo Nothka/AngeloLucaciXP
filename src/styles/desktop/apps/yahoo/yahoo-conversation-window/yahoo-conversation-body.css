@@ -161,3 +161,53 @@
   margin: 0 1px;
   image-rendering: pixelated;
 }
+
+@media (max-width: 768px) {
+  .yahoo-conversation-message-pane {
+    padding: 6px 8px;
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .yahoo-conversation-side {
+    width: 96px;
+    padding: 2px 3px 4px;
+  }
+
+  .yahoo-conversation-link {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .yahoo-conversation-link.is-top {
+    margin: -6px -8px 0;
+    padding: 8px 8px 4px;
+  }
+
+  .yahoo-conversation-link-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .yahoo-conversation-link-icon::after {
+    width: 5px;
+    height: 5px;
+    top: 2px;
+    left: 3px;
+  }
+
+  .yahoo-conversation-offline {
+    gap: 6px;
+  }
+
+  .yahoo-conversation-offline-dot {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+  }
+
+  .yahoo-conversation-emoticon {
+    width: 14px;
+    height: 14px;
+  }
+}

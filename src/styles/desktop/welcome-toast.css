@@ -84,3 +84,27 @@
 .welcome-toast__link:hover {
   color: #0f377d;
 }
+
+@media (max-width: 768px) {
+  .welcome-toast {
+    right: 55px;
+    bottom: calc(26px + 10px + env(safe-area-inset-bottom, 0px));
+    width: min(220px, calc(100vw - 24px));
+  }
+
+  .welcome-toast::after {
+    right: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-toast {
+    right: 75px;
+    bottom: calc(24px + 8px + env(safe-area-inset-bottom, 0px));
+    width: min(200px, calc(100vw - 20px));
+  }
+
+  .welcome-toast::after {
+    right: 16px;
+  }
+}

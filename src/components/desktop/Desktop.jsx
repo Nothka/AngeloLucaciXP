@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import wallpaper from "../../assets/xp-wallpaper.webp"; // pune imaginea ta XP
+import wallpaper from "../../assets/xp-wallpaper.webp"; 
 import startupSound from "../../assets/xp-startup.wav";
 import balloonSound from "../../assets/balloon.mp3";
 import Taskbar from "../desktop/taskbar/Taskbar";
@@ -27,9 +27,9 @@ const formatTimeWithPeriod = (date) =>
       minute: "2-digit",
       hour12: true,
     })
-    .replace(/\u202f/g, " "); // Normalize any narrow spaces some locales add
+    .replace(/\u202f/g, " "); 
 
-let windowIdCounter = 0; // To ensure unique IDs
+let windowIdCounter = 0; 
 const MIN_DESKTOP_WIDTH = 1280;
 const MIN_DESKTOP_HEIGHT = 720;
 
@@ -60,22 +60,17 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       if (typeof window === "undefined") return;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const isMobile = viewportWidth <= 768;
-      const baseWidth = isMobile ? viewportWidth : Math.max(MIN_DESKTOP_WIDTH, viewportWidth);
-      const baseHeight = isMobile ? viewportHeight : Math.max(MIN_DESKTOP_HEIGHT, viewportHeight);
-      const scale = isMobile
-        ? 1
-        : Math.min(1, viewportWidth / baseWidth, viewportHeight / baseHeight);
-      const scaledWidth = baseWidth * scale;
-      const scaledHeight = baseHeight * scale;
-      const centerOffsetX = Math.max(0, (viewportWidth - scaledWidth) / 2);
-      const centerOffsetY = Math.max(0, (viewportHeight - scaledHeight) / 2);
+      const baseWidth = viewportWidth;
+      const baseHeight = viewportHeight;
+      const scale = 1;
+      const centerOffsetX = 0;
+      const centerOffsetY = 0;
       setDesktopMetrics({
         scale,
         width: baseWidth,
         height: baseHeight,
-        offsetX: isMobile ? 0 : centerOffsetX,
-        offsetY: isMobile ? 0 : centerOffsetY,
+        offsetX: centerOffsetX,
+        offsetY: centerOffsetY,
       });
     };
     updateMetrics();
@@ -320,7 +315,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
           backgroundImage: `url(${wallpaper})`,
           width: desktopMetrics.width,
           height: desktopMetrics.height,
-          transform: `translate(${desktopMetrics.offsetX}px, ${desktopMetrics.offsetY}px) scale(${desktopMetrics.scale})`,
+          transform: "none",
           transformOrigin: "top left",
         }}
         onMouseDown={handleDesktopMouseDown}

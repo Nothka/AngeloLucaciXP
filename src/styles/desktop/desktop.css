@@ -51,3 +51,17 @@
 .desktop-center-logo__panel {
   filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
 }
+
+@media (max-width: 768px) {
+  .desktop-viewport,
+  .desktop-body {
+    background-position: top center;
+  }
+}
+
+@media (max-width: 480px) {
+  .desktop-viewport,
+  .desktop-body {
+    background-position: top center;
+  }
+}

@@ -1,5 +1,6 @@
 /* Header styling for the Start menu */
 .start-menu-header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -13,7 +14,26 @@
   );
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
- 
+  overflow: hidden;
+}
+
+.start-menu-header::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 20%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #f8953d,
+    #f09b2b,
+    #f8953d,
+    transparent
+  );
+  box-shadow: 0 0 3px rgba(255, 159, 47, 0.5);
+  pointer-events: none;
 }
 
 .start-menu-user-picture {
