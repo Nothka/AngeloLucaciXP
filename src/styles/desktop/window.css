@@ -489,13 +489,13 @@
   }
 
   .window-content {
-    max-height: 200px;
-    padding: 6px;
-    font-size: 11px;
+    max-height: 180px;
+    padding: 5px;
+    font-size: 10px;
   }
 
   .window-content h2 {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .task-button {
@@ -537,12 +537,12 @@
   }
 
   .window-content {
-    max-height: 170px;
-    padding: 5px;
-    font-size: 10px;
+    max-height: 150px;
+    padding: 4px;
+    font-size: 9px;
   }
 
   .window-content h2 {
-    font-size: 12px;
+    font-size: 11px;
   }
 }

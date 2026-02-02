@@ -113,3 +113,27 @@
   border: none;
   box-shadow: none;
 }
+
+@media (max-width: 768px) {
+  .menu-item-right {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .recently-used-item::after {
+    font-size: 9px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-item-right {
+    font-size: 10px;
+    padding: 5px 7px;
+  }
+
+  .recently-used-item::after {
+    font-size: 9px;
+    right: 7px;
+  }
+}

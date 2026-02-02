@@ -9,6 +9,31 @@ import { getDesktopPoint } from "./utils/desktopTransform";
 import "../../styles/desktop/window.css"; // Import generic window styles
 import "../../styles/desktop/apps/commandprompt.css";
 
+const getInitialPosition = () => {
+  if (typeof window === "undefined") return { x: 100, y: 100 };
+  return window.innerWidth <= 768 ? { x: 10, y: 60 } : { x: 100, y: 100 };
+};
+
+const getInitialSize = () => {
+  if (typeof window === "undefined") return { width: 640, height: 400 };
+  if (window.innerWidth <= 768) {
+    const width = Math.min(320, window.innerWidth - 20);
+    const height = Math.min(220, window.innerHeight - 120);
+    return {
+      width: Math.max(260, width),
+      height: Math.max(180, height),
+    };
+  }
+  return { width: 640, height: 400 };
+};
+
+const getMinSize = () => {
+  if (typeof window === "undefined") return { minWidth: 400, minHeight: 300 };
+  return window.innerWidth <= 768
+    ? { minWidth: 260, minHeight: 180 }
+    : { minWidth: 400, minHeight: 300 };
+};
+
 const CommandPromptWindow = ({
   windowId,
   title,
@@ -22,8 +47,8 @@ const CommandPromptWindow = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [position, setPosition] = useState({ x: 100, y: 100 });
-  const [size, setSize] = useState({ width: 640, height: 400 });
+  const [position, setPosition] = useState(getInitialPosition);
+  const [size, setSize] = useState(getInitialSize);
   const [lines, setLines] = useState([
     "Angelo Lucaci XP [Version 5.1.2600]",
     "(C) Copyright 1985-2001 Microsoft Corp.",
@@ -32,20 +57,21 @@ const CommandPromptWindow = ({
   const [input, setInput] = useState("");
   const windowRef = useRef(null);
   const inputRef = useRef(null);
+  const { minWidth, minHeight } = getMinSize();
   const { startResize } = useWindowResize({
     position,
     size,
     setPosition,
     setSize,
-    minWidth: 400,
-    minHeight: 300,
+    minWidth,
+    minHeight,
     isMaximized,
     onFocus: () => onMouseDown(windowId),
   });
 
   const dragOffset = useRef({ x: 0, y: 0 });
-  const originalPosition = useRef({ x: 100, y: 100 });
-  const originalSize = useRef({ width: 640, height: 400 });
+  const originalPosition = useRef(getInitialPosition());
+  const originalSize = useRef(getInitialSize());
 
 
   useEffect(() => {

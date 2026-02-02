@@ -183,17 +183,29 @@
 }
 
 .yahoo-login-image-wrap {
-  width: 120px;
-  height: 120px;
+  width: 144px;
+  height: 144px;
   max-width: 100%;
   margin: 0px 0px 20px 0;
   position: relative;
   display: block;
-  transform: scale(1.2);
-  transform-origin: top center;
+  transform: none;
+  overflow: hidden;
 }
 
 .yahoo-login-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.yahoo-login-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -208,6 +220,12 @@
 .yahoo-login-image.is-static {
   position: absolute;
   inset: 0;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%) scale(0.58);
+  transform-origin: center;
 }
 
 .yahoo-login-image.is-afterlogin {

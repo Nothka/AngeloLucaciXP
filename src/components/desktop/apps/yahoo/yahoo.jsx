@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import yahooIcon from "../../../../assets/yahoo/header/yahoomessenger-cropped.png";
 import typingIcon from "../../../../assets/yahoo/yahoo-window/typing.png";
-import yahooLoginImage from "../../../../assets/yahoo/yahoo.gif";
-import yahooLoginStill from "../../../../assets/yahoo/yahoologin.png";
+import yahooLoginImage from "../../../../assets/yahoo/yahoo-login.gif";
+import yahooLoginVideo from "../../../../assets/yahoo/yahoo-login.webm";
 import yahooAfterLoginImage from "../../../../assets/yahoo/yahoo-afterlogin.gif";
 import messageSound from "../../../../assets/yahoo/audibles/message.mp3";
 import buzzSound from "../../../../assets/yahoo/audibles/buzz.mp3";
@@ -23,6 +23,7 @@ import { getDesktopPoint } from "../../utils/desktopTransform";
 const WINDOW_SIZE = { width: 320, height: 520 };
 const SIGN_IN_LOGIN_DELAY = 0;
 const SIGN_IN_AFTERLOGIN_DELAY = 3020;
+const LOGIN_VIDEO_LOOP_END = 1.4;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const EMOTICON_PATTERN = EMOTICON_CODES.map(escapeRegex)
   .sort((a, b) => b.length - a.length)
@@ -34,8 +35,6 @@ const formatConversationTaskbarTitle = (name = "") => {
   if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
   return trimmed;
 };
-const LOGIN_GIF_PLAY_MS = 1400;
-const LOGIN_GIF_PAUSE_MS = 500;
 const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
   "https://monumental-croissant-e8ec10.netlify.app";
@@ -135,6 +134,8 @@ const YahooWindow = ({
   const [activeMenu, setActiveMenu] = useState(null);
   const [menuLeft, setMenuLeft] = useState(0);
   const [conversations, setConversations] = useState([]);
+  const [useLoginVideo, setUseLoginVideo] = useState(true);
+  const loginVideoRef = useRef(null);
   const [friendContacts, setFriendContacts] = useState(() =>
     DEFAULT_FRIEND_CONTACTS.map((contact) => ({ ...contact }))
   );
@@ -160,10 +161,6 @@ const YahooWindow = ({
   const dragOffset = useRef({ x: 0, y: 0 });
   const originalPosition = useRef(getDefaultPosition());
   const originalSize = useRef(WINDOW_SIZE);
-  const [loginGifSeed, setLoginGifSeed] = useState(0);
-  const [isLoginPaused, setIsLoginPaused] = useState(false);
-  const loginLoopTimeoutRef = useRef(null);
-  const loginPauseTimeoutRef = useRef(null);
   const { startResize } = useWindowResize({
     position,
     size,
@@ -187,39 +184,6 @@ const YahooWindow = ({
     }
   }, [isMaximized]);
 
-  useEffect(() => {
-    const clearLoginTimers = () => {
-      if (loginLoopTimeoutRef.current) {
-        clearTimeout(loginLoopTimeoutRef.current);
-        loginLoopTimeoutRef.current = null;
-      }
-      if (loginPauseTimeoutRef.current) {
-        clearTimeout(loginPauseTimeoutRef.current);
-        loginPauseTimeoutRef.current = null;
-      }
-    };
-
-    if (isSigningIn) {
-      clearLoginTimers();
-      setIsLoginPaused(false);
-      return;
-    }
-
-    clearLoginTimers();
-    const scheduleCycle = () => {
-      setIsLoginPaused(false);
-      setLoginGifSeed((prev) => prev + 1);
-      loginLoopTimeoutRef.current = setTimeout(() => {
-        setIsLoginPaused(true);
-        loginPauseTimeoutRef.current = setTimeout(() => {
-          scheduleCycle();
-        }, LOGIN_GIF_PAUSE_MS);
-      }, LOGIN_GIF_PLAY_MS);
-    };
-
-    scheduleCycle();
-    return clearLoginTimers;
-  }, [isSigningIn]);
 
   const bringSubWindowToFront = useCallback(
     (key) => {
@@ -280,6 +244,17 @@ const YahooWindow = ({
       setSignedInUser(normalizedUsername);
       setShowAfterLogin(true);
       setIsSigningIn(true);
+      return;
+    }
+
+    setShowAfterLogin(false);
+    if (useLoginVideo && loginVideoRef.current) {
+      try {
+        loginVideoRef.current.currentTime = 0;
+      } catch {
+        // ignore seek errors
+      }
+      loginVideoRef.current.play().catch(() => {});
     }
   };
 
@@ -340,6 +315,14 @@ const YahooWindow = ({
     setActiveMenu(null);
     onConversationListChange?.([]);
     onConversationApiReady?.(null);
+    if (useLoginVideo && loginVideoRef.current) {
+      try {
+        loginVideoRef.current.currentTime = 0;
+      } catch {
+        // ignore seek errors
+      }
+      loginVideoRef.current.play().catch(() => {});
+    }
   };
 
   useEffect(() => {
@@ -377,6 +360,95 @@ const YahooWindow = ({
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging]);
+
+  useEffect(() => {
+    if (!useLoginVideo || isSignedIn) return undefined;
+    const video = loginVideoRef.current;
+    if (!video) return undefined;
+
+    let mounted = true;
+    let loopInterval = null;
+    const loopSegment = () => {
+      if (!mounted || isSigningIn) return;
+      if (video.currentTime >= LOGIN_VIDEO_LOOP_END) {
+        video.currentTime = 0;
+        video.play().catch(() => {});
+      }
+    };
+
+    if (isSigningIn) {
+      const playAfter = () => {
+        if (!mounted) return;
+        try {
+          if (video.currentTime < LOGIN_VIDEO_LOOP_END) {
+            video.currentTime = LOGIN_VIDEO_LOOP_END;
+          }
+        } catch {
+          // ignore seek errors
+        }
+        video.play().catch(() => {});
+      };
+      if (loopInterval) {
+        clearInterval(loopInterval);
+      }
+      let handleLoaded = null;
+      if (video.readyState >= 1) {
+        playAfter();
+      } else {
+        handleLoaded = () => {
+          playAfter();
+          video.removeEventListener("loadedmetadata", handleLoaded);
+        };
+        video.addEventListener("loadedmetadata", handleLoaded);
+      }
+      return () => {
+        mounted = false;
+        if (handleLoaded) {
+          video.removeEventListener("loadedmetadata", handleLoaded);
+        }
+        if (loopInterval) {
+          clearInterval(loopInterval);
+        }
+      };
+    }
+
+    const handleLoaded = () => {
+      if (!mounted) return;
+      try {
+        video.currentTime = 0;
+      } catch {
+        // ignore
+      }
+      video.play().catch(() => {});
+    };
+
+    if (video.readyState >= 1) {
+      handleLoaded();
+    } else {
+      video.addEventListener("loadedmetadata", handleLoaded, { once: true });
+    }
+
+    loopInterval = setInterval(loopSegment, 120);
+    return () => {
+      mounted = false;
+      video.removeEventListener("loadedmetadata", handleLoaded);
+      if (loopInterval) {
+        clearInterval(loopInterval);
+      }
+    };
+  }, [isSigningIn, useLoginVideo, isSignedIn]);
+
+  useEffect(() => {
+    if (!useLoginVideo || isSigningIn || isSignedIn) return;
+    const video = loginVideoRef.current;
+    if (!video) return;
+    try {
+      video.currentTime = 0;
+    } catch {
+      // ignore seek errors
+    }
+    video.play().catch(() => {});
+  }, [isSignedIn, isSigningIn, useLoginVideo]);
 
   useEffect(() => {
     conversationsRef.current = conversations;
@@ -691,6 +763,7 @@ const YahooWindow = ({
   const conversationTitleText = Array.from(
     new Set(conversations.map((conversation) => conversation.contactName).filter(Boolean))
   ).join(", ");
+  const showAfterLoginImage = isSigningIn && showAfterLogin && !useLoginVideo;
   const isMainActive = isActive && topSubWindow === "main";
   const isConversationActive =
     isActive && topSubWindow === "conversation" && !isConversationWindowMinimized;
@@ -819,30 +892,37 @@ const YahooWindow = ({
           ) : (
             <>
               <div className="yahoo-login-image-wrap">
-                {isSigningIn && showAfterLogin ? (
+                {useLoginVideo ? (
+                  <video
+                    ref={loginVideoRef}
+                    className="yahoo-login-video"
+                    width="144"
+                    height="144"
+                    muted
+                    playsInline
+                    preload="auto"
+                    autoPlay
+                    src={yahooLoginVideo}
+                    onError={() => setUseLoginVideo(false)}
+                  />
+                ) : showAfterLoginImage ? (
                   <img
                     src={yahooAfterLoginImage}
                     alt="Yahoo Messenger"
+                    width="144"
+                    height="144"
                     className="yahoo-login-image is-afterlogin"
                     draggable="false"
                   />
                 ) : (
-                  <>
-                    <img
-                      src={`${yahooLoginImage}?v=${loginGifSeed}`}
-                      alt="Yahoo Messenger"
-                      className={`yahoo-login-image${isLoginPaused ? " is-hidden" : ""}`}
-                      draggable="false"
-                    />
-                    {isLoginPaused ? (
-                      <img
-                        src={yahooLoginStill}
-                        alt="Yahoo Messenger"
-                        className="yahoo-login-image is-static"
-                        draggable="false"
-                      />
-                    ) : null}
-                  </>
+                  <img
+                    src={yahooLoginImage}
+                    alt="Yahoo Messenger"
+                    width="144"
+                    height="144"
+                    className="yahoo-login-image"
+                    draggable="false"
+                  />
                 )}
               </div>
 
