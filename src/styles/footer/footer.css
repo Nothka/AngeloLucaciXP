@@ -13,6 +13,7 @@
   background: #022f9f;
   z-index: 3;
   overflow: visible;
+  margin-top: auto;
 }
 
 .login-footer::before {
