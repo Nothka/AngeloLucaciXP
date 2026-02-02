@@ -24,8 +24,8 @@
 .login-header::after {
   content: "";
   position: absolute;
-  left: 5%;
-  right: 40%;
+  left: 10%;
+  right: 30%;
   bottom: 0;
   height: 3px;
   background: linear-gradient(
@@ -54,6 +54,7 @@
   justify-content: center;
   height: 100%;
 }
+
 
 .login-screen-center .right {
   position: absolute;
@@ -217,5 +218,48 @@
   .text-wrap .name,
   .text-wrap .user-title {
     text-align: center;
+  }
+}
+
+
+@media (max-width: 600px) {
+  .login-header {
+    height: 64px;
+    min-height: 64px;
+    padding: 0 18px;
+  }
+
+  .login-header::after {
+    left: 10%;
+    right: 25%;
+    width: 270px;
+  }
+
+  .login-screen-center {
+    gap: 8vw;
+    padding: 8px 0;
+  }
+
+  .back-gradient {
+    max-width: 240px;
+    padding: 18px;
+  }
+
+  .back-gradient .user img {
+    width: 56px;
+    height: 56px;
+    border-width: 2px;
+  }
+
+  .text-wrap {
+    margin: 10px 0 0;
+  }
+
+  .text-wrap .name {
+    font-size: 18px;
+  }
+
+  .text-wrap .user-title {
+    font-size: 11px;
   }
 }

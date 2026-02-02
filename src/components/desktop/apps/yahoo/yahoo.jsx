@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import yahooIcon from "../../../../assets/yahoo/header/yahoomessenger-cropped.png";
 import typingIcon from "../../../../assets/yahoo/yahoo-window/typing.png";
 import yahooLoginImage from "../../../../assets/yahoo/yahoo.gif";
+import yahooLoginStill from "../../../../assets/yahoo/yahoologin.png";
+import yahooAfterLoginImage from "../../../../assets/yahoo/yahoo-afterlogin.gif";
 import messageSound from "../../../../assets/yahoo/audibles/message.mp3";
 import buzzSound from "../../../../assets/yahoo/audibles/buzz.mp3";
 import minimizeIcon from "../../../../assets/yahoo/header/window-minimize.png";
@@ -20,7 +22,7 @@ import { getDesktopPoint } from "../../utils/desktopTransform";
 
 const WINDOW_SIZE = { width: 320, height: 520 };
 const SIGN_IN_LOGIN_DELAY = 0;
-const SIGN_IN_AFTERLOGIN_DELAY = 2020;
+const SIGN_IN_AFTERLOGIN_DELAY = 3020;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const EMOTICON_PATTERN = EMOTICON_CODES.map(escapeRegex)
   .sort((a, b) => b.length - a.length)
@@ -32,7 +34,8 @@ const formatConversationTaskbarTitle = (name = "") => {
   if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
   return trimmed;
 };
-const LOGIN_GIF_LOOP_MS = 1420;
+const LOGIN_GIF_PLAY_MS = 1400;
+const LOGIN_GIF_PAUSE_MS = 500;
 const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
   "https://monumental-croissant-e8ec10.netlify.app";
@@ -158,6 +161,9 @@ const YahooWindow = ({
   const originalPosition = useRef(getDefaultPosition());
   const originalSize = useRef(WINDOW_SIZE);
   const [loginGifSeed, setLoginGifSeed] = useState(0);
+  const [isLoginPaused, setIsLoginPaused] = useState(false);
+  const loginLoopTimeoutRef = useRef(null);
+  const loginPauseTimeoutRef = useRef(null);
   const { startResize } = useWindowResize({
     position,
     size,
@@ -182,11 +188,37 @@ const YahooWindow = ({
   }, [isMaximized]);
 
   useEffect(() => {
-    if (isSigningIn) return;
-    const id = setInterval(() => {
+    const clearLoginTimers = () => {
+      if (loginLoopTimeoutRef.current) {
+        clearTimeout(loginLoopTimeoutRef.current);
+        loginLoopTimeoutRef.current = null;
+      }
+      if (loginPauseTimeoutRef.current) {
+        clearTimeout(loginPauseTimeoutRef.current);
+        loginPauseTimeoutRef.current = null;
+      }
+    };
+
+    if (isSigningIn) {
+      clearLoginTimers();
+      setIsLoginPaused(false);
+      return;
+    }
+
+    clearLoginTimers();
+    const scheduleCycle = () => {
+      setIsLoginPaused(false);
       setLoginGifSeed((prev) => prev + 1);
-    }, LOGIN_GIF_LOOP_MS);
-    return () => clearInterval(id);
+      loginLoopTimeoutRef.current = setTimeout(() => {
+        setIsLoginPaused(true);
+        loginPauseTimeoutRef.current = setTimeout(() => {
+          scheduleCycle();
+        }, LOGIN_GIF_PAUSE_MS);
+      }, LOGIN_GIF_PLAY_MS);
+    };
+
+    scheduleCycle();
+    return clearLoginTimers;
   }, [isSigningIn]);
 
   const bringSubWindowToFront = useCallback(
@@ -246,7 +278,7 @@ const YahooWindow = ({
     const normalizedUsername = username.trim();
     if (normalizedUsername === "angelo_lucaci" && password === "lucaci") {
       setSignedInUser(normalizedUsername);
-      setShowAfterLogin(false);
+      setShowAfterLogin(true);
       setIsSigningIn(true);
     }
   };
@@ -786,14 +818,33 @@ const YahooWindow = ({
             />
           ) : (
             <>
-              <img
-                src={`${yahooLoginImage}?v=${loginGifSeed}`}
-                alt="Yahoo Messenger"
-                className={`yahoo-login-image${
-                  isSigningIn && showAfterLogin ? " is-afterlogin" : ""
-                }`}
-                draggable="false"
-              />
+              <div className="yahoo-login-image-wrap">
+                {isSigningIn && showAfterLogin ? (
+                  <img
+                    src={yahooAfterLoginImage}
+                    alt="Yahoo Messenger"
+                    className="yahoo-login-image is-afterlogin"
+                    draggable="false"
+                  />
+                ) : (
+                  <>
+                    <img
+                      src={`${yahooLoginImage}?v=${loginGifSeed}`}
+                      alt="Yahoo Messenger"
+                      className={`yahoo-login-image${isLoginPaused ? " is-hidden" : ""}`}
+                      draggable="false"
+                    />
+                    {isLoginPaused ? (
+                      <img
+                        src={yahooLoginStill}
+                        alt="Yahoo Messenger"
+                        className="yahoo-login-image is-static"
+                        draggable="false"
+                      />
+                    ) : null}
+                  </>
+                )}
+              </div>
 
               <div className="yahoo-form">
                 <label className="yahoo-label" htmlFor={`yahoo-id-${windowId}`}>

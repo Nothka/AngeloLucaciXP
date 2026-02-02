@@ -138,3 +138,27 @@ user-select: none;
     display: inline;
   }
 }
+
+@media (max-width: 600px) {
+  .xp-logo-image {
+    height: 80px;
+  }
+
+  .xp-wordmark-name {
+    font-size: 32px;
+  }
+
+  .xp-wordmark-xp {
+    font-size: 22px;
+    transform: translateY(-16px);
+  }
+
+  .xp-wordmark-role {
+    font-size: 12px;
+  }
+
+  .left-text {
+    font-size: 14px;
+    margin-top: 8px;
+  }
+}

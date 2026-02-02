@@ -134,8 +134,10 @@
     width: 100vw;
   }
 
-  .login-screen-inner {
-    inset: 80px 0;
-  }
+}
 
+@media (max-width: 600px) {
+  .welcome-message {
+    font-size: 2rem;
+  }
 }
