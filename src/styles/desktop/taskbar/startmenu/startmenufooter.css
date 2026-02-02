@@ -69,3 +69,33 @@
 .start-menu-footer-btn:hover .footer-icon-box {
   filter: brightness(1.25);
 }
+
+@media (max-width: 768px) {
+  .start-menu-footer {
+    height: 38px;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .start-menu-footer-btn {
+    font-size: 11px;
+  }
+
+  .footer-icon-box {
+    width: 20px;
+    height: 20px;
+  }
+
+  .footer-icon-image {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .start-menu-footer {
+    height: 34px;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+}

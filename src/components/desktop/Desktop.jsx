@@ -60,13 +60,12 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       if (typeof window === "undefined") return;
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const baseWidth = Math.max(MIN_DESKTOP_WIDTH, viewportWidth);
-      const baseHeight = Math.max(MIN_DESKTOP_HEIGHT, viewportHeight);
-      const scale = Math.min(
-        1,
-        viewportWidth / baseWidth,
-        viewportHeight / baseHeight
-      );
+      const isMobile = viewportWidth <= 768;
+      const baseWidth = isMobile ? viewportWidth : Math.max(MIN_DESKTOP_WIDTH, viewportWidth);
+      const baseHeight = isMobile ? viewportHeight : Math.max(MIN_DESKTOP_HEIGHT, viewportHeight);
+      const scale = isMobile
+        ? 1
+        : Math.min(1, viewportWidth / baseWidth, viewportHeight / baseHeight);
       const scaledWidth = baseWidth * scale;
       const scaledHeight = baseHeight * scale;
       const centerOffsetX = Math.max(0, (viewportWidth - scaledWidth) / 2);
@@ -75,8 +74,8 @@ const Desktop = ({ onLogOff, onShutdown }) => {
         scale,
         width: baseWidth,
         height: baseHeight,
-        offsetX: centerOffsetX,
-        offsetY: viewportWidth <= 768 ? 0 : centerOffsetY,
+        offsetX: isMobile ? 0 : centerOffsetX,
+        offsetY: isMobile ? 0 : centerOffsetY,
       });
     };
     updateMetrics();
@@ -311,7 +310,10 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       : null;
 
   return (
-    <div className="desktop-viewport">
+    <div
+      className="desktop-viewport"
+      style={{ backgroundImage: `url(${wallpaper})` }}
+    >
       <div
         className="desktop-body"
         style={{

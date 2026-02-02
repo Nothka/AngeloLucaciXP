@@ -39,3 +39,30 @@
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
   user-select: none;
 }
+
+@media (max-width: 768px) {
+  .start-menu-header {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .start-menu-user-picture {
+    width: 34px;
+    height: 34px;
+  }
+
+  .start-menu-user-name {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .start-menu-header {
+    padding: 8px 10px;
+  }
+
+  .start-menu-user-picture {
+    width: 30px;
+    height: 30px;
+  }
+}

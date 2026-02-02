@@ -17,6 +17,12 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.start-menu-header,
+.start-menu-body,
+.start-menu-footer {
+  width: 100%;
+}
+
 .start-menu-body {
   flex: 1;
   display: grid;
@@ -219,4 +225,68 @@
     transparent
   );
   border-image-slice: 1;
+}
+
+@media (max-width: 768px) {
+  .start-menu {
+    bottom: 26px;
+    width: 300px;
+    height: 380px;
+    border-radius: 5px;
+  }
+
+  .start-menu-body {
+    grid-template-columns: 160px 1fr;
+  }
+
+  .start-menu-all-programs {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .start-menu-all-programs::after {
+    right: 22px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .all-programs-menu {
+    min-width: 160px;
+  }
+
+  .all-programs-menu-item {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .menu-item {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .menu-item-subtitle {
+    font-size: 9px;
+  }
+
+  .menu-item-icon-img-left {
+    width: 26px;
+    height: 26px;
+  }
+
+  .menu-item-icon-img {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .start-menu {
+    bottom: 24px;
+    width: 260px;
+    height: 340px;
+  }
+
+  .start-menu-body {
+    grid-template-columns: 140px 1fr;
+  }
 }

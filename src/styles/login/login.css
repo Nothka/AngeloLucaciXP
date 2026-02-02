@@ -2,7 +2,7 @@
 
 :root {
   --login-divider-gap: 72px;
-  --login-separator-opacity: 0.35;
+  --login-separator-opacity: 0.65;
 }
 
 #login-screen {
