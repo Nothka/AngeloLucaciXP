@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import wallpaper from "../../assets/xp-wallpaper.jpg"; // pune imaginea ta XP
+import wallpaper from "../../assets/xp-wallpaper.webp"; // pune imaginea ta XP
 import startupSound from "../../assets/xp-startup.wav";
 import balloonSound from "../../assets/balloon.mp3";
 import Taskbar from "../desktop/taskbar/Taskbar";
@@ -13,9 +13,9 @@ import MyResumeWindow from "./apps/MyResumeWindow";
 import ContactMeWindow from "./apps/contactme";
 import AboutMeWindow from "./apps/aboutme";
 import YahooWindow from "./apps/yahoo/yahoo";
-import myProjectsIcon from "../../assets/startmenu/myprojects.png";
+import myProjectsIcon from "../../assets/startmenu/myprojects.webp";
 import resumeIcon from "../../assets/startmenu/Pdf.png";
-import aboutMeIcon from "../../assets/startmenu/about.png";
+import aboutMeIcon from "../../assets/startmenu/about.webp";
 import DesktopIcons from "./DesktopIcons";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";

@@ -4,10 +4,10 @@ import MenuList from "./MenuList"; // For the right-side list
 import PinnedList from "./PinnedList"; // For the left-side pinned programs
 import StartMenuFooter from "./StartMenuFooter";
 import StartMenuHeader from "./StartMenuHeader";
-import aboutMeIcon from "../../../../assets/startmenu/about.png";
+import aboutMeIcon from "../../../../assets/startmenu/about.webp";
 import resumeIcon from "../../../../assets/startmenu/Pdf.png";
-import myProjectsIcon from "../../../../assets/startmenu/myprojects.png";
-import contactMeIcon from "../../../../assets/startmenu/contact.png";
+import myProjectsIcon from "../../../../assets/startmenu/myprojects.webp";
+import contactMeIcon from "../../../../assets/startmenu/contact.webp";
 import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
 import githubIcon from "../../../../assets/startmenu/github.png";
 import linkedinIcon from "../../../../assets/startmenu/linkedin.png";

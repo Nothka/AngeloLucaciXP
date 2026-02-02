@@ -1,7 +1,7 @@
 import React from "react";
 import trayIcon from "../../../assets/976.ico";
-import securityOkIcon from "../../../assets/securityok.png";
-import welcomeIcon from "../../../assets/welcome.png";
+import securityOkIcon from "../../../assets/securityok.webp";
+import welcomeIcon from "../../../assets/welcome.webp";
 import "../../../styles/desktop/taskbar/tray-icons.css";
 
 const icons = [

@@ -1,7 +1,7 @@
 import React from "react";
-import myProjectsIcon from "../../../../assets/startmenu/myprojects.png";
-import contactMeIcon from "../../../../assets/startmenu/contact.png";
-import aboutMeIcon from "../../../../assets/startmenu/about.png";
+import myProjectsIcon from "../../../../assets/startmenu/myprojects.webp";
+import contactMeIcon from "../../../../assets/startmenu/contact.webp";
+import aboutMeIcon from "../../../../assets/startmenu/about.webp";
 import yahooIcon from "../../../../assets/startmenu/recentlyused/yahoo.jpeg";
 
 const pinnedItems = [

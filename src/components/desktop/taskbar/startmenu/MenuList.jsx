@@ -4,17 +4,17 @@ import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
 import githubIcon from "../../../../assets/startmenu/github.png";
 import linkedinIcon from "../../../../assets/startmenu/linkedin.png";
 import commandpromptIcon from "../../../../assets/startmenu/commandprompt.png";
-import imageviewerIcon from "../../../../assets/startmenu/imageviewer.png";
+import imageviewerIcon from "../../../../assets/startmenu/imageviewer.webp";
 import resumeIcon from "../../../../assets/startmenu/Pdf.png"; // Placeholder
-import recentlyUsedIcon from "../../../../assets/startmenu/Recent.png"; // Placeholder
+import recentlyUsedIcon from "../../../../assets/startmenu/Recent.webp"; // Placeholder
 import chatgptIcon from "../../../../assets/about-me/chatgpt.png";
 import geminiIcon from "../../../../assets/about-me/gemini.png";
 import gitIcon from "../../../../assets/about-me/git.png";
 import adobeCcIcon from "../../../../assets/about-me/adobecc.png";
 import davinciIcon from "../../../../assets/startmenu/recentlyused/davinci.png";
 import lightroomIcon from "../../../../assets/startmenu/recentlyused/lightroom.png";
-import notepadIcon from "../../../../assets/startmenu/recentlyused/notepad.png";
-import minesweeperIcon from "../../../../assets/startmenu/recentlyused/minesweeper.png";
+import notepadIcon from "../../../../assets/startmenu/recentlyused/notepad.webp";
+import minesweeperIcon from "../../../../assets/startmenu/recentlyused/minesweeper.webp";
 import yahooIcon from "../../../../assets/startmenu/recentlyused/yahoo.jpeg";
 import youtubeIcon from "../../../../assets/startmenu/recentlyused/youtube.jpg";
 import gitCopilotIcon from "../../../../assets/about-me/gitcopilot.png";

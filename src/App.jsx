@@ -3,20 +3,20 @@ import BootScreen from "./components/boot/BootScreen";
 import LoginScreen from "./components/login/LoginScreen";
 import Desktop from "./components/desktop/Desktop";
 import Welcome from "./components/welcome/Welcome";
-import xpLogo from "./assets/xp-logo.png";
-import loginAvatar from "./assets/login-avatar.png";
+import xpLogo from "./assets/xp-logo.webp";
+import loginAvatar from "./assets/login-avatar.webp";
 import restartIcon from "./assets/restart.png";
-import wallpaper from "./assets/xp-wallpaper.jpg";
+import wallpaper from "./assets/xp-wallpaper.webp";
 import startIdle from "./assets/start.png";
 import startHover from "./assets/start-hovered.png";
 import startActive from "./assets/start-clicked.png";
-import aboutIcon from "./assets/startmenu/about.png";
-import myProjectsIcon from "./assets/startmenu/myprojects.png";
-import contactIcon from "./assets/startmenu/contact.png";
+import aboutIcon from "./assets/startmenu/about.webp";
+import myProjectsIcon from "./assets/startmenu/myprojects.webp";
+import contactIcon from "./assets/startmenu/contact.webp";
 import pdfIcon from "./assets/startmenu/Pdf.png";
 import trayIcon from "./assets/976.ico";
-import securityOkIcon from "./assets/securityok.png";
-import welcomeIcon from "./assets/welcome.png";
+import securityOkIcon from "./assets/securityok.webp";
+import welcomeIcon from "./assets/welcome.webp";
 
 const ABOVE_FOLD_ASSETS = [xpLogo, loginAvatar, restartIcon];
 const DESKTOP_CORE_ASSETS = [

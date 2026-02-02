@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import myProjectsIcon from "../../../assets/startmenu/myprojects.png";
-import backIcon from "../../../assets/window/Back.png";
-import forwardIcon from "../../../assets/window/Forward.png";
-import favoritesIcon from "../../../assets/window/Favorites.png";
-import homeIcon from "../../../assets/window/home.png";
-import minimizeIcon from "../../../assets/window/Minimize.png";
-import maximizeIcon from "../../../assets/window/Maximize.png";
+import myProjectsIcon from "../../../assets/startmenu/myprojects.webp";
+import backIcon from "../../../assets/window/Back.webp";
+import forwardIcon from "../../../assets/window/Forward.webp";
+import favoritesIcon from "../../../assets/window/Favorites.webp";
+import homeIcon from "../../../assets/window/home.webp";
+import minimizeIcon from "../../../assets/window/Minimize.webp";
+import maximizeIcon from "../../../assets/window/Maximize.webp";
 import closeIcon from "../../../assets/window/Exit.png";
-import myURLIcon from "../../../assets/window/URL.png"
+import myURLIcon from "../../../assets/window/URL.webp"
 import goIcon from "../../../assets/startmenu/adressbar/Go.png";
 import addIcon from "../../../assets/my-projects/add.png";
 import basicUiIcon from "../../../assets/my-projects/basic-ui.png";
@@ -17,7 +17,7 @@ import heartIcon from "../../../assets/my-projects/heart.png";
 import sendIcon from "../../../assets/my-projects/send.png";
 import settingIcon from "../../../assets/my-projects/setting.png";
 import videoIcon from "../../../assets/my-projects/video.png";
-import profilePhotoAsset from "../../../assets/my-projects/profilepic.jpeg";
+import profilePhotoAsset from "../../../assets/my-projects/profilepic.webp";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
 import { getDesktopPoint } from "../utils/desktopTransform";

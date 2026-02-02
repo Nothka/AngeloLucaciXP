@@ -1,6 +1,6 @@
 import React from "react";
-import logoffIcon from "../../../../assets/logoff.png";
-import shutdownIcon from "../../../../assets/shutdown.png";
+import logoffIcon from "../../../../assets/logoff.webp";
+import shutdownIcon from "../../../../assets/shutdown.webp";
 import logoffSound from "../../../../assets/windows-xp-logoff.mp3";
 import shutdownSound from "../../../../assets/windows-shutdown.mp3";
 import "../../../../styles/desktop/taskbar/startmenu/startmenufooter.css";

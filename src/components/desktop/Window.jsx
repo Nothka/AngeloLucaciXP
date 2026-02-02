@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import backIcon from "../../assets/window/Back.png";
-import forwardIcon from "../../assets/window/Forward.png";
-import favoritesIcon from "../../assets/window/Favorites.png";
-import homeIcon from "../../assets/window/home.png";
-import minimizeIcon from "../../assets/window/Minimize.png";
-import maximizeIcon from "../../assets/window/Maximize.png";
+import backIcon from "../../assets/window/Back.webp";
+import forwardIcon from "../../assets/window/Forward.webp";
+import favoritesIcon from "../../assets/window/Favorites.webp";
+import homeIcon from "../../assets/window/home.webp";
+import minimizeIcon from "../../assets/window/Minimize.webp";
+import maximizeIcon from "../../assets/window/Maximize.webp";
 import closeIcon from "../../assets/window/Exit.png";
 import goIcon from "../../assets/startmenu/adressbar/Go.png";
 import ResizeHandles from "./ResizeHandles";

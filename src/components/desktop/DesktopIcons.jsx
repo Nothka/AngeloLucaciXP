@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import aboutIcon from "../../assets/startmenu/about.png";
-import myProjectsIcon from "../../assets/startmenu/myprojects.png";
-import contactIcon from "../../assets/startmenu/contact.png";
+import aboutIcon from "../../assets/startmenu/about.webp";
+import myProjectsIcon from "../../assets/startmenu/myprojects.webp";
+import contactIcon from "../../assets/startmenu/contact.webp";
 import PdfIcon from "../../assets/startmenu/Pdf.png";
 
 const desktopIcons = [

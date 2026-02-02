@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import commandpromptIcon from "../../assets/startmenu/commandprompt.png";
-import minimizeIcon from "../../assets/window/Minimize.png";
-import maximizeIcon from "../../assets/window/Maximize.png";
+import minimizeIcon from "../../assets/window/Minimize.webp";
+import maximizeIcon from "../../assets/window/Maximize.webp";
 import closeIcon from "../../assets/window/Exit.png";
 import ResizeHandles from "./ResizeHandles";
 import useWindowResize from "./hooks/useWindowResize";

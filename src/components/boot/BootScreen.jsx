@@ -24,7 +24,7 @@ const BootScreen = ({ isReady = false }) => {
           </div>
         </div>
         <div className="boot-status" aria-live="polite">
-          {isReady ? "Starting Windows..." : "Loading desktop assets..."}
+          {isReady}
         </div>
       </div>
 

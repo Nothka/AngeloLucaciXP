@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import avatar from "../../assets/login-avatar.png";
+import avatar from "../../assets/login-avatar.webp";
 import { userProfile } from "../login/User/UserProfile";
 
 const LoginUserTile = ({

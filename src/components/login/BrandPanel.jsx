@@ -1,5 +1,5 @@
 import React from "react";
-import xpLogo from "../../assets/xp-logo.png";
+import xpLogo from "../../assets/xp-logo.webp";
 import { fullName, instructions, userProfile } from "../login/User/UserProfile";
 
 const BrandPanel = ({

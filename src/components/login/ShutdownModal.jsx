@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import restartIcon from "../../assets/restart.png";
 import shutdownIcon from "../../assets/237.ico"; // dacă nu ai încă, poți comenta
-import xpLogo from "../../assets/xp-logo.png";
+import xpLogo from "../../assets/xp-logo.webp";
 
 const ShutdownModal = ({ onClose, onRestart, productName }) => {
   const [visible, setVisible] = useState(false);
