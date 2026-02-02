@@ -9,6 +9,18 @@ import restartIcon from "./assets/restart.png";
 
 const ABOVE_FOLD_ASSETS = [xpLogo, loginAvatar, restartIcon];
 
+const IMAGE_GLOBS = import.meta.glob("./assets/**/*.{png,jpg,jpeg,webp,gif,ico,svg}", {
+  eager: true,
+  as: "url",
+});
+const AUDIO_GLOBS = import.meta.glob("./assets/**/*.{mp3,wav,ogg}", {
+  eager: true,
+  as: "url",
+});
+
+const ALL_IMAGE_ASSETS = Object.values(IMAGE_GLOBS);
+const ALL_AUDIO_ASSETS = Object.values(AUDIO_GLOBS);
+
 const preloadImages = (sources) =>
   Promise.all(
     Array.from(new Set(sources)).map(
@@ -22,9 +34,31 @@ const preloadImages = (sources) =>
     )
   );
 
+const preloadAudio = (sources, timeoutMs = 4000) =>
+  Promise.all(
+    Array.from(new Set(sources)).map(
+      (src) =>
+        new Promise((resolve) => {
+          const audio = new Audio();
+          const finish = () => {
+            audio.removeEventListener("canplaythrough", finish);
+            audio.removeEventListener("error", finish);
+            resolve();
+          };
+          audio.preload = "auto";
+          audio.addEventListener("canplaythrough", finish, { once: true });
+          audio.addEventListener("error", finish, { once: true });
+          audio.src = src;
+          audio.load();
+          setTimeout(finish, timeoutMs);
+        })
+    )
+  );
+
 const App = () => {
   const [screen, setScreen] = useState("boot"); // "boot" | "login" | "desktop"
   const [assetsReady, setAssetsReady] = useState(false);
+  const [desktopAssetsReady, setDesktopAssetsReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +71,22 @@ const App = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (screen !== "welcome" || desktopAssetsReady) return;
+    let cancelled = false;
+    const preload = Promise.all([
+      preloadImages(ALL_IMAGE_ASSETS),
+      preloadAudio(ALL_AUDIO_ASSETS),
+    ]);
+    const fallback = new Promise((resolve) => setTimeout(resolve, 12000));
+    Promise.race([preload, fallback]).then(() => {
+      if (!cancelled) setDesktopAssetsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [screen, desktopAssetsReady]);
 
   useEffect(() => {
     const handleContextMenu = (event) => {
@@ -82,7 +132,7 @@ const App = () => {
   };
 
   const handleEnterDesktop = () => {
-    if (!assetsReady) return;
+    if (!desktopAssetsReady) return;
     setScreen("desktop");
   };
 
@@ -101,7 +151,7 @@ const App = () => {
   if (screen === "login")
     return <LoginScreen onLogin={handleLogin} onRestart={handleRestartToLogin} />;
   if (screen === "welcome")
-    return <Welcome onContinue={handleEnterDesktop} isReady={assetsReady} />;
+    return <Welcome onContinue={handleEnterDesktop} isReady={desktopAssetsReady} />;
 
   return <Desktop onLogOff={handleLogOff} onShutdown={handleShutdown} />;
 };
