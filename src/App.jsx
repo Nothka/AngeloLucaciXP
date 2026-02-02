@@ -3,49 +3,15 @@ import BootScreen from "./components/boot/BootScreen";
 import LoginScreen from "./components/login/LoginScreen";
 import Desktop from "./components/desktop/Desktop";
 import Welcome from "./components/welcome/Welcome";
-import wallpaper from "./assets/xp-wallpaper.jpg";
-import startIdle from "./assets/start.png";
-import startHover from "./assets/start-hovered.png";
-import startActive from "./assets/start-clicked.png";
-import aboutIcon from "./assets/startmenu/about.png";
-import myProjectsIcon from "./assets/startmenu/myprojects.png";
-import contactIcon from "./assets/startmenu/contact.png";
-import pdfIcon from "./assets/startmenu/Pdf.png";
 import xpLogo from "./assets/xp-logo.png";
 import loginAvatar from "./assets/login-avatar.png";
 import restartIcon from "./assets/restart.png";
-import yahooIcon from "./assets/startmenu/recentlyused/yahoo.jpeg";
 
-const CRITICAL_ASSETS = [
-  wallpaper,
-  startIdle,
-  startHover,
-  startActive,
-  aboutIcon,
-  myProjectsIcon,
-  contactIcon,
-  pdfIcon,
-  xpLogo,
-  loginAvatar,
-  restartIcon,
-  yahooIcon,
-];
-
-const IMAGE_GLOBS = import.meta.glob("./assets/**/*.{png,jpg,jpeg,webp,gif,ico,svg}", {
-  eager: true,
-  as: "url",
-});
-const AUDIO_GLOBS = import.meta.glob("./assets/**/*.{mp3,wav,ogg}", {
-  eager: true,
-  as: "url",
-});
-
-const ALL_IMAGE_ASSETS = Object.values(IMAGE_GLOBS);
-const ALL_AUDIO_ASSETS = Object.values(AUDIO_GLOBS);
+const ABOVE_FOLD_ASSETS = [xpLogo, loginAvatar, restartIcon];
 
 const preloadImages = (sources) =>
   Promise.all(
-    sources.map(
+    Array.from(new Set(sources)).map(
       (src) =>
         new Promise((resolve) => {
           const img = new Image();
@@ -56,36 +22,14 @@ const preloadImages = (sources) =>
     )
   );
 
-const preloadAudio = (sources, timeoutMs = 4000) =>
-  Promise.all(
-    sources.map(
-      (src) =>
-        new Promise((resolve) => {
-          const audio = new Audio();
-          const finish = () => {
-            audio.removeEventListener("canplaythrough", finish);
-            audio.removeEventListener("error", finish);
-            resolve();
-          };
-          audio.preload = "auto";
-          audio.addEventListener("canplaythrough", finish, { once: true });
-          audio.addEventListener("error", finish, { once: true });
-          audio.src = src;
-          audio.load();
-          setTimeout(finish, timeoutMs);
-        })
-    )
-  );
-
 const App = () => {
   const [screen, setScreen] = useState("boot"); // "boot" | "login" | "desktop"
   const [assetsReady, setAssetsReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const imageSources = Array.from(new Set([...CRITICAL_ASSETS, ...ALL_IMAGE_ASSETS]));
-    const preload = Promise.all([preloadImages(imageSources), preloadAudio(ALL_AUDIO_ASSETS)]);
-    const fallback = new Promise((resolve) => setTimeout(resolve, 10000));
+    const preload = preloadImages(ABOVE_FOLD_ASSETS);
+    const fallback = new Promise((resolve) => setTimeout(resolve, 3000));
     Promise.race([preload, fallback]).then(() => {
       if (!cancelled) setAssetsReady(true);
     });

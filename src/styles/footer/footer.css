@@ -170,11 +170,9 @@
 
   .login-footer::before {
     width: min(240px, 80%);
-    height: 2px;
-    opacity: 0.85;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
+    height: 3px;
+    left: 10%;
+    right: 25%;
     background: linear-gradient(
       90deg,
       transparent,
