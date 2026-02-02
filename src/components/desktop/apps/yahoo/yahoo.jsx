@@ -23,7 +23,7 @@ import { getDesktopPoint } from "../../utils/desktopTransform";
 const WINDOW_SIZE = { width: 320, height: 520 };
 const SIGN_IN_LOGIN_DELAY = 0;
 const SIGN_IN_AFTERLOGIN_DELAY = 3020;
-const LOGIN_VIDEO_LOOP_END = 1.4;
+const LOGIN_VIDEO_LOOP_END = 1.3;
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const EMOTICON_PATTERN = EMOTICON_CODES.map(escapeRegex)
   .sort((a, b) => b.length - a.length)
@@ -183,6 +183,19 @@ const YahooWindow = ({
       setSize(originalSize.current);
     }
   }, [isMaximized]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const videoElement = document.createElement("video");
+    const canPlayWebm =
+      typeof videoElement.canPlayType === "function" &&
+      videoElement.canPlayType('video/webm; codecs="vp8, vorbis"') !== "";
+    if (isMobile || prefersReducedMotion || !canPlayWebm) {
+      setUseLoginVideo(false);
+    }
+  }, []);
 
 
   const bringSubWindowToFront = useCallback(
@@ -902,6 +915,7 @@ const YahooWindow = ({
                     playsInline
                     preload="auto"
                     autoPlay
+                    poster={yahooLoginImage}
                     src={yahooLoginVideo}
                     onError={() => setUseLoginVideo(false)}
                   />
