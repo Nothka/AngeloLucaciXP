@@ -21,6 +21,7 @@ const Welcome = ({ onContinue, isReady = true }) => {
         <main className="login-screen-inner">
           <div className="welcome-center">
             <span className="welcome-word">welcome</span>
+            {!isReady ? <span className="welcome-loading">Loading desktop...</span> : null}
           </div>
         </main>
 

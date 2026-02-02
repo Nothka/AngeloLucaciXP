@@ -2,7 +2,7 @@ import React from "react";
 import BrandPanel from "../login/BrandPanel";
 import { fullName, userProfile } from "../login/User/UserProfile";
 
-const BootScreen = () => {
+const BootScreen = ({ isReady = false }) => {
   return (
     <div className="boot-body">
       <div className="boot-screen">
@@ -22,6 +22,9 @@ const BootScreen = () => {
               <span className="boot-bar-block" />
             </div>
           </div>
+        </div>
+        <div className="boot-status" aria-live="polite">
+          {isReady ? "Starting Windows..." : "Loading desktop assets..."}
         </div>
       </div>
 

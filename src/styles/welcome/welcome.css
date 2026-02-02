@@ -57,6 +57,21 @@
   user-select: none;
 }
 
+.welcome-loading {
+  margin-top: 14px;
+  font-size: 14px;
+  color: #e9eefc;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+@media (max-width: 600px) {
+  .welcome-loading {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 900px) {
   .welcome-center::before,
   .welcome-center::after {

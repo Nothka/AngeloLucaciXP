@@ -6,8 +6,32 @@ import Welcome from "./components/welcome/Welcome";
 import xpLogo from "./assets/xp-logo.png";
 import loginAvatar from "./assets/login-avatar.png";
 import restartIcon from "./assets/restart.png";
+import wallpaper from "./assets/xp-wallpaper.jpg";
+import startIdle from "./assets/start.png";
+import startHover from "./assets/start-hovered.png";
+import startActive from "./assets/start-clicked.png";
+import aboutIcon from "./assets/startmenu/about.png";
+import myProjectsIcon from "./assets/startmenu/myprojects.png";
+import contactIcon from "./assets/startmenu/contact.png";
+import pdfIcon from "./assets/startmenu/Pdf.png";
+import trayIcon from "./assets/976.ico";
+import securityOkIcon from "./assets/securityok.png";
+import welcomeIcon from "./assets/welcome.png";
 
 const ABOVE_FOLD_ASSETS = [xpLogo, loginAvatar, restartIcon];
+const DESKTOP_CORE_ASSETS = [
+  wallpaper,
+  startIdle,
+  startHover,
+  startActive,
+  aboutIcon,
+  myProjectsIcon,
+  contactIcon,
+  pdfIcon,
+  trayIcon,
+  securityOkIcon,
+  welcomeIcon,
+];
 
 const IMAGE_GLOBS = import.meta.glob("./assets/**/*.{png,jpg,jpeg,webp,gif,ico,svg}", {
   eager: true,
@@ -57,15 +81,17 @@ const preloadAudio = (sources, timeoutMs = 4000) =>
 
 const App = () => {
   const [screen, setScreen] = useState("boot"); // "boot" | "login" | "desktop"
-  const [assetsReady, setAssetsReady] = useState(false);
-  const [desktopAssetsReady, setDesktopAssetsReady] = useState(false);
+  const [desktopCoreReady, setDesktopCoreReady] = useState(false);
+  const [allAssetsReady, setAllAssetsReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const preload = preloadImages(ABOVE_FOLD_ASSETS);
     const fallback = new Promise((resolve) => setTimeout(resolve, 3000));
     Promise.race([preload, fallback]).then(() => {
-      if (!cancelled) setAssetsReady(true);
+      if (!cancelled) {
+        // no-op: above-the-fold assets are ready
+      }
     });
     return () => {
       cancelled = true;
@@ -73,20 +99,33 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (screen !== "welcome" || desktopAssetsReady) return;
+    if (desktopCoreReady) return;
+    let cancelled = false;
+    const preload = preloadImages(DESKTOP_CORE_ASSETS);
+    const fallback = new Promise((resolve) => setTimeout(resolve, 7000));
+    Promise.race([preload, fallback]).then(() => {
+      if (!cancelled) setDesktopCoreReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [desktopCoreReady]);
+
+  useEffect(() => {
+    if (screen !== "desktop" || allAssetsReady) return;
     let cancelled = false;
     const preload = Promise.all([
       preloadImages(ALL_IMAGE_ASSETS),
       preloadAudio(ALL_AUDIO_ASSETS),
     ]);
-    const fallback = new Promise((resolve) => setTimeout(resolve, 12000));
+    const fallback = new Promise((resolve) => setTimeout(resolve, 15000));
     Promise.race([preload, fallback]).then(() => {
-      if (!cancelled) setDesktopAssetsReady(true);
+      if (!cancelled) setAllAssetsReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [screen, desktopAssetsReady]);
+  }, [screen, allAssetsReady]);
 
   useEffect(() => {
     const handleContextMenu = (event) => {
@@ -132,7 +171,7 @@ const App = () => {
   };
 
   const handleEnterDesktop = () => {
-    if (!desktopAssetsReady) return;
+    if (!desktopCoreReady) return;
     setScreen("desktop");
   };
 
@@ -147,11 +186,11 @@ const App = () => {
   const handleShutdown = () => {
     setScreen("boot");
   };
-  if (screen === "boot") return <BootScreen />;
+  if (screen === "boot") return <BootScreen isReady={desktopCoreReady} />;
   if (screen === "login")
     return <LoginScreen onLogin={handleLogin} onRestart={handleRestartToLogin} />;
   if (screen === "welcome")
-    return <Welcome onContinue={handleEnterDesktop} isReady={desktopAssetsReady} />;
+    return <Welcome onContinue={handleEnterDesktop} isReady={desktopCoreReady} />;
 
   return <Desktop onLogOff={handleLogOff} onShutdown={handleShutdown} />;
 };
