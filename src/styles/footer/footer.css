@@ -16,23 +16,6 @@
   margin-top: auto;
 }
 
-.login-footer::before {
-  content: "";
-  position: absolute;
-  left: 5%;
-  right: 40%;
-  top: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #f8953d,
-    #f09b2b,
-    #f8953d,
-    transparent
-  );
-  z-index: 4;
-}
 
 
 
@@ -124,9 +107,6 @@
   color: #eaf2ff;
 }
 
-#login-screen.login-screen--shutdown .login-footer::before {
-  display: none;
-}
 
 
 @media (max-width: 900px) {
@@ -168,21 +148,6 @@
     gap: 8px;
   }
 
-  .login-footer::before {
-    width: min(240px, 80%);
-    height: 3px;
-    left: 10%;
-    right: 25%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      #ffd08a,
-      #ff9f2f,
-      #ffd08a,
-      transparent
-    );
-    box-shadow: 0 0 3px rgba(255, 159, 47, 0.6);
-  }
 
 
   .right-bottom span {
