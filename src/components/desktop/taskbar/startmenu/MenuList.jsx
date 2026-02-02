@@ -50,7 +50,6 @@ const links = [
   },
   { key: "separator2", isSeparator: true },
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon},
-  { key: "image-viewer", title: "Image Viewer", iconSrc: imageviewerIcon },
   { key: "resume", title: "My Resume", iconSrc: resumeIcon },
 ];
 
