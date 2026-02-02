@@ -271,3 +271,90 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+@media (max-width: 768px) {
+  .yahoo-addfriends-window {
+    min-width: 300px;
+    min-height: 360px;
+  }
+
+  .yahoo-addfriends-body {
+    padding: 10px 10px 8px;
+    font-size: 11px;
+    gap: 10px;
+  }
+
+  .yahoo-addfriends-step {
+    gap: 10px;
+  }
+
+  .yahoo-addfriends-row,
+  .yahoo-addfriends-row.is-mobile {
+    gap: 10px;
+  }
+
+  .yahoo-addfriends-label {
+    font-size: 11px;
+  }
+
+  .yahoo-addfriends-input {
+    padding: 4px 5px;
+    font-size: 11px;
+  }
+
+  .yahoo-addfriends-network {
+    width: 120px;
+  }
+
+  .yahoo-addfriends-select {
+    font-size: 11px;
+  }
+
+  .yahoo-addfriends-select-wide {
+    width: 180px;
+  }
+
+  .yahoo-addfriends-tip {
+    width: 120px;
+    padding: 8px 10px;
+    margin-top: 12px;
+  }
+
+  .yahoo-addfriends-example {
+    font-size: 10px;
+  }
+
+  .yahoo-addfriends-book {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .yahoo-addfriends-actions {
+    gap: 6px;
+  }
+
+  .yahoo-addfriends-btn {
+    padding: 3px 12px;
+    font-size: 11px;
+  }
+
+  .yahoo-addfriends-name-dialog {
+    width: 260px;
+    padding: 0 12px 12px;
+    gap: 10px;
+  }
+
+  .yahoo-addfriends-name-header {
+    margin: 0 -12px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .yahoo-addfriends-name-fields {
+    gap: 8px;
+  }
+
+  .yahoo-addfriends-name-label {
+    font-size: 10px;
+  }
+}

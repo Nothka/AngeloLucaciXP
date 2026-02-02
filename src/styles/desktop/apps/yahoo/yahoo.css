@@ -232,6 +232,49 @@
  
 }
 
+@media (max-width: 768px) {
+  .yahoo-window {
+    min-width: 250px;
+    min-height: 520px;
+    --window-header-height: 22px;
+  }
+
+  .yahoo-window .window-header {
+    min-height: 36px;
+  }
+
+  .yahoo-header-top {
+    min-height: 20px;
+    padding: 3px calc(4px + var(--window-chrome-inset)) 2px;
+  }
+
+  .yahoo-header-menu {
+    gap: 10px;
+    font-size: 10px;
+    padding: 0 calc(4px + var(--window-chrome-inset)) 3px;
+  }
+
+  .yahoo-title-icon {
+    height: 16px;
+  }
+
+  .yahoo-login-image-wrap {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 14px;
+  }
+
+  .yahoo-label,
+  .yahoo-input {
+    width: 160px;
+    font-size: 11px;
+  }
+
+  .yahoo-input {
+    padding: 3px 5px;
+  }
+}
+
 .yahoo-form {
   width: 100%;
   display: flex;
