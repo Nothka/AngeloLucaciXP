@@ -393,19 +393,19 @@ const MyProjectWindow = ({
               <div className="projects-ig-logo">Instagram</div>
               <nav className="projects-ig-nav">
                 {navItems.map((item) => (
-                  <div key={item.label} className="projects-ig-nav-item">
+                  <button key={item.label} type="button" className="projects-ig-nav-item">
                     <span className="projects-ig-icon" aria-hidden="true">
                       <img src={item.icon} alt="" className="projects-ig-nav-icon" />
                     </span>
-                    {item.label}
-                  </div>
+                    <span className="projects-ig-nav-label">{item.label}</span>
+                  </button>
                 ))}
-                <div className="projects-ig-nav-item is-active">
+                <button type="button" className="projects-ig-nav-item is-active">
                   <span className="projects-ig-icon" aria-hidden="true">
                     <img src={profileNavIcon} alt="" className="projects-ig-nav-avatar" />
                   </span>
-                  Profile
-                </div>
+                  <span className="projects-ig-nav-label">Profile</span>
+                </button>
               </nav>
               <div className="projects-ig-footer">
                 <span className="projects-ig-footer-icon" aria-hidden="true" />

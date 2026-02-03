@@ -115,6 +115,7 @@
   font-family: "Brush Script MT", "Lucida Handwriting", "Segoe Script", cursive;
   font-size: 26px;
   font-weight: 700;
+  user-select: none;
 }
 
 .projects-ig-nav {
@@ -129,6 +130,18 @@
   align-items: center;
   gap: 10px;
   color: #d8d8d8;
+  
+  user-select: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.projects-ig-nav-label {
+  user-select: none;
+  cursor: pointer;
 }
 
 .projects-ig-nav-item.is-active {
@@ -142,6 +155,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
 }
 
 .projects-ig-footer {
@@ -242,6 +256,7 @@
   font-size: 10px;
   padding: 4px 8px;
   border-radius: 12px;
+  user-select: none;
 }
 
 .projects-ig-username-row {
@@ -253,6 +268,7 @@
 .projects-ig-username {
   font-size: 20px;
   font-weight: 700;
+  user-select: none;
 }
 
 .projects-ig-settings-icon {
@@ -261,6 +277,7 @@
   object-fit: contain;
   filter: invert(1);
   opacity: 0.85;
+  cursor: pointer;
 }
 
 .projects-ig-actions {
@@ -276,7 +293,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #f2f2f2;
   font-size: 12px;
-  cursor: default;
+  cursor: pointer;
   min-width: 140px;
 }
 
@@ -285,6 +302,7 @@
   gap: 20px;
   font-size: 13px;
   color: #d8d8d8;
+  user-select: none;
 }
 
 .projects-ig-stats strong {
@@ -297,6 +315,7 @@
   color: #d0d0d0;
   line-height: 1.4;
   max-width: 480px;
+  user-select: none;
 }
 
 .projects-stories {
