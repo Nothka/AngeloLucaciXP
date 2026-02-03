@@ -27,6 +27,7 @@ const YahooConversationWindow = ({
   contactImage,
   username = "angelo_lucaci",
   messages = [],
+  isTyping = false,
   draft = "",
   statusMessage,
   statusType,
@@ -161,6 +162,7 @@ const YahooConversationWindow = ({
           contactImage={contactImage}
           username={username}
           messages={messages}
+          isTyping={isTyping}
           draft={draft}
           statusMessage={statusMessage}
           statusType={statusType}

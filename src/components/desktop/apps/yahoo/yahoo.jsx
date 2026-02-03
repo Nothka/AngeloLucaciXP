@@ -12,6 +12,7 @@ import closeIcon from "../../../../assets/yahoo/header/close.png";
 import YahooSignedIn, { DEFAULT_FRIEND_CONTACTS } from "./yahoosignedin";
 import YahooAddFriendsWindow from "./addfriends";
 import YahooConversationWindow from "./yahoo-conversation-window/yahoo-window";
+import YahooPreferencesWindow from "./yahoo-preferences";
 import { EMOTICON_CODES } from "./emoticonData";
 import ResizeHandles from "../../ResizeHandles";
 import useWindowResize from "../../hooks/useWindowResize";
@@ -35,6 +36,8 @@ const formatConversationTaskbarTitle = (name = "") => {
   if (trimmed.toLowerCase() === "chatgpt") return "Chatgpt";
   return trimmed;
 };
+const isAiContactName = (name = "") =>
+  ["chatgpt", "gemini"].includes(name.trim().toLowerCase());
 const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
   "https://monumental-croissant-e8ec10.netlify.app";
@@ -143,10 +146,12 @@ const YahooWindow = ({
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [isConversationWindowMinimized, setIsConversationWindowMinimized] = useState(false);
   const [isAddFriendsOpen, setIsAddFriendsOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [subWindowOrder, setSubWindowOrder] = useState([
     "main",
     "conversation",
     "addfriends",
+    "preferences",
   ]);
   const windowRef = useRef(null);
   const signInTimeoutRef = useRef(null);
@@ -214,6 +219,7 @@ const YahooWindow = ({
     "main",
     activeConversationId && !isConversationWindowMinimized ? "conversation" : null,
     isAddFriendsOpen ? "addfriends" : null,
+    isPreferencesOpen ? "preferences" : null,
   ].filter(Boolean);
   const topSubWindow =
     [...subWindowOrder].reverse().find((key) => openSubWindows.includes(key)) || "main";
@@ -295,6 +301,15 @@ const YahooWindow = ({
     setIsAddFriendsOpen(false);
   }, []);
 
+  const openPreferences = useCallback(() => {
+    setIsPreferencesOpen(true);
+    bringSubWindowToFront("preferences");
+  }, [bringSubWindowToFront]);
+
+  const closePreferences = useCallback(() => {
+    setIsPreferencesOpen(false);
+  }, []);
+
   const handleAddFriend = useCallback((name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -325,6 +340,7 @@ const YahooWindow = ({
     setActiveConversationId(null);
     setIsConversationWindowMinimized(false);
     setIsAddFriendsOpen(false);
+    setIsPreferencesOpen(false);
     setActiveMenu(null);
     onConversationListChange?.([]);
     onConversationApiReady?.(null);
@@ -624,6 +640,7 @@ const YahooWindow = ({
             ...item,
             draft: clearDraft ? "" : item.draft,
             messages: nextMessages,
+            isTyping: isAiContactName(item.contactName),
           };
         });
 
@@ -677,7 +694,14 @@ const YahooWindow = ({
 
         const rawReply = String(data?.reply || "").trim();
         const replyText = isBuzz ? "BUZZ!!" : rawReply || (isEmoteOnly ? "🙂" : "");
-        if (!replyText) return;
+        if (!replyText) {
+          setConversations((prev) =>
+            prev.map((item) =>
+              item.id === id ? { ...item, isTyping: false } : item
+            )
+          );
+          return;
+        }
 
         setConversations((prev) =>
           prev.map((item) =>
@@ -692,6 +716,7 @@ const YahooWindow = ({
                       text: replyText,
                     },
                   ],
+                  isTyping: false,
                 }
               : item
           )
@@ -714,6 +739,7 @@ const YahooWindow = ({
                       text: replyText,
                     },
                   ],
+                  isTyping: false,
                 }
               : item
           )
@@ -781,6 +807,7 @@ const YahooWindow = ({
   const isConversationActive =
     isActive && topSubWindow === "conversation" && !isConversationWindowMinimized;
   const isAddFriendsActive = isActive && topSubWindow === "addfriends";
+  const isPreferencesActive = isActive && topSubWindow === "preferences";
 
   return (
     <>
@@ -862,6 +889,11 @@ const YahooWindow = ({
                     }
                     if (entry.label === "Add a Contact") {
                       openAddFriends();
+                      setActiveMenu(null);
+                      return;
+                    }
+                    if (entry.label === "Preferences") {
+                      openPreferences();
                       setActiveMenu(null);
                       return;
                     }
@@ -1022,6 +1054,7 @@ const YahooWindow = ({
           contactImage={activeConversation.icon}
           username={signedInUser || username.trim() || "angelo_lucaci"}
           messages={activeConversation.messages || []}
+          isTyping={Boolean(activeConversation.isTyping)}
           draft={activeConversation.draft || ""}
           onDraftChange={(value) => updateConversationDraft(activeConversation.id, value)}
           onSendMessage={(text) =>
@@ -1055,6 +1088,15 @@ const YahooWindow = ({
           onClose={closeAddFriends}
           onAddFriend={handleAddFriend}
           onMouseDown={() => bringSubWindowToFront("addfriends")}
+        />
+      ) : null}
+      {isPreferencesOpen ? (
+        <YahooPreferencesWindow
+          zIndex={getSubWindowZIndex("preferences")}
+          isActive={isPreferencesActive}
+          isMinimized={isMinimized}
+          onClose={closePreferences}
+          onMouseDown={() => bringSubWindowToFront("preferences")}
         />
       ) : null}
     </>

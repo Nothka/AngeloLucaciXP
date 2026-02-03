@@ -1,0 +1,331 @@
+.yahoo-preferences-window {
+  min-width: 600px;
+  min-height: 580px;
+}
+
+.yahoo-preferences-window .window-header {
+  height: auto;
+  min-height: 30px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: visible;
+}
+
+.yahoo-preferences-body {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: #7a2f74;
+  color: #f6effb;
+  font-size: 12px;
+  min-height: 0;
+}
+
+.yahoo-preferences-sidebar {
+  width: 180px;
+  background: #f7f2f8;
+  border: 1px solid #5f325d;
+  box-shadow: inset 0 0 0 1px #e4d7e6;
+  color: #3b2a3b;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  gap: 6px;
+  min-height: 0;
+}
+
+.yahoo-preferences-category {
+  font-weight: 600;
+  font-size: 12px;
+  color: #3f2c3e;
+}
+
+.yahoo-preferences-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+}
+
+.yahoo-preferences-item {
+  margin: 0;
+}
+
+.yahoo-preferences-item-button {
+  width: 100%;
+  display: block;
+  padding: 4px 6px;
+  border-radius: 2px;
+  color: #4a3a48;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  font: inherit;
+}
+
+.yahoo-preferences-item-button:hover {
+  background: #e3d2e4;
+}
+
+.yahoo-preferences-item-button.is-active {
+  background: #7b2f77;
+  color: #ffffff;
+}
+
+.yahoo-preferences-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.yahoo-preferences-panel-title {
+  background: #5a1e57;
+  border: 1px solid #6b3e69;
+  padding: 6px 8px;
+  font-weight: 600;
+  color: #f5ecff;
+}
+
+.yahoo-preferences-group {
+  border: 1px solid #a784a4;
+  padding: 8px 10px;
+  background: rgba(90, 30, 87, 0.3);
+}
+
+.yahoo-preferences-group-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.yahoo-preferences-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.yahoo-preferences-option input {
+  margin-top: 2px;
+}
+
+.yahoo-preferences-option-inline {
+  flex-wrap: wrap;
+}
+
+.yahoo-preferences-number {
+  width: 46px;
+  padding: 2px 4px;
+  border: 1px solid #a784a4;
+  background: #ffffff;
+  color: #3b2a3b;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+.yahoo-preferences-input {
+  margin-left: 26px;
+  padding: 4px 6px;
+  border: 1px solid #a784a4;
+  background: #ffffff;
+  color: #3b2a3b;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+.yahoo-preferences-privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-privacy-link {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.yahoo-preferences-history {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.yahoo-preferences-history-text {
+  margin: 0;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.yahoo-preferences-history-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yahoo-preferences-history-btn {
+  align-self: flex-start;
+  min-width: 220px;
+}
+
+.yahoo-preferences-video {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.yahoo-preferences-device-row {
+  display: grid;
+  grid-template-columns: 90px 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.yahoo-preferences-device-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.yahoo-preferences-device-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.yahoo-preferences-select {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #a784a4;
+  background: #ffffff;
+  color: #3b2a3b;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+.yahoo-preferences-hint {
+  margin: 4px 0 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+}
+
+.yahoo-preferences-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.yahoo-preferences-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.yahoo-preferences-btn {
+  padding: 4px 16px;
+  border: 1px solid #6b3e69;
+  background: #8f4c8b;
+  color: #f7f1ff;
+  font-size: 12px;
+  border-radius: 2px;
+}
+
+.yahoo-preferences-btn.is-primary {
+  background: #8f4c8b;
+}
+
+.yahoo-preferences-btn:hover {
+  background: #7b2f77;
+}
+
+.yahoo-preferences-networks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.yahoo-preferences-network-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.yahoo-preferences-network-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.yahoo-preferences-network-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-network-content p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.yahoo-preferences-network-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.yahoo-preferences-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #8ed0ff;
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: left;
+}
+
+.yahoo-preferences-link:hover {
+  color: #bde4ff;
+}
+
+@media (max-width: 768px) {
+  .yahoo-preferences-window {
+    min-width: 320px;
+    min-height: 420px;
+  }
+
+  .yahoo-preferences-body {
+    padding: 8px;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .yahoo-preferences-sidebar {
+    width: 140px;
+    padding: 5px;
+  }
+
+  .yahoo-preferences-panel-title {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .yahoo-preferences-group {
+    padding: 6px 8px;
+  }
+
+  .yahoo-preferences-btn {
+    padding: 3px 12px;
+    font-size: 11px;
+  }
+}

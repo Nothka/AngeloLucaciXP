@@ -50,6 +50,7 @@ const YahooConversationBody = ({
   contactName = "softpedia_review3",
   username = "angelo_lucaci",
   messages = [],
+  isTyping = false,
 }) => (
   <div className="yahoo-conversation-body">
     <div className="yahoo-conversation-message-pane">
@@ -99,6 +100,13 @@ const YahooConversationBody = ({
               </div>
             );
           })}
+        </div>
+      ) : null}
+      {isTyping ? (
+        <div className="yahoo-conversation-typing">
+          <span className="yahoo-conversation-typing-text">
+            {contactName} is typing...
+          </span>
         </div>
       ) : null}
     </div>

@@ -123,6 +123,13 @@
   gap: 8px;
 }
 
+.yahoo-conversation-typing {
+  margin-top: 6px;
+  font-style: italic;
+  color: #6a5b73;
+  font-size: 11px;
+}
+
 .yahoo-conversation-message {
   display: flex;
   flex-wrap: wrap;

@@ -11,6 +11,7 @@ const YahooConversationWindowDesign = ({
   contactImage,
   username = "angelo_lucaci",
   messages = [],
+  isTyping = false,
   draft = "",
   onDraftChange,
   onSendMessage,
@@ -26,7 +27,12 @@ const YahooConversationWindowDesign = ({
       <YahooConversationHeader contactName={contactName} />
       <div className="yahoo-conversation-content">
         <div className="yahoo-conversation-main">
-          <YahooConversationBody contactName={contactName} username={username} messages={messages} />
+          <YahooConversationBody
+            contactName={contactName}
+            username={username}
+            messages={messages}
+            isTyping={isTyping}
+          />
         </div>
         <aside className="yahoo-conversation-side">
           <div className="yahoo-conversation-side-card is-contact">
