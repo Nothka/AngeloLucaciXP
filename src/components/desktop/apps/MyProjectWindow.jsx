@@ -407,10 +407,10 @@ const MyProjectWindow = ({
                   <span className="projects-ig-nav-label">Profile</span>
                 </button>
               </nav>
-              <div className="projects-ig-footer">
+              <button type="button" className="projects-ig-footer">
                 <span className="projects-ig-footer-icon" aria-hidden="true" />
-                More
-              </div>
+                <span className="projects-ig-footer-label">More</span>
+              </button>
             </aside>
 
             <main className="projects-ig-main">
