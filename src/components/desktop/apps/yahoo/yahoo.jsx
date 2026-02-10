@@ -1071,7 +1071,7 @@ const YahooWindow = ({
           }))}
           activeTabId={activeConversation.id}
           onTabSelect={handleConversationTabSelect}
-          zIndex={zIndex + 1}
+          zIndex={getSubWindowZIndex("conversation")}
           isActive={isActive && !isConversationWindowMinimized}
           isMinimized={isConversationWindowMinimized}
           onClose={closeConversationWindow}

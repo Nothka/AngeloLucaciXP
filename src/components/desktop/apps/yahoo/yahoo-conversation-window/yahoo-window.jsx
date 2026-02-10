@@ -128,7 +128,7 @@ const YahooConversationWindow = ({
         zIndex,
         display: isMinimized ? "none" : undefined,
       }}
-      onMouseDown={() => onMouseDown?.(windowId)}
+      onMouseDownCapture={() => onMouseDown?.(windowId)}
     >
       <div className="window-header" onMouseDown={handleMouseDown} onDoubleClick={toggleMaximize}>
         <div className="yahoo-conversation-titlebar">

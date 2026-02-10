@@ -211,6 +211,68 @@
   border-radius: 2px;
 }
 
+.yahoo-preferences-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-alerts-list {
+  border: 1px solid #b8a9bb;
+  background: #ffffff;
+  color: #3b2a3b;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yahoo-preferences-alerts-item {
+  padding: 2px 4px;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  font: inherit;
+}
+
+.yahoo-preferences-alerts-item.is-selected {
+  background: #6d60c9;
+  color: #ffffff;
+}
+
+.yahoo-preferences-sound-path {
+  min-width: 180px;
+}
+
+.yahoo-preferences-ignore {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.yahoo-preferences-ignore-list {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 6px;
+}
+
+.yahoo-preferences-ignore-box {
+  flex: 1;
+  min-height: 180px;
+  background: #ffffff;
+  border: 1px solid #b8a9bb;
+}
+
+.yahoo-preferences-ignore-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .yahoo-preferences-hint {
   margin: 4px 0 6px;
   color: rgba(255, 255, 255, 0.85);

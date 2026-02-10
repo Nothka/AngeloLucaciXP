@@ -50,6 +50,7 @@ const YahooPreferencesWindow = ({
   isMinimized = false,
 }) => {
   const [activeCategory, setActiveCategory] = useState("General");
+  const [activeAlertIndex, setActiveAlertIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState(getDefaultPosition);
@@ -361,6 +362,108 @@ const YahooPreferencesWindow = ({
                 <input type="checkbox" defaultChecked />
                 <span>Allow USB devices to access Messenger</span>
               </label>
+            </div>
+          ) : activeCategory === "Alerts & Sounds" ? (
+            <div className="yahoo-preferences-alerts">
+              <label className="yahoo-preferences-option">
+                <input type="checkbox" defaultChecked />
+                <span>Enable alert sounds.</span>
+              </label>
+
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">Alert me when</div>
+                <div className="yahoo-preferences-alerts-list">
+                  {[
+                    "A Messenger contact goes online",
+                    "A Messenger contact goes offline",
+                    "A Messenger contact buzzes me",
+                    "I receive an Instant Message or SMS Message",
+                    "I receive a personals alert",
+                    "I receive a message in Yahoo! Mail",
+                    "I receive a Yahoo! Calendar reminder",
+                    "I receive an incoming video or voice call",
+                  ].map((label, index) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`yahoo-preferences-alerts-item${
+                        index === activeAlertIndex ? " is-selected" : ""
+                      }`}
+                      onClick={() => setActiveAlertIndex(index)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">Alert me by:</div>
+                <label className="yahoo-preferences-option">
+                  <input type="checkbox" defaultChecked />
+                  <span>Showing a message at the bottom right corner of screen</span>
+                </label>
+                <label className="yahoo-preferences-option">
+                  <input type="checkbox" />
+                  <span>Displaying a dialog box</span>
+                </label>
+                <div className="yahoo-preferences-option yahoo-preferences-option-inline">
+                  <input type="checkbox" defaultChecked />
+                  <span>Playing a sound</span>
+                  <input
+                    type="text"
+                    className="yahoo-preferences-input yahoo-preferences-sound-path"
+                    defaultValue="C:\\Program...\\offline.wav"
+                  />
+                  <button type="button" className="yahoo-preferences-btn is-primary">
+                    ▶
+                  </button>
+                  <button type="button" className="yahoo-preferences-btn">
+                    Browse
+                  </button>
+                </div>
+              </div>
+
+              <label className="yahoo-preferences-option">
+                <input type="checkbox" />
+                <span>Mute Yahoo! Games sounds in Messenger by default.</span>
+              </label>
+              <label className="yahoo-preferences-option">
+                <input type="checkbox" />
+                <span>Alert me before downloading a Yahoo! Messenger update.</span>
+              </label>
+            </div>
+          ) : activeCategory === "Ignore List" ? (
+            <div className="yahoo-preferences-ignore">
+              <p className="yahoo-preferences-history-text">
+                You can prevent unwanted communications in Yahoo! Messenger by ignoring people.
+              </p>
+
+              <div className="yahoo-preferences-group">
+                <label className="yahoo-preferences-option">
+                  <input type="radio" name="yahoo-ignore" defaultChecked />
+                  <span>Ignore anyone who is not in my Yahoo! Contacts.</span>
+                </label>
+                <p className="yahoo-preferences-hint">
+                  You will only receive messages from people who are in your Messenger List or
+                  Address Book.
+                </p>
+                <label className="yahoo-preferences-option">
+                  <input type="radio" name="yahoo-ignore" />
+                  <span>Ignore only the people below:</span>
+                </label>
+                <div className="yahoo-preferences-ignore-list">
+                  <div className="yahoo-preferences-ignore-box" />
+                  <div className="yahoo-preferences-ignore-actions">
+                    <button type="button" className="yahoo-preferences-btn">
+                      Add
+                    </button>
+                    <button type="button" className="yahoo-preferences-btn">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <>
