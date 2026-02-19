@@ -91,6 +91,7 @@
   font-weight: 400;
   cursor: default;
   white-space: nowrap;
+  position: relative;
 }
 
 .yahoo-header-dropdown-item:hover {
@@ -107,6 +108,11 @@
   color: #a5a5a5;
 }
 
+.yahoo-header-dropdown-item.is-submenu-open {
+  background: #c9d8f2;
+  color: #1a1a1a;
+}
+
 .yahoo-header-dropdown-marker {
   width: 8px;
   height: 8px;
@@ -117,6 +123,71 @@
 
 .yahoo-header-dropdown-marker.is-selected {
   background: #2b2b2b;
+}
+
+.yahoo-header-submenu {
+  position: absolute;
+  top: -4px;
+  left: calc(100% - 2px);
+  min-width: 146px;
+  background: #f4f1f6;
+  border: 1px solid #b8a9bb;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+  padding: 4px 0;
+  z-index: 7;
+}
+
+.yahoo-header-submenu-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border: none;
+  background: transparent;
+  color: #2b2b2b;
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.yahoo-header-submenu button.yahoo-header-submenu-item {
+  color: #2b2b2b;
+  background: transparent;
+}
+
+.yahoo-header-submenu-item:hover {
+  background: #c9d8f2;
+  color: #1a1a1a;
+}
+
+.yahoo-header-submenu button.yahoo-header-submenu-item:hover {
+  background: #c9d8f2;
+  color: #1a1a1a;
+}
+
+.yahoo-header-submenu-item .yahoo-header-dropdown-marker {
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.yahoo-header-submenu-item .yahoo-header-dropdown-marker.is-online {
+  background: #ffcf4d;
+  border-color: #ffbc63;
+}
+
+.yahoo-header-submenu-item .yahoo-header-dropdown-marker.is-invisible {
+  background: #8f8a98;
+  border-color: #b4afbd;
+}
+
+.yahoo-header-submenu-item .yahoo-header-dropdown-marker:not(.is-selected) {
+  opacity: 0.45;
+}
+
+.yahoo-header-submenu-label {
+  line-height: 1.2;
 }
 
 .yahoo-header-dropdown-shortcut,

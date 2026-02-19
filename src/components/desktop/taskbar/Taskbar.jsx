@@ -61,6 +61,13 @@ const Taskbar = ({
     }
   };
 
+  const maxZIndex = Math.max(0, ...windows.map((w) => w.zIndex));
+  const activeExtraAppWindowIds = new Set(
+    extraApps
+      .filter((app) => app.isActive && app.ownerWindowId)
+      .map((app) => app.ownerWindowId)
+  );
+
   return (
     <div className="taskbar">
       <div className="taskbar-start" ref={startMenuRef}>
@@ -79,8 +86,9 @@ const Taskbar = ({
 
       <div className="taskbar-windows">
         {windows.map((window) => {
-          const maxZIndex = Math.max(0, ...windows.map((w) => w.zIndex));
-          const isActive = window.zIndex === maxZIndex && !window.minimized;
+          const isWindowTopmost = window.zIndex === maxZIndex && !window.minimized;
+          const isActive =
+            isWindowTopmost && !activeExtraAppWindowIds.has(window.id);
           return (
             <TaskbarApp
               key={window.id}

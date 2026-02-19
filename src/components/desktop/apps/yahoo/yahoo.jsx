@@ -104,6 +104,11 @@ const MENU_DATA = {
   ],
 };
 
+const AVAILABILITY_SUBMENU_OPTIONS = [
+  { value: "online", label: "Available" },
+  { value: "invisible", label: "Invisible" },
+];
+
 const getDefaultPosition = () => {
   if (typeof window === "undefined") return { x: 240, y: 140 };
   return {
@@ -135,7 +140,12 @@ const YahooWindow = ({
   const [signedInUser, setSignedInUser] = useState("");
   const [showAfterLogin, setShowAfterLogin] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [activeHeaderSubmenu, setActiveHeaderSubmenu] = useState(null);
   const [menuLeft, setMenuLeft] = useState(0);
+  const [signedInPresence, setSignedInPresence] = useState("online");
+  const [noIncomingCalls, setNoIncomingCalls] = useState(false);
+  const [insiderPopupRequestId, setInsiderPopupRequestId] = useState(0);
+  const [contactDetailsRequestId, setContactDetailsRequestId] = useState(0);
   const [conversations, setConversations] = useState([]);
   const [useLoginVideo, setUseLoginVideo] = useState(true);
   const loginVideoRef = useRef(null);
@@ -342,6 +352,9 @@ const YahooWindow = ({
     setIsAddFriendsOpen(false);
     setIsPreferencesOpen(false);
     setActiveMenu(null);
+    setActiveHeaderSubmenu(null);
+    setSignedInPresence("online");
+    setNoIncomingCalls(false);
     onConversationListChange?.([]);
     onConversationApiReady?.(null);
     if (useLoginVideo && loginVideoRef.current) {
@@ -489,6 +502,7 @@ const YahooWindow = ({
       if (menuRef.current?.contains(event.target)) return;
       if (headerMenuRef.current?.contains(event.target)) return;
       setActiveMenu(null);
+      setActiveHeaderSubmenu(null);
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
@@ -500,8 +514,15 @@ const YahooWindow = ({
   useEffect(() => {
     if (!isSignedIn && activeMenu) {
       setActiveMenu(null);
+      setActiveHeaderSubmenu(null);
     }
   }, [isSignedIn, activeMenu]);
+
+  useEffect(() => {
+    if (activeMenu !== "Messenger" && activeHeaderSubmenu) {
+      setActiveHeaderSubmenu(null);
+    }
+  }, [activeHeaderSubmenu, activeMenu]);
 
   const headerMenuItems = isSignedIn
     ? ["Messenger", "Contacts", "Actions", "Help"]
@@ -510,11 +531,41 @@ const YahooWindow = ({
   const handleHeaderMenuClick = (label, event) => {
     if (!MENU_DATA[label]) {
       setActiveMenu(null);
+      setActiveHeaderSubmenu(null);
       return;
     }
+    setActiveHeaderSubmenu(null);
     setActiveMenu((prev) => (prev === label ? null : label));
     setMenuLeft(event.currentTarget.offsetLeft);
   };
+
+  const handleHeaderEntryMouseEnter = (entry) => {
+    if (activeMenu !== "Messenger") return;
+    if (entry.label === "My Availability" && isSignedIn) {
+      setActiveHeaderSubmenu("availability");
+      return;
+    }
+    setActiveHeaderSubmenu(null);
+  };
+
+  const handleAvailabilitySelect = (nextPresence) => {
+    if (!isSignedIn) return;
+    setSignedInPresence(nextPresence);
+    setActiveHeaderSubmenu(null);
+    setActiveMenu(null);
+  };
+
+  const handleContactDetailsSave = useCallback((details = {}) => {
+    const nextUsername = String(details.username || "").trim();
+    if (nextUsername) {
+      setSignedInUser(nextUsername);
+      setUsername(nextUsername);
+    }
+    const nextPresence = String(details.presence || "").trim().toLowerCase();
+    if (nextPresence === "online" || nextPresence === "invisible") {
+      setSignedInPresence(nextPresence);
+    }
+  }, []);
 
   const openConversation = useCallback(
     (contact) => {
@@ -786,17 +837,31 @@ const YahooWindow = ({
     [playBuzzSound, sendMessage]
   );
 
+  const isConversationActive =
+    isActive && topSubWindow === "conversation" && !isConversationWindowMinimized;
+
   useEffect(() => {
     if (!onConversationListChange) return;
     const entries = conversations.map((conversation) => ({
       id: conversation.id,
       title: formatConversationTaskbarTitle(conversation.contactName),
       icon: typingIcon,
+      ownerWindowId: windowId,
       minimized: isConversationWindowMinimized,
-      isActive: conversation.id === activeConversationId && !isConversationWindowMinimized,
+      isActive:
+        conversation.id === activeConversationId &&
+        !isConversationWindowMinimized &&
+        isConversationActive,
     }));
     onConversationListChange(entries);
-  }, [conversations, activeConversationId, isConversationWindowMinimized, onConversationListChange]);
+  }, [
+    conversations,
+    activeConversationId,
+    isConversationActive,
+    isConversationWindowMinimized,
+    onConversationListChange,
+    windowId,
+  ]);
 
   useEffect(() => {
     if (!onConversationApiReady) return;
@@ -827,8 +892,6 @@ const YahooWindow = ({
   ).join(", ");
   const showAfterLoginImage = isSigningIn && showAfterLogin && !useLoginVideo;
   const isMainActive = isActive && topSubWindow === "main";
-  const isConversationActive =
-    isActive && topSubWindow === "conversation" && !isConversationWindowMinimized;
   const isAddFriendsActive = isActive && topSubWindow === "addfriends";
   const isPreferencesActive = isActive && topSubWindow === "preferences";
 
@@ -904,8 +967,50 @@ const YahooWindow = ({
                       />
                     );
                   }
+                  const isAvailabilityEntry =
+                    activeMenu === "Messenger" && entry.label === "My Availability";
+                  const isNoIncomingCallsEntry =
+                    activeMenu === "Messenger" && entry.label === "No Incoming Calls";
+                  const isMyContactDetailsEntry =
+                    activeMenu === "Messenger" && entry.label === "My Contact Details";
+                  const isAvailabilitySubmenuOpen =
+                    isAvailabilityEntry && activeHeaderSubmenu === "availability";
+                  const isDisabled =
+                    entry.disabled ||
+                    (isAvailabilityEntry && !isSignedIn) ||
+                    (isNoIncomingCallsEntry && !isSignedIn) ||
+                    (isMyContactDetailsEntry && !isSignedIn);
+                  const isSelected =
+                    Boolean(entry.selected) || (isNoIncomingCallsEntry && noIncomingCalls);
+                  const itemRole = isNoIncomingCallsEntry ? "menuitemcheckbox" : "menuitem";
                   const handleEntryClick = () => {
-                    if (entry.disabled) return;
+                    if (isDisabled) return;
+                    if (isAvailabilityEntry) {
+                      setActiveHeaderSubmenu((prev) =>
+                        prev === "availability" ? null : "availability"
+                      );
+                      return;
+                    }
+                    if (isNoIncomingCallsEntry) {
+                      setNoIncomingCalls((prev) => !prev);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (entry.label === "Yahoo! Insider") {
+                      if (isSignedIn) {
+                        setInsiderPopupRequestId((prev) => prev + 1);
+                      }
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isMyContactDetailsEntry) {
+                      setContactDetailsRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
                     if (entry.label === "Sign Out") {
                       handleSignOut();
                       return;
@@ -913,25 +1018,32 @@ const YahooWindow = ({
                     if (entry.label === "Add a Contact") {
                       openAddFriends();
                       setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
                       return;
                     }
                     if (entry.label === "Preferences") {
                       openPreferences();
                       setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
                       return;
                     }
                     setActiveMenu(null);
+                    setActiveHeaderSubmenu(null);
                   };
                   return (
                     <div
                       key={`${activeMenu}-${entry.label}-${index}`}
-                      className={`yahoo-header-dropdown-item${entry.disabled ? " is-disabled" : ""}`}
+                      className={`yahoo-header-dropdown-item${isDisabled ? " is-disabled" : ""}${
+                        isAvailabilitySubmenuOpen ? " is-submenu-open" : ""
+                      }`}
                       onClick={handleEntryClick}
-                      role="menuitem"
+                      onMouseEnter={() => handleHeaderEntryMouseEnter(entry)}
+                      role={itemRole}
+                      aria-checked={isNoIncomingCallsEntry ? noIncomingCalls : undefined}
                       tabIndex={-1}
                     >
                       <span
-                        className={`yahoo-header-dropdown-marker${entry.selected ? " is-selected" : ""}`}
+                        className={`yahoo-header-dropdown-marker${isSelected ? " is-selected" : ""}`}
                         aria-hidden="true"
                       />
                       <span className="yahoo-header-dropdown-label">{entry.label}</span>
@@ -941,6 +1053,32 @@ const YahooWindow = ({
                       <span className="yahoo-header-dropdown-submenu" aria-hidden="true">
                         {entry.submenu ? ">" : ""}
                       </span>
+                      {isAvailabilitySubmenuOpen ? (
+                        <div
+                          className="yahoo-header-submenu"
+                          onMouseDown={(event) => event.stopPropagation()}
+                        >
+                          {AVAILABILITY_SUBMENU_OPTIONS.map((option) => (
+                            <button
+                              type="button"
+                              key={option.value}
+                              className="yahoo-header-submenu-item"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleAvailabilitySelect(option.value);
+                              }}
+                            >
+                              <span
+                                className={`yahoo-header-dropdown-marker ${
+                                  signedInPresence === option.value ? " is-selected" : ""
+                                } ${option.value === "invisible" ? " is-invisible" : " is-online"}`}
+                                aria-hidden="true"
+                              />
+                              <span className="yahoo-header-submenu-label">{option.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -953,6 +1091,12 @@ const YahooWindow = ({
           {isSignedIn ? (
             <YahooSignedIn
               username={signedInUser || username.trim()}
+              presence={signedInPresence}
+              onPresenceChange={setSignedInPresence}
+              noIncomingCalls={noIncomingCalls}
+              openInsiderRequestId={insiderPopupRequestId}
+              openContactDetailsRequestId={contactDetailsRequestId}
+              onContactDetailsSave={handleContactDetailsSave}
               onOpenConversation={openConversation}
               onAddContact={openAddFriends}
               friends={friendContacts}

@@ -31,6 +31,7 @@
   flex-direction: column;
   justify-content: flex-start;
   padding-top: 2px;
+  position: relative;
 }
 
 .yahoo-signedin-name-row {
@@ -180,6 +181,185 @@
   color: white;
   opacity: 0.8;
   user-select: none;
+  cursor: pointer;
+}
+
+.yahoo-signedin-badge-text:focus-visible {
+  outline: 1px solid #f2dcff;
+  outline-offset: 1px;
+}
+
+.yahoo-signedin-insider-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 188px;
+  padding: 6px;
+  background: #f8f3fb;
+  border: 1px solid #bda5cb;
+  box-shadow: 0 2px 0 rgba(58, 33, 66, 0.25);
+  color: #4d3a5f;
+  z-index: 8;
+}
+
+.yahoo-signedin-insider-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.yahoo-signedin-insider-popup-body {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.yahoo-signedin-insider-popup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 1px 10px;
+  font-size: 11px;
+  color: #f5dfff;
+  background: #6a2b68;
+  border: 1px solid #9b6aa0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.yahoo-signedin-contact-details-popup {
+  position: absolute;
+  width: 420px;
+  background: #7f2f79;
+  border: 1px solid #4f1f5e;
+  box-shadow: 0 3px 0 rgba(44, 14, 52, 0.35);
+  color: #f5e9fb;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.yahoo-signedin-contact-details-header {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #a24a9a 0%, #8a3b86 55%, #a0499c 100%);
+  border-bottom: 1px solid #b27cab;
+  cursor: move;
+  user-select: none;
+}
+
+.yahoo-signedin-contact-details-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.yahoo-signedin-contact-details-close {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid rgba(223, 195, 226, 0.65);
+  background: rgba(100, 34, 96, 0.76);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.yahoo-signedin-contact-details-close:hover {
+  filter: brightness(1.22);
+}
+
+.yahoo-signedin-contact-details-close img {
+  width: 8px;
+  height: 8px;
+  filter: brightness(0) invert(1);
+  display: block;
+}
+
+.yahoo-signedin-contact-details-body {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.yahoo-signedin-contact-details-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.yahoo-signedin-contact-details-field {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  font-size: 12px;
+  color: #f5e9fb;
+}
+
+.yahoo-signedin-contact-details-field span {
+  text-align: left;
+}
+
+.yahoo-signedin-contact-details-field input,
+.yahoo-signedin-contact-details-field select {
+  width: 100%;
+  height: 28px;
+  padding: 4px 6px;
+  font-size: 12px;
+  border: 1px solid #6d6d70;
+  background: #ffffff;
+  color: #1e1e1e;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.yahoo-signedin-contact-details-field input[readonly] {
+  background: #efeef2;
+  color: #4f4f4f;
+}
+
+.yahoo-signedin-contact-details-tip {
+  font-size: 11px;
+  line-height: 1.3;
+  background: #efe0a6;
+  color: #4f3d35;
+  border: 1px solid #ccba79;
+  padding: 6px 7px;
+}
+
+.yahoo-signedin-contact-details-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid rgba(240, 210, 248, 0.35);
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+.yahoo-signedin-contact-details-btn {
+  min-width: 70px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f5dfff;
+  background: #6a2b68;
+  border: 1px solid #9b6aa0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.yahoo-signedin-contact-details-btn.is-primary {
+  background: #7b3278;
+}
+
+.yahoo-signedin-contact-details-btn.is-primary:hover {
+  background: #8f3b8c;
+  border-color: #ba88bc;
 }
 
 .yahoo-signedin-status-row {
@@ -433,6 +613,51 @@
   margin-left: auto;
 }
 
+.yahoo-signedin-phone-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.yahoo-signedin-phone-popup {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 178px;
+  padding: 6px;
+  background: #f8f3fb;
+  border: 1px solid #bda5cb;
+  box-shadow: 0 2px 0 rgba(58, 33, 66, 0.25);
+  color: #4d3a5f;
+  z-index: 8;
+}
+
+.yahoo-signedin-phone-popup-title {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.yahoo-signedin-phone-popup-body {
+  font-size: 11px;
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.yahoo-signedin-phone-popup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 1px 10px;
+  font-size: 11px;
+  color: #f5dfff;
+  background: #6a2b68;
+  border: 1px solid #9b6aa0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
 .yahoo-signedin-action {
   padding: 0;
   height: auto;
@@ -489,11 +714,15 @@
   background: linear-gradient(180deg, #541951 0%, #641e66 100%);
   border: none;
   text-align: center;
-  cursor: default;
+  cursor: pointer;
 }
 
 .yahoo-signedin-tab.is-active {
   background: linear-gradient(180deg, #8a3585 0%, #4b1d4c 100%);
+}
+
+.yahoo-signedin-tab:not(.is-active):hover {
+  background: linear-gradient(180deg, #60205d 0%, #5f2160 100%);
 }
 
 .yahoo-signedin-tab-divider {
@@ -556,6 +785,15 @@
 
 .yahoo-signedin-tool-icon.is-contact:hover {
   background: rgba(255, 255, 255, 0.18);
+}
+
+.yahoo-signedin-tool-icon.is-contact.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.yahoo-signedin-tool-icon.is-contact.is-disabled:hover {
+  background: transparent;
 }
 
 .yahoo-signedin-tool-icon.is-contact:focus-visible {
@@ -752,9 +990,53 @@
   border: 1px solid #b4afbd;
 }
 
+.yahoo-signedin-update {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 6px;
+  color: #5a5a5a;
+}
+
+.yahoo-signedin-update.is-clickable {
+  cursor: pointer;
+}
+
+.yahoo-signedin-update.is-clickable:hover {
+  background: #c9d8f2;
+}
+
+.yahoo-signedin-update-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.yahoo-signedin-update-text {
+  line-height: 1.25;
+  color: #584267;
+}
+
+.yahoo-signedin-update-time {
+  font-size: 10px;
+  line-height: 1.2;
+  color: #8b7998;
+}
+
+.yahoo-signedin-updates-empty {
+  font-size: 11px;
+  color: #6f5a7d;
+  padding: 8px 6px;
+}
+
 .yahoo-signedin-list.is-compact .yahoo-signedin-contact-status {
   width: 8px;
   height: 8px;
+}
+
+.yahoo-signedin-list.is-compact .yahoo-signedin-update {
+  gap: 6px;
+  padding: 2px 5px;
 }
 
 .yahoo-signedin-footer {
