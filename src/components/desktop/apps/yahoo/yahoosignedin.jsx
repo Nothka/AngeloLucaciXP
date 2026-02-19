@@ -28,6 +28,11 @@ import YahooContactDetailsPopup from "./yahoo-signedin-popups/yahoo-contact-deta
 import YahooDisplayImagePopup from "./yahoo-signedin-popups/yahoo-display-image-popup";
 import YahooManageUpdatesPopup from "./yahoo-signedin-popups/yahoo-manage-updates-popup";
 import YahooWebcamPopup from "./yahoo-signedin-popups/yahoo-webcam-popup";
+import YahooAddressBookPopup from "./yahoo-signedin-popups/yahoo-address-book-popup";
+import YahooImportContactsPopup from "./yahoo-signedin-popups/yahoo-import-contacts-popup";
+import YahooManageGroupsPopup from "./yahoo-signedin-popups/yahoo-manage-groups-popup";
+import YahooSelectedContactDetailsPopup from "./yahoo-signedin-popups/yahoo-selected-contact-details-popup";
+import YahooConversationHistoryPopup from "./yahoo-signedin-popups/yahoo-conversation-history-popup";
 import "../../../../styles/desktop/apps/yahoo/yahoosignedin.css";
 
 const DEFAULT_STATUS = "This is a drill";
@@ -52,6 +57,33 @@ const DISPLAY_IMAGE_OPTIONS = [
   { id: "classic-3", label: "Classic 3", src: classicAvatarThree },
   { id: "classic-4", label: "Classic 4", src: classicAvatarFour },
 ];
+const ADDRESS_BOOK_CONTACTS = [
+  { id: "ab-jamie", name: "Jamie Parker", email: "jamie.parker@yahoo.com" },
+  { id: "ab-nora", name: "Nora Miles", email: "nora.miles@gmail.com" },
+  { id: "ab-victor", name: "Victor Lane", email: "victor.lane@hotmail.com" },
+  { id: "ab-kim", name: "Kim Flores", email: "kim.flores@ymail.com" },
+];
+const IMPORT_CONTACT_SOURCE_OPTIONS = [
+  { value: "gmail", label: "Gmail" },
+  { value: "yahoo", label: "Yahoo Address Book" },
+  { value: "csv", label: "CSV File" },
+];
+const IMPORT_CONTACTS_BY_SOURCE = {
+  gmail: [
+    { id: "gmail-1", name: "Liam Carter", email: "liam.carter@gmail.com" },
+    { id: "gmail-2", name: "Ava Reed", email: "ava.reed@gmail.com" },
+    { id: "gmail-3", name: "Noah Hill", email: "noah.hill@gmail.com" },
+  ],
+  yahoo: [
+    { id: "yahoo-1", name: "Mia Torres", email: "mia.torres@yahoo.com" },
+    { id: "yahoo-2", name: "Ethan Ross", email: "ethan.ross@yahoo.com" },
+  ],
+  csv: [
+    { id: "csv-1", name: "Olivia Knox", email: "olivia.knox@example.com" },
+    { id: "csv-2", name: "Lucas Dean", email: "lucas.dean@example.com" },
+  ],
+};
+const DEFAULT_MANAGE_GROUPS = ["Friends"];
 export const DEFAULT_FRIEND_CONTACTS = [
   { id: "chatgpt", name: "ChatGPT", icon: chatgptIcon, isFriend: true, status: "online" },
   { id: "gemini", name: "Gemini", icon: geminiIcon, isFriend: true, status: "offline" },
@@ -67,13 +99,28 @@ const YahooSignedIn = ({
   noIncomingCalls = false,
   openInsiderRequestId = 0,
   openContactDetailsRequestId = 0,
+  openContactProfileRequestId = 0,
   openAccountInfoRequestId = 0,
   openDisplayImageRequestId = 0,
   openWebcamRequestId = 0,
   openManageUpdatesRequestId = 0,
+  openConversationHistoryRequestId = 0,
+  openAddressBookContactRequestId = 0,
+  openImportContactsRequestId = 0,
+  openManageGroupsRequestId = 0,
   avatarSrc = defaultUserAvatar,
   onContactDetailsSave,
   onDisplayImageSave,
+  onAddAddressBookContact,
+  onImportContacts,
+  onClearConversationHistory,
+  conversationHistoryConversations = [],
+  contactGroups = DEFAULT_MANAGE_GROUPS,
+  onContactGroupsChange,
+  selectedContactId = "",
+  selectedContact = null,
+  stealthByContact = {},
+  onContactFocus,
 }) => {
   const [activeTab, setActiveTab] = useState("contacts");
   const [statusText, setStatusText] = useState(DEFAULT_STATUS);
@@ -99,6 +146,47 @@ const YahooSignedIn = ({
   const [displayImageDraft, setDisplayImageDraft] = useState(defaultUserAvatar);
   const [isWebcamPopupOpen, setIsWebcamPopupOpen] = useState(false);
   const [isManageUpdatesOpen, setIsManageUpdatesOpen] = useState(false);
+  const [isAddressBookPopupOpen, setIsAddressBookPopupOpen] = useState(false);
+  const [addressBookSearch, setAddressBookSearch] = useState("");
+  const [selectedAddressBookId, setSelectedAddressBookId] = useState("");
+  const [isImportContactsPopupOpen, setIsImportContactsPopupOpen] = useState(false);
+  const [importSource, setImportSource] = useState("gmail");
+  const [selectedImportContactIds, setSelectedImportContactIds] = useState([]);
+  const [importStatusText, setImportStatusText] = useState("");
+  const [isImportingContacts, setIsImportingContacts] = useState(false);
+  const [isManageGroupsPopupOpen, setIsManageGroupsPopupOpen] = useState(false);
+  const [isSelectedContactDetailsOpen, setIsSelectedContactDetailsOpen] = useState(false);
+  const [isConversationHistoryOpen, setIsConversationHistoryOpen] = useState(false);
+  const [conversationHistorySearch, setConversationHistorySearch] = useState("");
+  const [conversationHistoryStatusText, setConversationHistoryStatusText] = useState("");
+  const [manageGroups, setManageGroups] = useState(() => {
+    if (!Array.isArray(contactGroups) || !contactGroups.length) {
+      return [...DEFAULT_MANAGE_GROUPS];
+    }
+    const normalizedDefault = DEFAULT_MANAGE_GROUPS[0].trim().toLowerCase();
+    const unique = [];
+    const seen = new Set();
+    contactGroups.forEach((groupName) => {
+      const trimmed = String(groupName || "").trim();
+      if (!trimmed) return;
+      const normalized = trimmed.toLowerCase();
+      if (seen.has(normalized)) return;
+      seen.add(normalized);
+      unique.push(trimmed);
+    });
+    if (!seen.has(normalizedDefault)) {
+      unique.unshift(DEFAULT_MANAGE_GROUPS[0]);
+      seen.add(normalizedDefault);
+    }
+    return unique.length ? unique : [...DEFAULT_MANAGE_GROUPS];
+  });
+  const [selectedManageGroup, setSelectedManageGroup] = useState(
+    () => manageGroups[0] || DEFAULT_MANAGE_GROUPS[0]
+  );
+  const [manageGroupDraft, setManageGroupDraft] = useState(
+    () => manageGroups[0] || DEFAULT_MANAGE_GROUPS[0]
+  );
+  const [manageGroupsStatusText, setManageGroupsStatusText] = useState("");
   const [updatesAudience, setUpdatesAudience] = useState("connections");
   const [broadcastStatus, setBroadcastStatus] = useState(true);
   const [broadcastDisplayImage, setBroadcastDisplayImage] = useState(true);
@@ -119,6 +207,7 @@ const YahooSignedIn = ({
     friends: false,
     addressBook: true,
   });
+  const [collapsedCustomGroups, setCollapsedCustomGroups] = useState({});
   const statusButtonRef = useRef(null);
   const sharePanelRef = useRef(null);
   const shareToMenuRef = useRef(null);
@@ -137,15 +226,27 @@ const YahooSignedIn = ({
   const accountInfoPopupRef = useRef(null);
   const displayImagePopupRef = useRef(null);
   const manageUpdatesPopupRef = useRef(null);
+  const addressBookPopupRef = useRef(null);
+  const importContactsPopupRef = useRef(null);
+  const manageGroupsPopupRef = useRef(null);
+  const selectedContactDetailsPopupRef = useRef(null);
+  const conversationHistoryPopupRef = useRef(null);
   const webcamPopupRef = useRef(null);
   const webcamVideoRef = useRef(null);
   const webcamStreamRef = useRef(null);
   const webcamRequestRef = useRef(0);
+  const importContactsTimeoutRef = useRef(null);
+  const selectedManageGroupRef = useRef(DEFAULT_MANAGE_GROUPS[0]);
+  const conversationHistoryRequestHandledRef = useRef(0);
   const isWebcamPopupOpenRef = useRef(false);
   const contactDetailsHostRef = useRef(null);
   const contactDetailsDragOffsetRef = useRef({ x: 0, y: 0 });
   const presence = controlledPresence ?? uncontrolledPresence;
   const resolvedAvatarSrc = avatarSrc || defaultUserAvatar;
+
+  useEffect(() => {
+    selectedManageGroupRef.current = selectedManageGroup || DEFAULT_MANAGE_GROUPS[0];
+  }, [selectedManageGroup]);
 
   const normalizeContactStatus = (contact) => {
     const rawStatus = String(contact?.status || "").toLowerCase();
@@ -186,18 +287,130 @@ const YahooSignedIn = ({
     [recentContacts]
   );
   const normalizedContactSearch = contactSearch.trim().toLowerCase();
+  const defaultGroupKey = DEFAULT_MANAGE_GROUPS[0].toLowerCase();
+  const normalizeGroupName = useCallback(
+    (groupName = "") => String(groupName).trim().toLowerCase(),
+    []
+  );
+  const sanitizeGroupList = useCallback(
+    (groups = []) => {
+      const normalizedDefault = normalizeGroupName(DEFAULT_MANAGE_GROUPS[0]);
+      const unique = [];
+      const seen = new Set();
+      groups.forEach((groupName) => {
+        const trimmed = String(groupName || "").trim();
+        if (!trimmed) return;
+        const normalized = normalizeGroupName(trimmed);
+        if (!normalized || seen.has(normalized)) return;
+        seen.add(normalized);
+        unique.push(trimmed);
+      });
+      if (!seen.has(normalizedDefault)) {
+        unique.unshift(DEFAULT_MANAGE_GROUPS[0]);
+      }
+      return unique.length ? unique : [...DEFAULT_MANAGE_GROUPS];
+    },
+    [normalizeGroupName]
+  );
+  const areGroupListsEqual = useCallback(
+    (left = [], right = []) => {
+      const nextLeft = sanitizeGroupList(left);
+      const nextRight = sanitizeGroupList(right);
+      if (nextLeft.length !== nextRight.length) return false;
+      return nextLeft.every(
+        (groupName, index) =>
+          normalizeGroupName(groupName) === normalizeGroupName(nextRight[index])
+      );
+    },
+    [normalizeGroupName, sanitizeGroupList]
+  );
+  useEffect(() => {
+    const nextGroups = sanitizeGroupList(contactGroups);
+    setManageGroups((prev) => (areGroupListsEqual(prev, nextGroups) ? prev : nextGroups));
+  }, [areGroupListsEqual, contactGroups, sanitizeGroupList]);
+  useEffect(() => {
+    if (typeof onContactGroupsChange !== "function") return;
+    const nextGroups = sanitizeGroupList(manageGroups);
+    if (areGroupListsEqual(contactGroups, nextGroups)) return;
+    onContactGroupsChange(nextGroups);
+  }, [
+    areGroupListsEqual,
+    contactGroups,
+    manageGroups,
+    onContactGroupsChange,
+    sanitizeGroupList,
+  ]);
+  const managedGroupKeys = useMemo(
+    () => new Set(manageGroups.map((groupName) => normalizeGroupName(groupName)).filter(Boolean)),
+    [manageGroups, normalizeGroupName]
+  );
+  const customGroupNames = useMemo(
+    () =>
+      manageGroups.filter((groupName) => normalizeGroupName(groupName) !== defaultGroupKey),
+    [defaultGroupKey, manageGroups, normalizeGroupName]
+  );
+  const resolveContactGroupKey = useCallback(
+    (contact) => {
+      const nextKey = normalizeGroupName(contact?.group || DEFAULT_MANAGE_GROUPS[0]);
+      return nextKey || defaultGroupKey;
+    },
+    [defaultGroupKey, normalizeGroupName]
+  );
+  const friendsBaseContacts = useMemo(
+    () =>
+      normalizedFriends.filter((contact) => {
+        const groupKey = resolveContactGroupKey(contact);
+        if (groupKey === defaultGroupKey) return true;
+        return !managedGroupKeys.has(groupKey);
+      }),
+    [defaultGroupKey, managedGroupKeys, normalizedFriends, resolveContactGroupKey]
+  );
 
   const displayedFriends = useMemo(() => {
     const visibleByStatus = showOfflineContacts
-      ? normalizedFriends
-      : normalizedFriends.filter((contact) => contact.status !== "offline");
+      ? friendsBaseContacts
+      : friendsBaseContacts.filter((contact) => contact.status !== "offline");
     const visibleBySearch = normalizedContactSearch
       ? visibleByStatus.filter((contact) =>
           contact.name.toLowerCase().includes(normalizedContactSearch)
         )
       : visibleByStatus;
     return sortContacts(visibleBySearch);
-  }, [normalizedContactSearch, normalizedFriends, showOfflineContacts, sortBy]);
+  }, [friendsBaseContacts, normalizedContactSearch, showOfflineContacts, sortBy]);
+
+  const customGroupSections = useMemo(
+    () =>
+      customGroupNames.map((groupName) => {
+        const groupKey = normalizeGroupName(groupName);
+        const groupContacts = normalizedFriends.filter(
+          (contact) => resolveContactGroupKey(contact) === groupKey
+        );
+        const visibleByStatus = showOfflineContacts
+          ? groupContacts
+          : groupContacts.filter((contact) => contact.status !== "offline");
+        const visibleBySearch = normalizedContactSearch
+          ? visibleByStatus.filter((contact) =>
+              contact.name.toLowerCase().includes(normalizedContactSearch)
+            )
+          : visibleByStatus;
+        const visibleContacts = sortContacts(visibleBySearch);
+        return {
+          key: groupKey,
+          name: groupName,
+          totalCount: groupContacts.length,
+          visibleCount: visibleContacts.length,
+          visibleContacts,
+        };
+      }),
+    [
+      customGroupNames,
+      normalizedContactSearch,
+      normalizedFriends,
+      resolveContactGroupKey,
+      showOfflineContacts,
+      sortBy,
+    ]
+  );
 
   const displayedRecentContacts = useMemo(() => {
     const visibleByStatus = showOfflineContacts
@@ -259,6 +472,76 @@ const YahooSignedIn = ({
       `${update.name} ${update.text}`.toLowerCase().includes(normalizedContactSearch)
     );
   }, [normalizedContactSearch, updatesFeed]);
+  const importSourceContacts = useMemo(
+    () => IMPORT_CONTACTS_BY_SOURCE[importSource] || [],
+    [importSource]
+  );
+  const filteredAddressBookContacts = useMemo(() => {
+    const query = addressBookSearch.trim().toLowerCase();
+    if (!query) return ADDRESS_BOOK_CONTACTS;
+    return ADDRESS_BOOK_CONTACTS.filter(
+      (contact) =>
+        contact.name.toLowerCase().includes(query) || contact.email.toLowerCase().includes(query)
+    );
+  }, [addressBookSearch]);
+  const manageGroupRows = useMemo(() => {
+    return manageGroups.map((groupName) => {
+      const groupKey = normalizeGroupName(groupName);
+      const count =
+        groupKey === defaultGroupKey
+          ? friendsBaseContacts.length
+          : normalizedFriends.filter((contact) => resolveContactGroupKey(contact) === groupKey)
+              .length;
+      return { name: groupName, count };
+    });
+  }, [defaultGroupKey, friendsBaseContacts.length, manageGroups, normalizedFriends, resolveContactGroupKey]);
+  const isSelectedManageGroupProtected =
+    normalizeGroupName(selectedManageGroup) === defaultGroupKey;
+  const selectedContactResolved = useMemo(() => {
+    if (selectedContact?.id) return selectedContact;
+    if (!selectedContactId) return null;
+    return friends.find((contact) => contact.id === selectedContactId) || null;
+  }, [friends, selectedContact, selectedContactId]);
+  const selectedConversationHistoryMessages = useMemo(() => {
+    if (!selectedContactResolved?.name) return [];
+    const targetName = selectedContactResolved.name.trim().toLowerCase();
+    if (!targetName) return [];
+    const entries = Array.isArray(conversationHistoryConversations)
+      ? conversationHistoryConversations
+      : [];
+    return entries
+      .filter((conversation) => {
+        const conversationName = String(conversation?.contactName || "")
+          .trim()
+          .toLowerCase();
+        return conversationName === targetName;
+      })
+      .flatMap((conversation) => {
+        const messages = Array.isArray(conversation?.messages) ? conversation.messages : [];
+        return messages.map((message, index) => {
+          const sender = String(message?.sender || "").toLowerCase() === "contact"
+            ? selectedContactResolved.name
+            : "You";
+          const text = String(message?.text || "").trim();
+          return {
+            id: message?.id || `${conversation?.id || "conversation"}-${index}`,
+            sender,
+            text,
+            createdAt:
+              typeof message?.createdAt === "number" && Number.isFinite(message.createdAt)
+                ? message.createdAt
+                : null,
+          };
+        });
+      });
+  }, [conversationHistoryConversations, selectedContactResolved]);
+  const filteredConversationHistoryMessages = useMemo(() => {
+    const query = conversationHistorySearch.trim().toLowerCase();
+    if (!query) return selectedConversationHistoryMessages;
+    return selectedConversationHistoryMessages.filter((message) =>
+      `${message.sender} ${message.text}`.toLowerCase().includes(query)
+    );
+  }, [conversationHistorySearch, selectedConversationHistoryMessages]);
 
   const handleStatusIconClick = () => {
     setIsPresenceMenuOpen(false);
@@ -387,6 +670,151 @@ const YahooSignedIn = ({
     setIsDisplayImageOpen(false);
   };
 
+  const handleAddAddressBookContact = useCallback(() => {
+    const selectedContact = filteredAddressBookContacts.find(
+      (contact) => contact.id === selectedAddressBookId
+    );
+    if (!selectedContact) return;
+    onAddAddressBookContact?.(selectedContact.name);
+    setIsAddressBookPopupOpen(false);
+  }, [filteredAddressBookContacts, onAddAddressBookContact, selectedAddressBookId]);
+
+  const closeImportContactsPopup = useCallback(() => {
+    if (importContactsTimeoutRef.current) {
+      clearTimeout(importContactsTimeoutRef.current);
+      importContactsTimeoutRef.current = null;
+    }
+    setIsImportingContacts(false);
+    setSelectedImportContactIds([]);
+    setImportStatusText("");
+    setIsImportContactsPopupOpen(false);
+  }, []);
+
+  const handleImportContacts = useCallback(() => {
+    const selectedContacts = importSourceContacts.filter((contact) =>
+      selectedImportContactIds.includes(contact.id)
+    );
+    if (!selectedContacts.length || isImportingContacts) return;
+    if (importContactsTimeoutRef.current) {
+      clearTimeout(importContactsTimeoutRef.current);
+      importContactsTimeoutRef.current = null;
+    }
+    setIsImportingContacts(true);
+    setImportStatusText("");
+    importContactsTimeoutRef.current = setTimeout(() => {
+      onImportContacts?.(selectedContacts.map((contact) => contact.name));
+      const sourceLabel =
+        IMPORT_CONTACT_SOURCE_OPTIONS.find((source) => source.value === importSource)?.label ||
+        "source";
+      setIsImportingContacts(false);
+      setImportStatusText(`Imported ${selectedContacts.length} contacts from ${sourceLabel}.`);
+      importContactsTimeoutRef.current = null;
+    }, 800);
+  }, [
+    importSource,
+    importSourceContacts,
+    isImportingContacts,
+    onImportContacts,
+    selectedImportContactIds,
+  ]);
+
+  const handleToggleImportContact = useCallback(
+    (contactId) => {
+      if (!contactId || isImportingContacts) return;
+      setSelectedImportContactIds((prev) =>
+        prev.includes(contactId) ? prev.filter((id) => id !== contactId) : [...prev, contactId]
+      );
+      setImportStatusText("");
+    },
+    [isImportingContacts]
+  );
+
+  const handleSelectManageGroup = useCallback((groupName) => {
+    if (!groupName) return;
+    setSelectedManageGroup(groupName);
+    setManageGroupDraft(groupName);
+    setManageGroupsStatusText("");
+  }, []);
+
+  const handleAddManageGroup = useCallback(() => {
+    const nextGroupName = manageGroupDraft.trim();
+    if (!nextGroupName) {
+      setManageGroupsStatusText("Type a group name first.");
+      return;
+    }
+    const exists = manageGroups.some(
+      (groupName) => groupName.trim().toLowerCase() === nextGroupName.toLowerCase()
+    );
+    if (exists) {
+      setManageGroupsStatusText("That group already exists.");
+      return;
+    }
+    setManageGroups((prev) => [...prev, nextGroupName]);
+    setSelectedManageGroup(nextGroupName);
+    setManageGroupDraft(nextGroupName);
+    setManageGroupsStatusText(`Added "${nextGroupName}".`);
+  }, [manageGroupDraft, manageGroups]);
+
+  const handleRenameManageGroup = useCallback(() => {
+    const currentGroup = selectedManageGroup.trim();
+    const nextGroupName = manageGroupDraft.trim();
+    if (!currentGroup) {
+      setManageGroupsStatusText("Select a group to rename.");
+      return;
+    }
+    if (isSelectedManageGroupProtected) {
+      setManageGroupsStatusText('"Friends" cannot be renamed.');
+      return;
+    }
+    if (!nextGroupName) {
+      setManageGroupsStatusText("Type a new group name.");
+      return;
+    }
+    const exists = manageGroups.some(
+      (groupName) =>
+        groupName.trim().toLowerCase() === nextGroupName.toLowerCase() &&
+        groupName.trim().toLowerCase() !== currentGroup.toLowerCase()
+    );
+    if (exists) {
+      setManageGroupsStatusText("A group with that name already exists.");
+      return;
+    }
+    setManageGroups((prev) =>
+      prev.map((groupName) =>
+        groupName.trim().toLowerCase() === currentGroup.toLowerCase() ? nextGroupName : groupName
+      )
+    );
+    setSelectedManageGroup(nextGroupName);
+    setManageGroupDraft(nextGroupName);
+    setManageGroupsStatusText(`Renamed to "${nextGroupName}".`);
+  }, [isSelectedManageGroupProtected, manageGroupDraft, manageGroups, selectedManageGroup]);
+
+  const handleDeleteManageGroup = useCallback(() => {
+    const currentGroup = selectedManageGroup.trim();
+    if (!currentGroup) {
+      setManageGroupsStatusText("Select a group to delete.");
+      return;
+    }
+    if (isSelectedManageGroupProtected) {
+      setManageGroupsStatusText('"Friends" cannot be deleted.');
+      return;
+    }
+    const remaining = manageGroups.filter(
+      (groupName) => groupName.trim().toLowerCase() !== currentGroup.toLowerCase()
+    );
+    const fallback = remaining[0] || DEFAULT_MANAGE_GROUPS[0];
+    setManageGroups(remaining.length ? remaining : DEFAULT_MANAGE_GROUPS);
+    setSelectedManageGroup(fallback);
+    setManageGroupDraft(fallback);
+    setManageGroupsStatusText(`Deleted "${currentGroup}".`);
+  }, [isSelectedManageGroupProtected, manageGroups, selectedManageGroup]);
+
+  const closeManageGroupsPopup = useCallback(() => {
+    setManageGroupDraft(selectedManageGroup || DEFAULT_MANAGE_GROUPS[0]);
+    setManageGroupsStatusText("");
+    setIsManageGroupsPopupOpen(false);
+  }, [selectedManageGroup]);
+
   const closeManageUpdates = useCallback(() => {
     setUpdatesAudienceDraft(updatesAudience);
     setBroadcastStatusDraft(broadcastStatus);
@@ -461,6 +889,18 @@ const YahooSignedIn = ({
     setIsContactViewMenuOpen(false);
   };
 
+  const closeConversationHistoryPopup = useCallback(() => {
+    setConversationHistorySearch("");
+    setConversationHistoryStatusText("");
+    setIsConversationHistoryOpen(false);
+  }, []);
+
+  const handleClearConversationHistory = useCallback(() => {
+    if (!selectedContactResolved) return;
+    onClearConversationHistory?.(selectedContactResolved);
+    setConversationHistoryStatusText(`History with ${selectedContactResolved.name} was cleared.`);
+  }, [onClearConversationHistory, selectedContactResolved]);
+
   useEffect(() => {
     if (!openInsiderRequestId) return;
     setIsInsiderPopupOpen(true);
@@ -471,6 +911,11 @@ const YahooSignedIn = ({
     setContactDetailsUsernameDraft(username);
     setContactDetailsStatusDraft(statusText);
     setContactDetailsPresenceDraft(presence);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
     setIsManageUpdatesOpen(false);
     setIsWebcamPopupOpen(false);
     setIsDisplayImageOpen(false);
@@ -485,9 +930,30 @@ const YahooSignedIn = ({
   }, [openContactDetailsRequestId]);
 
   useEffect(() => {
+    if (!openContactProfileRequestId) return;
+    if (!selectedContactResolved) return;
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsSelectedContactDetailsOpen(true);
+  }, [openContactProfileRequestId, selectedContactResolved]);
+
+  useEffect(() => {
     if (!openAccountInfoRequestId) return;
     setIsContactDetailsOpen(false);
     setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
     setIsManageUpdatesOpen(false);
     setIsWebcamPopupOpen(false);
     setIsDisplayImageOpen(false);
@@ -499,6 +965,11 @@ const YahooSignedIn = ({
     setDisplayImageDraft(resolvedAvatarSrc);
     setIsContactDetailsOpen(false);
     setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
     setIsManageUpdatesOpen(false);
     setIsAccountInfoOpen(false);
     setIsWebcamPopupOpen(false);
@@ -509,6 +980,11 @@ const YahooSignedIn = ({
     if (!openWebcamRequestId) return;
     setIsContactDetailsOpen(false);
     setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
     setIsManageUpdatesOpen(false);
     setIsAccountInfoOpen(false);
     setIsDisplayImageOpen(false);
@@ -526,11 +1002,168 @@ const YahooSignedIn = ({
     setBroadcastSocialDraft(broadcastSocial);
     setIsContactDetailsOpen(false);
     setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
     setIsAccountInfoOpen(false);
     setIsDisplayImageOpen(false);
     setIsWebcamPopupOpen(false);
     setIsManageUpdatesOpen(true);
   }, [openManageUpdatesRequestId]);
+
+  useEffect(() => {
+    if (!openAddressBookContactRequestId) return;
+    setAddressBookSearch("");
+    setSelectedAddressBookId(ADDRESS_BOOK_CONTACTS[0]?.id || "");
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsAddressBookPopupOpen(true);
+  }, [openAddressBookContactRequestId]);
+
+  useEffect(() => {
+    if (!isAddressBookPopupOpen) return;
+    if (
+      filteredAddressBookContacts.some((contact) => contact.id === selectedAddressBookId)
+    ) {
+      return;
+    }
+    setSelectedAddressBookId(filteredAddressBookContacts[0]?.id || "");
+  }, [filteredAddressBookContacts, isAddressBookPopupOpen, selectedAddressBookId]);
+
+  useEffect(() => {
+    if (!isManageGroupsPopupOpen) return;
+    if (manageGroups.some((groupName) => groupName === selectedManageGroup)) return;
+    const fallback = manageGroups[0] || DEFAULT_MANAGE_GROUPS[0];
+    setSelectedManageGroup(fallback);
+    setManageGroupDraft(fallback);
+  }, [isManageGroupsPopupOpen, manageGroups, selectedManageGroup]);
+
+  useEffect(() => {
+    if (!isSelectedContactDetailsOpen) return;
+    if (selectedContactResolved) return;
+    setIsSelectedContactDetailsOpen(false);
+  }, [isSelectedContactDetailsOpen, selectedContactResolved]);
+
+  useEffect(() => {
+    if (!isConversationHistoryOpen) return;
+    if (selectedContactResolved) return;
+    closeConversationHistoryPopup();
+  }, [closeConversationHistoryPopup, isConversationHistoryOpen, selectedContactResolved]);
+
+  useEffect(() => {
+    if (!openConversationHistoryRequestId) return;
+    if (openConversationHistoryRequestId === conversationHistoryRequestHandledRef.current) return;
+    conversationHistoryRequestHandledRef.current = openConversationHistoryRequestId;
+    if (!selectedContactResolved) return;
+    setConversationHistorySearch("");
+    setConversationHistoryStatusText("");
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsConversationHistoryOpen(true);
+  }, [openConversationHistoryRequestId, selectedContactResolved]);
+
+  useEffect(() => {
+    setCollapsedCustomGroups((prev) => {
+      const next = {};
+      customGroupNames.forEach((groupName) => {
+        const groupKey = normalizeGroupName(groupName);
+        next[groupKey] = prev[groupKey] ?? false;
+      });
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(next);
+      if (
+        prevKeys.length === nextKeys.length &&
+        prevKeys.every((groupKey) => prev[groupKey] === next[groupKey])
+      ) {
+        return prev;
+      }
+      return next;
+    });
+  }, [customGroupNames, normalizeGroupName]);
+
+  useEffect(() => {
+    if (!openManageGroupsRequestId) return;
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsImportContactsPopupOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setManageGroups((prev) => (prev.length ? prev : [...DEFAULT_MANAGE_GROUPS]));
+    const nextGroup = selectedManageGroupRef.current || DEFAULT_MANAGE_GROUPS[0];
+    setSelectedManageGroup(nextGroup);
+    setManageGroupDraft(nextGroup);
+    setManageGroupsStatusText("");
+    setIsManageGroupsPopupOpen(true);
+  }, [openManageGroupsRequestId]);
+
+  useEffect(() => {
+    if (!openImportContactsRequestId) return;
+    if (importContactsTimeoutRef.current) {
+      clearTimeout(importContactsTimeoutRef.current);
+      importContactsTimeoutRef.current = null;
+    }
+    setImportSource("gmail");
+    setSelectedImportContactIds([]);
+    setImportStatusText("");
+    setIsImportingContacts(false);
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsConversationHistoryOpen(false);
+    setIsAddressBookPopupOpen(false);
+    setIsManageGroupsPopupOpen(false);
+    setIsSelectedContactDetailsOpen(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsImportContactsPopupOpen(true);
+  }, [openImportContactsRequestId]);
+
+  useEffect(() => {
+    if (!isImportContactsPopupOpen) return;
+    setSelectedImportContactIds([]);
+  }, [importSourceContacts, isImportContactsPopupOpen]);
+
+  useEffect(() => {
+    if (isImportContactsPopupOpen) return;
+    if (!importContactsTimeoutRef.current) return;
+    clearTimeout(importContactsTimeoutRef.current);
+    importContactsTimeoutRef.current = null;
+    setIsImportingContacts(false);
+  }, [isImportContactsPopupOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (importContactsTimeoutRef.current) {
+        clearTimeout(importContactsTimeoutRef.current);
+        importContactsTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     isWebcamPopupOpenRef.current = isWebcamPopupOpen;
@@ -575,6 +1208,11 @@ const YahooSignedIn = ({
       !isAccountInfoOpen &&
       !isDisplayImageOpen &&
       !isManageUpdatesOpen &&
+      !isAddressBookPopupOpen &&
+      !isImportContactsPopupOpen &&
+      !isManageGroupsPopupOpen &&
+      !isSelectedContactDetailsOpen &&
+      !isConversationHistoryOpen &&
       !isWebcamPopupOpen
     ) {
       return;
@@ -599,6 +1237,11 @@ const YahooSignedIn = ({
       if (accountInfoPopupRef.current?.contains(event.target)) return;
       if (displayImagePopupRef.current?.contains(event.target)) return;
       if (manageUpdatesPopupRef.current?.contains(event.target)) return;
+      if (addressBookPopupRef.current?.contains(event.target)) return;
+      if (importContactsPopupRef.current?.contains(event.target)) return;
+      if (manageGroupsPopupRef.current?.contains(event.target)) return;
+      if (selectedContactDetailsPopupRef.current?.contains(event.target)) return;
+      if (conversationHistoryPopupRef.current?.contains(event.target)) return;
       if (webcamPopupRef.current?.contains(event.target)) return;
       setIsShareToMenuOpen(false);
       setIsShareEmoteOpen(false);
@@ -611,6 +1254,11 @@ const YahooSignedIn = ({
       setIsAccountInfoOpen(false);
       setIsDisplayImageOpen(false);
       setIsManageUpdatesOpen(false);
+      setIsAddressBookPopupOpen(false);
+      setIsImportContactsPopupOpen(false);
+      setIsManageGroupsPopupOpen(false);
+      setIsSelectedContactDetailsOpen(false);
+      setIsConversationHistoryOpen(false);
       setIsWebcamPopupOpen(false);
       setIsContactDetailsDragging(false);
     };
@@ -631,6 +1279,11 @@ const YahooSignedIn = ({
     isAccountInfoOpen,
     isDisplayImageOpen,
     isManageUpdatesOpen,
+    isAddressBookPopupOpen,
+    isImportContactsPopupOpen,
+    isManageGroupsPopupOpen,
+    isSelectedContactDetailsOpen,
+    isConversationHistoryOpen,
     isWebcamPopupOpen,
   ]);
 
@@ -641,6 +1294,7 @@ const YahooSignedIn = ({
   }, [isSharePanelOpen]);
 
   const handleContactSelect = (contact) => {
+    onContactFocus?.(contact);
     setRecentContacts((prev) =>
       prev.some((item) => item.id === contact.id) ? prev : [contact, ...prev]
     );
@@ -650,7 +1304,7 @@ const YahooSignedIn = ({
   const recentCount = displayedRecentContacts.length;
   const recentTotalCount = normalizedRecentContacts.length;
   const friendsCount = displayedFriends.length;
-  const friendsTotalCount = normalizedFriends.length;
+  const friendsTotalCount = friendsBaseContacts.length;
   const availabilityLabel = presence === "invisible" ? "Invisible" : "Available";
   const webcamStatusMessage =
     webcamState === "live"
@@ -660,6 +1314,23 @@ const YahooSignedIn = ({
         : webcamState === "error"
           ? webcamError
           : "Press Start Preview to enable webcam.";
+  const selectedContactStealthLabel = selectedContactResolved
+    ? (() => {
+        const mode = String(stealthByContact?.[selectedContactResolved.id] || "online").toLowerCase();
+        if (mode === "offline") return "Appear offline";
+        if (mode === "permanent-offline") return "Appear permanently offline";
+        return "Appear online";
+      })()
+    : "Appear online";
+  const getStealthLabel = useCallback(
+    (contactId) => {
+      const mode = String(stealthByContact?.[contactId] || "online").toLowerCase();
+      if (mode === "offline") return "appear offline";
+      if (mode === "permanent-offline") return "permanently offline";
+      return "";
+    },
+    [stealthByContact]
+  );
 
   return (
     <div className="yahoo-signedin">
@@ -776,6 +1447,38 @@ const YahooSignedIn = ({
             onManageAccount={handleOpenAccountInfoPage}
             onClose={() => setIsAccountInfoOpen(false)}
           />
+          <YahooSelectedContactDetailsPopup
+            isOpen={isSelectedContactDetailsOpen}
+            popupRef={selectedContactDetailsPopupRef}
+            contact={selectedContactResolved}
+            stealthLabel={selectedContactStealthLabel}
+            onSendMessage={(contact) => {
+              onContactFocus?.(contact);
+              onOpenConversation?.(contact);
+              setIsSelectedContactDetailsOpen(false);
+            }}
+            onClose={() => setIsSelectedContactDetailsOpen(false)}
+          />
+          <YahooConversationHistoryPopup
+            isOpen={isConversationHistoryOpen}
+            popupRef={conversationHistoryPopupRef}
+            contact={selectedContactResolved}
+            searchValue={conversationHistorySearch}
+            onSearchChange={(value) => {
+              setConversationHistorySearch(value);
+              setConversationHistoryStatusText("");
+            }}
+            messages={filteredConversationHistoryMessages}
+            totalMessages={selectedConversationHistoryMessages.length}
+            statusText={conversationHistoryStatusText}
+            onOpenConversation={(contact) => {
+              onContactFocus?.(contact);
+              onOpenConversation?.(contact);
+              setIsConversationHistoryOpen(false);
+            }}
+            onClearHistory={handleClearConversationHistory}
+            onClose={closeConversationHistoryPopup}
+          />
           <YahooDisplayImagePopup
             isOpen={isDisplayImageOpen}
             popupRef={displayImagePopupRef}
@@ -799,6 +1502,50 @@ const YahooSignedIn = ({
             onBroadcastSocialChange={setBroadcastSocialDraft}
             onSave={handleSaveManageUpdates}
             onClose={closeManageUpdates}
+          />
+          <YahooAddressBookPopup
+            isOpen={isAddressBookPopupOpen}
+            popupRef={addressBookPopupRef}
+            searchValue={addressBookSearch}
+            onSearchChange={setAddressBookSearch}
+            contacts={filteredAddressBookContacts}
+            selectedContactId={selectedAddressBookId}
+            onSelectContact={setSelectedAddressBookId}
+            onAdd={handleAddAddressBookContact}
+            onClose={() => setIsAddressBookPopupOpen(false)}
+          />
+          <YahooManageGroupsPopup
+            isOpen={isManageGroupsPopupOpen}
+            popupRef={manageGroupsPopupRef}
+            groups={manageGroupRows}
+            selectedGroup={selectedManageGroup}
+            draftName={manageGroupDraft}
+            statusText={manageGroupsStatusText}
+            canRename={!isSelectedManageGroupProtected}
+            canDelete={!isSelectedManageGroupProtected}
+            onSelectGroup={handleSelectManageGroup}
+            onDraftNameChange={setManageGroupDraft}
+            onAddGroup={handleAddManageGroup}
+            onRenameGroup={handleRenameManageGroup}
+            onDeleteGroup={handleDeleteManageGroup}
+            onClose={closeManageGroupsPopup}
+          />
+          <YahooImportContactsPopup
+            isOpen={isImportContactsPopupOpen}
+            popupRef={importContactsPopupRef}
+            source={importSource}
+            sourceOptions={IMPORT_CONTACT_SOURCE_OPTIONS}
+            contacts={importSourceContacts}
+            selectedContactIds={selectedImportContactIds}
+            isImporting={isImportingContacts}
+            statusText={importStatusText}
+            onSourceChange={(nextSource) => {
+              setImportSource(nextSource);
+              setImportStatusText("");
+            }}
+            onToggleContact={handleToggleImportContact}
+            onImport={handleImportContacts}
+            onClose={closeImportContactsPopup}
           />
           <YahooWebcamPopup
             isOpen={isWebcamPopupOpen}
@@ -1180,7 +1927,9 @@ const YahooSignedIn = ({
                   ? displayedRecentContacts.map((contact) => (
                       <div
                         key={`recent-${contact.id}`}
-                        className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}
+                        className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}${
+                          selectedContactId === contact.id ? " is-selected" : ""
+                        }`}
                         onClick={() => handleContactSelect(contact)}
                       >
                         <img
@@ -1192,7 +1941,14 @@ const YahooSignedIn = ({
                         <span
                           className={`yahoo-signedin-contact-status${contact.status === "offline" ? " is-offline" : " is-online"}`}
                         />
-                        <span className="yahoo-signedin-contact-name">{contact.name}</span>
+                        <span className="yahoo-signedin-contact-name">
+                          {contact.name}
+                          {getStealthLabel(contact.id) ? (
+                            <span className="yahoo-signedin-contact-stealth">
+                              ({getStealthLabel(contact.id)})
+                            </span>
+                          ) : null}
+                        </span>
                       </div>
                     ))
                   : null}
@@ -1219,7 +1975,9 @@ const YahooSignedIn = ({
               ? displayedFriends.map((contact) => (
                   <div
                     key={contact.id}
-                    className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}
+                    className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}${
+                      selectedContactId === contact.id ? " is-selected" : ""
+                    }`}
                     onClick={() => handleContactSelect(contact)}
                   >
                     <img
@@ -1231,10 +1989,74 @@ const YahooSignedIn = ({
                     <span
                       className={`yahoo-signedin-contact-status${contact.status === "offline" ? " is-offline" : " is-online"}`}
                     />
-                    <span className="yahoo-signedin-contact-name">{contact.name}</span>
+                    <span className="yahoo-signedin-contact-name">
+                      {contact.name}
+                      {getStealthLabel(contact.id) ? (
+                        <span className="yahoo-signedin-contact-stealth">
+                          ({getStealthLabel(contact.id)})
+                        </span>
+                      ) : null}
+                    </span>
                   </div>
                 ))
               : null}
+            {customGroupSections.map((groupSection) => (
+              <React.Fragment key={`custom-group-${groupSection.key}`}>
+                <div
+                  className={`yahoo-signedin-group${
+                    collapsedCustomGroups[groupSection.key] ? " is-collapsed" : ""
+                  }`}
+                  onClick={() =>
+                    setCollapsedCustomGroups((prev) => ({
+                      ...prev,
+                      [groupSection.key]: !prev[groupSection.key],
+                    }))
+                  }
+                >
+                  <img
+                    src={collapsedCustomGroups[groupSection.key] ? rightArrowIcon : downArrowIcon}
+                    alt=""
+                    className="yahoo-signedin-group-toggle"
+                    draggable="false"
+                    aria-hidden="true"
+                  />
+                  <span className="yahoo-signedin-group-title">
+                    {`${groupSection.name} (${groupSection.visibleCount}/${groupSection.totalCount})`}
+                  </span>
+                </div>
+                {!collapsedCustomGroups[groupSection.key]
+                  ? groupSection.visibleContacts.map((contact) => (
+                      <div
+                        key={`${groupSection.key}-${contact.id}`}
+                        className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}${
+                          selectedContactId === contact.id ? " is-selected" : ""
+                        }`}
+                        onClick={() => handleContactSelect(contact)}
+                      >
+                        <img
+                          src={contact.icon}
+                          alt={contact.name}
+                          className="yahoo-signedin-contact-avatar"
+                          draggable="false"
+                        />
+                        <span
+                          className={`yahoo-signedin-contact-status${
+                            contact.status === "offline" ? " is-offline" : " is-online"
+                          }`}
+                        />
+                        <span className="yahoo-signedin-contact-name">
+                          {contact.name}
+                          {getStealthLabel(contact.id) ? (
+                            <span className="yahoo-signedin-contact-stealth">
+                              ({getStealthLabel(contact.id)})
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                    ))
+                  : null}
+              </React.Fragment>
+            ))}
             <div
               className={`yahoo-signedin-group${collapsedGroups.addressBook ? " is-collapsed" : ""}`}
               onClick={() =>

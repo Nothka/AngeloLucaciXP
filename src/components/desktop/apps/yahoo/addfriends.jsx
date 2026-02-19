@@ -28,6 +28,7 @@ const YahooAddFriendsWindow = ({
   zIndex,
   onMouseDown,
   onAddFriend,
+  groups = ["Friends"],
   isActive = true,
   isMinimized = false,
 }) => {
@@ -39,6 +40,9 @@ const YahooAddFriendsWindow = ({
   const [mobileNumber, setMobileNumber] = useState("");
   const [step, setStep] = useState(1);
   const [introText, setIntroText] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState(
+    () => (Array.isArray(groups) && groups.length ? groups[0] : "Friends")
+  );
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [nameFirst, setNameFirst] = useState("victor");
   const [nameLast, setNameLast] = useState("hari");
@@ -110,9 +114,18 @@ const YahooAddFriendsWindow = ({
     };
   }, [isDragging]);
 
+  useEffect(() => {
+    if (!Array.isArray(groups) || !groups.length) {
+      setSelectedGroup("Friends");
+      return;
+    }
+    if (groups.includes(selectedGroup)) return;
+    setSelectedGroup(groups[0]);
+  }, [groups, selectedGroup]);
+
   const handleAddFriend = () => {
     if (!trimmedMessengerId) return;
-    onAddFriend?.(trimmedMessengerId);
+    onAddFriend?.(trimmedMessengerId, selectedGroup);
     onClose?.(windowId);
   };
 
@@ -244,8 +257,16 @@ const YahooAddFriendsWindow = ({
               </span>
               :
             </label>
-            <select className="yahoo-addfriends-select yahoo-addfriends-select-wide" defaultValue="friends">
-              <option value="friends">Friends</option>
+            <select
+              className="yahoo-addfriends-select yahoo-addfriends-select-wide"
+              value={selectedGroup}
+              onChange={(event) => setSelectedGroup(event.target.value)}
+            >
+              {(Array.isArray(groups) && groups.length ? groups : ["Friends"]).map((groupName) => (
+                <option key={groupName} value={groupName}>
+                  {groupName}
+                </option>
+              ))}
             </select>
 
             <div className="yahoo-addfriends-divider is-soft" />

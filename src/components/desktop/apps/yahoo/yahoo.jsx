@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import yahooIcon from "../../../../assets/yahoo/header/yahoomessenger-cropped.png";
 import typingIcon from "../../../../assets/yahoo/yahoo-window/typing.png";
 import yahooLoginImage from "../../../../assets/yahoo/yahoo-login.gif";
@@ -44,6 +44,7 @@ const API_BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
   "https://monumental-croissant-e8ec10.netlify.app";
 const CHAT_API_URL = `${API_BASE.replace(/\/$/, "")}/api/chat`;
+const DEFAULT_CONTACT_GROUPS = ["Friends"];
 
 const MENU_DATA = {
   Messenger: [
@@ -72,7 +73,7 @@ const MENU_DATA = {
     { label: "Add an Address Book Contact" },
     { label: "Import Contacts..." },
     { type: "separator" },
-    { label: "Manage Groups", submenu: true },
+    { label: "Manage Groups..." },
     { label: "Delete...", disabled: true },
     { type: "separator" },
     { label: "Stealth Settings", submenu: true },
@@ -109,6 +110,23 @@ const MENU_DATA = {
 const AVAILABILITY_SUBMENU_OPTIONS = [
   { value: "online", label: "Available" },
   { value: "invisible", label: "Invisible" },
+];
+const STEALTH_SUBMENU_OPTIONS = [
+  {
+    value: "online",
+    label: "Appear Online to Contact",
+    markerClass: " is-stealth-online",
+  },
+  {
+    value: "offline",
+    label: "Appear Offline to Contact",
+    markerClass: " is-stealth-offline",
+  },
+  {
+    value: "permanent-offline",
+    label: "Appear Permanently Offline to Contact",
+    markerClass: " is-stealth-permanent",
+  },
 ];
 
 const getDefaultPosition = () => {
@@ -152,12 +170,20 @@ const YahooWindow = ({
   const [displayImageRequestId, setDisplayImageRequestId] = useState(0);
   const [webcamRequestId, setWebcamRequestId] = useState(0);
   const [manageUpdatesRequestId, setManageUpdatesRequestId] = useState(0);
+  const [contactProfileRequestId, setContactProfileRequestId] = useState(0);
+  const [conversationHistoryRequestId, setConversationHistoryRequestId] = useState(0);
+  const [addressBookContactRequestId, setAddressBookContactRequestId] = useState(0);
+  const [importContactsRequestId, setImportContactsRequestId] = useState(0);
+  const [manageGroupsRequestId, setManageGroupsRequestId] = useState(0);
   const [conversations, setConversations] = useState([]);
   const [useLoginVideo, setUseLoginVideo] = useState(true);
   const loginVideoRef = useRef(null);
   const [friendContacts, setFriendContacts] = useState(() =>
     DEFAULT_FRIEND_CONTACTS.map((contact) => ({ ...contact }))
   );
+  const [contactGroups, setContactGroups] = useState(DEFAULT_CONTACT_GROUPS);
+  const [selectedContactId, setSelectedContactId] = useState("");
+  const [stealthByContact, setStealthByContact] = useState({});
   const [signedInAvatar, setSignedInAvatar] = useState(defaultUserAvatar);
   const conversationsRef = useRef([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
@@ -342,9 +368,13 @@ const YahooWindow = ({
     setIsPrivacyOptionsOpen(false);
   }, []);
 
-  const handleAddFriend = useCallback((name) => {
+  const handleAddFriend = useCallback((name, group = DEFAULT_CONTACT_GROUPS[0]) => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    const normalizedGroup = String(group || "").trim().toLowerCase();
+    const nextGroup =
+      contactGroups.find((groupName) => groupName.trim().toLowerCase() === normalizedGroup) ||
+      DEFAULT_CONTACT_GROUPS[0];
     setFriendContacts((prev) => {
       const exists = prev.some(
         (contact) => contact.name.trim().toLowerCase() === trimmed.toLowerCase()
@@ -357,9 +387,51 @@ const YahooWindow = ({
           name: trimmed,
           icon: snowmanIcon,
           isFriend: true,
+          group: nextGroup,
         },
       ];
     });
+  }, [contactGroups]);
+
+  const handleImportContacts = useCallback((names = []) => {
+    if (!Array.isArray(names) || !names.length) return;
+    setFriendContacts((prev) => {
+      const existing = new Set(
+        prev.map((contact) => contact.name.trim().toLowerCase())
+      );
+      const additions = [];
+      names.forEach((rawName) => {
+        const trimmed = String(rawName || "").trim();
+        if (!trimmed) return;
+        const key = trimmed.toLowerCase();
+        if (existing.has(key)) return;
+        existing.add(key);
+        additions.push({
+          id: `yahoo-friend-${friendIdRef.current++}`,
+          name: trimmed,
+          icon: snowmanIcon,
+          isFriend: true,
+          group: DEFAULT_CONTACT_GROUPS[0],
+        });
+      });
+      if (!additions.length) return prev;
+      return [...prev, ...additions];
+    });
+  }, []);
+
+  const handleClearConversationHistory = useCallback((contact) => {
+    const targetName = String(contact?.name || "").trim().toLowerCase();
+    if (!targetName) return;
+    setConversations((prev) =>
+      prev.map((conversation) => {
+        const conversationName = String(conversation?.contactName || "").trim().toLowerCase();
+        if (conversationName !== targetName) return conversation;
+        if (!Array.isArray(conversation.messages) || !conversation.messages.length) {
+          return conversation;
+        }
+        return { ...conversation, messages: [], isTyping: false };
+      })
+    );
   }, []);
 
   const handleSignOut = () => {
@@ -378,6 +450,9 @@ const YahooWindow = ({
     setActiveHeaderSubmenu(null);
     setSignedInPresence("online");
     setNoIncomingCalls(false);
+    setContactGroups(DEFAULT_CONTACT_GROUPS);
+    setSelectedContactId("");
+    setStealthByContact({});
     onConversationListChange?.([]);
     onConversationApiReady?.(null);
     if (useLoginVideo && loginVideoRef.current) {
@@ -542,7 +617,7 @@ const YahooWindow = ({
   }, [isSignedIn, activeMenu]);
 
   useEffect(() => {
-    if (activeMenu !== "Messenger" && activeHeaderSubmenu) {
+    if (activeMenu !== "Messenger" && activeMenu !== "Contacts" && activeHeaderSubmenu) {
       setActiveHeaderSubmenu(null);
     }
   }, [activeHeaderSubmenu, activeMenu]);
@@ -563,9 +638,17 @@ const YahooWindow = ({
   };
 
   const handleHeaderEntryMouseEnter = (entry) => {
-    if (activeMenu !== "Messenger") return;
-    if (entry.label === "My Availability" && isSignedIn) {
+    if (activeMenu === "Messenger" && entry.label === "My Availability" && isSignedIn) {
       setActiveHeaderSubmenu("availability");
+      return;
+    }
+    if (
+      activeMenu === "Contacts" &&
+      entry.label === "Stealth Settings" &&
+      isSignedIn &&
+      selectedContactForStealth
+    ) {
+      setActiveHeaderSubmenu("stealth");
       return;
     }
     setActiveHeaderSubmenu(null);
@@ -578,6 +661,45 @@ const YahooWindow = ({
     setActiveMenu(null);
   };
 
+  const selectedContactForStealth = useMemo(() => {
+    if (selectedContactId) {
+      const selectedById = friendContacts.find((contact) => contact.id === selectedContactId);
+      if (selectedById) return selectedById;
+    }
+    if (!activeConversationId) return null;
+    const activeConversationContactName = conversations.find(
+      (conversation) => conversation.id === activeConversationId
+    )?.contactName;
+    if (!activeConversationContactName) return null;
+    const normalizedName = activeConversationContactName.trim().toLowerCase();
+    return (
+      friendContacts.find((contact) => contact.name.trim().toLowerCase() === normalizedName) ||
+      null
+    );
+  }, [activeConversationId, conversations, friendContacts, selectedContactId]);
+  const selectedStealthMode = selectedContactForStealth
+    ? String(stealthByContact[selectedContactForStealth.id] || "online")
+    : "online";
+
+  const handleStealthSelect = useCallback(
+    (nextMode) => {
+      const contactId = selectedContactForStealth?.id;
+      if (!contactId) return;
+      setStealthByContact((prev) => {
+        if (nextMode === "online") {
+          if (!prev[contactId]) return prev;
+          const next = { ...prev };
+          delete next[contactId];
+          return next;
+        }
+        return { ...prev, [contactId]: nextMode };
+      });
+      setActiveHeaderSubmenu(null);
+      setActiveMenu(null);
+    },
+    [selectedContactForStealth]
+  );
+
   const handleContactDetailsSave = useCallback((details = {}) => {
     const nextUsername = String(details.username || "").trim();
     if (nextUsername) {
@@ -589,6 +711,12 @@ const YahooWindow = ({
       setSignedInPresence(nextPresence);
     }
   }, []);
+
+  useEffect(() => {
+    if (!selectedContactId) return;
+    if (friendContacts.some((contact) => contact.id === selectedContactId)) return;
+    setSelectedContactId("");
+  }, [friendContacts, selectedContactId]);
 
   const openConversation = useCallback(
     (contact) => {
@@ -616,6 +744,7 @@ const YahooWindow = ({
       if (nextId) {
         setActiveConversationId(nextId);
       }
+      setSelectedContactId("");
       setIsConversationWindowMinimized(false);
       bringSubWindowToFront("conversation");
     },
@@ -625,6 +754,7 @@ const YahooWindow = ({
   const focusConversation = useCallback(
     (id) => {
       setActiveConversationId(id);
+      setSelectedContactId("");
       setIsConversationWindowMinimized(false);
       bringSubWindowToFront("conversation");
     },
@@ -638,6 +768,7 @@ const YahooWindow = ({
   const restoreConversation = useCallback(
     (id) => {
       setActiveConversationId(id);
+      setSelectedContactId("");
       setIsConversationWindowMinimized(false);
       bringSubWindowToFront("conversation");
     },
@@ -653,6 +784,7 @@ const YahooWindow = ({
   const handleConversationTabSelect = useCallback(
     (id) => {
       setActiveConversationId(id);
+      setSelectedContactId("");
       setIsConversationWindowMinimized(false);
       bringSubWindowToFront("conversation");
     },
@@ -718,6 +850,7 @@ const YahooWindow = ({
               id: `msg-${conversationMessageIdRef.current++}`,
               sender: "user",
               text: trimmed,
+              createdAt: Date.now(),
               ...(isBuzz ? { isBuzz: true } : {}),
             },
           ];
@@ -811,6 +944,7 @@ const YahooWindow = ({
                       id: `msg-${conversationMessageIdRef.current++}`,
                       sender: "contact",
                       text: replyText,
+                      createdAt: Date.now(),
                     },
                   ],
                   isTyping: false,
@@ -834,6 +968,7 @@ const YahooWindow = ({
                       id: `msg-${conversationMessageIdRef.current++}`,
                       sender: "contact",
                       text: replyText,
+                      createdAt: Date.now(),
                     },
                   ],
                   isTyping: false,
@@ -1007,8 +1142,22 @@ const YahooWindow = ({
                     activeMenu === "Messenger" && entry.label === "Privacy Options";
                   const isManageUpdatesBroadcastEntry =
                     activeMenu === "Messenger" && entry.label === "Manage Updates I Broadcast...";
+                  const isAddAddressBookContactEntry =
+                    activeMenu === "Contacts" && entry.label === "Add an Address Book Contact";
+                  const isImportContactsEntry =
+                    activeMenu === "Contacts" && entry.label === "Import Contacts...";
+                  const isManageGroupsEntry =
+                    activeMenu === "Contacts" && entry.label === "Manage Groups...";
+                  const isStealthSettingsEntry =
+                    activeMenu === "Contacts" && entry.label === "Stealth Settings";
+                  const isContactsContactDetailsEntry =
+                    activeMenu === "Contacts" && entry.label === "Contact Details";
+                  const isContactsConversationHistoryEntry =
+                    activeMenu === "Contacts" && entry.label === "Conversation History";
                   const isAvailabilitySubmenuOpen =
                     isAvailabilityEntry && activeHeaderSubmenu === "availability";
+                  const isStealthSubmenuOpen =
+                    isStealthSettingsEntry && activeHeaderSubmenu === "stealth";
                   const isDisabled =
                     entry.disabled ||
                     (isAvailabilityEntry && !isSignedIn) ||
@@ -1018,7 +1167,16 @@ const YahooWindow = ({
                     (isMyDisplayImageEntry && !isSignedIn) ||
                     (isMyWebcamEntry && !isSignedIn) ||
                     (isPrivacyOptionsEntry && !isSignedIn) ||
-                    (isManageUpdatesBroadcastEntry && !isSignedIn);
+                    (isManageUpdatesBroadcastEntry && !isSignedIn) ||
+                    (isAddAddressBookContactEntry && !isSignedIn) ||
+                    (isImportContactsEntry && !isSignedIn) ||
+                    (isManageGroupsEntry && !isSignedIn) ||
+                    (isStealthSettingsEntry && !isSignedIn) ||
+                    (isStealthSettingsEntry && !selectedContactForStealth) ||
+                    (isContactsContactDetailsEntry && !isSignedIn) ||
+                    (isContactsContactDetailsEntry && !selectedContactForStealth) ||
+                    (isContactsConversationHistoryEntry && !isSignedIn) ||
+                    (isContactsConversationHistoryEntry && !selectedContactForStealth);
                   const isSelected =
                     Boolean(entry.selected) || (isNoIncomingCallsEntry && noIncomingCalls);
                   const itemRole = isNoIncomingCallsEntry ? "menuitemcheckbox" : "menuitem";
@@ -1028,6 +1186,10 @@ const YahooWindow = ({
                       setActiveHeaderSubmenu((prev) =>
                         prev === "availability" ? null : "availability"
                       );
+                      return;
+                    }
+                    if (isStealthSettingsEntry) {
+                      setActiveHeaderSubmenu((prev) => (prev === "stealth" ? null : "stealth"));
                       return;
                     }
                     if (isNoIncomingCallsEntry) {
@@ -1078,6 +1240,36 @@ const YahooWindow = ({
                       setActiveHeaderSubmenu(null);
                       return;
                     }
+                    if (isAddAddressBookContactEntry) {
+                      setAddressBookContactRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isImportContactsEntry) {
+                      setImportContactsRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isManageGroupsEntry) {
+                      setManageGroupsRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isContactsContactDetailsEntry) {
+                      setContactProfileRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isContactsConversationHistoryEntry) {
+                      setConversationHistoryRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
                     if (entry.label === "Preferences") {
                       openPreferences();
                       setActiveMenu(null);
@@ -1103,7 +1295,7 @@ const YahooWindow = ({
                     <div
                       key={`${activeMenu}-${entry.label}-${index}`}
                       className={`yahoo-header-dropdown-item${isDisabled ? " is-disabled" : ""}${
-                        isAvailabilitySubmenuOpen ? " is-submenu-open" : ""
+                        isAvailabilitySubmenuOpen || isStealthSubmenuOpen ? " is-submenu-open" : ""
                       }`}
                       onClick={handleEntryClick}
                       onMouseEnter={() => handleHeaderEntryMouseEnter(entry)}
@@ -1148,6 +1340,32 @@ const YahooWindow = ({
                           ))}
                         </div>
                       ) : null}
+                      {isStealthSubmenuOpen ? (
+                        <div
+                          className="yahoo-header-submenu"
+                          onMouseDown={(event) => event.stopPropagation()}
+                        >
+                          {STEALTH_SUBMENU_OPTIONS.map((option) => (
+                            <button
+                              type="button"
+                              key={option.value}
+                              className="yahoo-header-submenu-item"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleStealthSelect(option.value);
+                              }}
+                            >
+                              <span
+                                className={`yahoo-header-dropdown-marker${
+                                  selectedStealthMode === option.value ? " is-selected" : ""
+                                }${option.markerClass || ""}`}
+                                aria-hidden="true"
+                              />
+                              <span className="yahoo-header-submenu-label">{option.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -1165,15 +1383,30 @@ const YahooWindow = ({
               noIncomingCalls={noIncomingCalls}
               openInsiderRequestId={insiderPopupRequestId}
               openContactDetailsRequestId={contactDetailsRequestId}
+              openContactProfileRequestId={contactProfileRequestId}
               openAccountInfoRequestId={accountInfoRequestId}
               openDisplayImageRequestId={displayImageRequestId}
               openWebcamRequestId={webcamRequestId}
               openManageUpdatesRequestId={manageUpdatesRequestId}
+              openConversationHistoryRequestId={conversationHistoryRequestId}
+              openAddressBookContactRequestId={addressBookContactRequestId}
+              openImportContactsRequestId={importContactsRequestId}
+              openManageGroupsRequestId={manageGroupsRequestId}
               avatarSrc={signedInAvatar}
               onContactDetailsSave={handleContactDetailsSave}
               onDisplayImageSave={setSignedInAvatar}
               onOpenConversation={openConversation}
               onAddContact={openAddFriends}
+              onAddAddressBookContact={handleAddFriend}
+              onImportContacts={handleImportContacts}
+              onClearConversationHistory={handleClearConversationHistory}
+              conversationHistoryConversations={conversations}
+              contactGroups={contactGroups}
+              onContactGroupsChange={setContactGroups}
+              selectedContactId={selectedContactId}
+              selectedContact={selectedContactForStealth}
+              stealthByContact={stealthByContact}
+              onContactFocus={(contact) => setSelectedContactId(contact?.id || "")}
               friends={friendContacts}
             />
           ) : (
@@ -1330,6 +1563,7 @@ const YahooWindow = ({
           isMinimized={isMinimized}
           onClose={closeAddFriends}
           onAddFriend={handleAddFriend}
+          groups={contactGroups}
           onMouseDown={() => bringSubWindowToFront("addfriends")}
         />
       ) : null}

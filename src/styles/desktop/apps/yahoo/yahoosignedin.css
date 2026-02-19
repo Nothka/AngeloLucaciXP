@@ -818,8 +818,19 @@
   background: #c9d8f2;
 }
 
+.yahoo-signedin-contact.friends.is-selected {
+  background: #c9d8f2;
+  box-shadow: inset 0 0 0 1px #8ea8ce;
+}
+
 .yahoo-signedin-contact.friends .yahoo-signedin-contact-name {
   user-select: none;
+}
+
+.yahoo-signedin-contact-stealth {
+  margin-left: 4px;
+  font-size: 10px;
+  color: #766f84;
 }
 
 .yahoo-signedin-contact-avatar {
