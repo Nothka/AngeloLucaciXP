@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import userAvatar from "../../../../assets/yahoo/soccer.png";
 import chatgptIcon from "../../../../assets/yahoo/chatgpt.jpg";
 import geminiIcon from "../../../../assets/about-me/gemini.png";
@@ -21,6 +21,10 @@ import YahooEmoticonMenu from "./emoticonmenu";
 import "../../../../styles/desktop/apps/yahoo/yahoosignedin.css";
 
 const DEFAULT_STATUS = "This is a drill";
+const PRESENCE_OPTIONS = [
+  { value: "online", label: "Online" },
+  { value: "invisible", label: "Invisible" },
+];
 const SHARE_TARGETS = [
   { label: "Yahoo! Messenger", icon: yahooShareIcon, iconClass: "is-yahoo" },
   { label: "Yahoo! Updates", icon: yahooUpdatesIcon, iconClass: "is-yahoo-updates" },
@@ -28,8 +32,8 @@ const SHARE_TARGETS = [
   { label: "Twitter", icon: twitterIcon },
 ];
 export const DEFAULT_FRIEND_CONTACTS = [
-  { id: "chatgpt", name: "ChatGPT", icon: chatgptIcon, isFriend: true },
-  { id: "gemini", name: "Gemini", icon: geminiIcon, isFriend: true },
+  { id: "chatgpt", name: "ChatGPT", icon: chatgptIcon, isFriend: true, status: "online" },
+  { id: "gemini", name: "Gemini", icon: geminiIcon, isFriend: true, status: "offline" },
 ];
 
 const YahooSignedIn = ({
@@ -39,12 +43,20 @@ const YahooSignedIn = ({
   friends = DEFAULT_FRIEND_CONTACTS,
 }) => {
   const [statusText, setStatusText] = useState(DEFAULT_STATUS);
+  const [presence, setPresence] = useState("online");
+  const [isPresenceMenuOpen, setIsPresenceMenuOpen] = useState(false);
   const [isSharePanelOpen, setIsSharePanelOpen] = useState(false);
   const [isShareToMenuOpen, setIsShareToMenuOpen] = useState(false);
   const [isShareEmoteOpen, setIsShareEmoteOpen] = useState(false);
   const [linkText, setLinkText] = useState("");
   const [isAddFriendHovered, setIsAddFriendHovered] = useState(false);
   const [recentContacts, setRecentContacts] = useState([]);
+  const [isContactViewMenuOpen, setIsContactViewMenuOpen] = useState(false);
+  const [contactViewMode, setContactViewMode] = useState("detailed");
+  const [showRecentContacts, setShowRecentContacts] = useState(true);
+  const [showOfflineContacts, setShowOfflineContacts] = useState(true);
+  const [sortBy, setSortBy] = useState("status");
+  const [contactSearch, setContactSearch] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState({
     recent: false,
     friends: false,
@@ -56,8 +68,78 @@ const YahooSignedIn = ({
   const shareToButtonRef = useRef(null);
   const shareEmoteRef = useRef(null);
   const shareEmoteMenuRef = useRef(null);
+  const presenceTriggerRef = useRef(null);
+  const presenceMenuRef = useRef(null);
+  const contactViewButtonRef = useRef(null);
+  const contactViewMenuRef = useRef(null);
+
+  const normalizeContactStatus = (contact) => {
+    const rawStatus = String(contact?.status || "").toLowerCase();
+    if (rawStatus === "offline" || rawStatus === "invisible") {
+      return "offline";
+    }
+    if (rawStatus === "online") {
+      return "online";
+    }
+    return contact?.id === "gemini" ? "offline" : "online";
+  };
+
+  const sortContacts = (contacts) => {
+    const ordered = [...contacts];
+    if (sortBy === "name") {
+      ordered.sort((a, b) => a.name.localeCompare(b.name));
+      return ordered;
+    }
+
+    ordered.sort((a, b) => {
+      const statusA = a.status === "offline" ? 1 : 0;
+      const statusB = b.status === "offline" ? 1 : 0;
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return ordered;
+  };
+
+  const normalizedFriends = useMemo(
+    () => friends.map((contact) => ({ ...contact, status: normalizeContactStatus(contact) })),
+    [friends]
+  );
+
+  const normalizedRecentContacts = useMemo(
+    () => recentContacts.map((contact) => ({ ...contact, status: normalizeContactStatus(contact) })),
+    [recentContacts]
+  );
+  const normalizedContactSearch = contactSearch.trim().toLowerCase();
+
+  const displayedFriends = useMemo(() => {
+    const visibleByStatus = showOfflineContacts
+      ? normalizedFriends
+      : normalizedFriends.filter((contact) => contact.status !== "offline");
+    const visibleBySearch = normalizedContactSearch
+      ? visibleByStatus.filter((contact) =>
+          contact.name.toLowerCase().includes(normalizedContactSearch)
+        )
+      : visibleByStatus;
+    return sortContacts(visibleBySearch);
+  }, [normalizedContactSearch, normalizedFriends, showOfflineContacts, sortBy]);
+
+  const displayedRecentContacts = useMemo(() => {
+    const visibleByStatus = showOfflineContacts
+      ? normalizedRecentContacts
+      : normalizedRecentContacts.filter((contact) => contact.status !== "offline");
+    const visibleBySearch = normalizedContactSearch
+      ? visibleByStatus.filter((contact) =>
+          contact.name.toLowerCase().includes(normalizedContactSearch)
+        )
+      : visibleByStatus;
+    return sortContacts(visibleBySearch);
+  }, [normalizedContactSearch, normalizedRecentContacts, showOfflineContacts, sortBy]);
 
   const handleStatusIconClick = () => {
+    setIsPresenceMenuOpen(false);
+    setIsContactViewMenuOpen(false);
     setIsSharePanelOpen((prev) => {
       const next = !prev;
       if (!next) {
@@ -79,8 +161,50 @@ const YahooSignedIn = ({
     setIsShareEmoteOpen(false);
   };
 
+  const handlePresenceSelect = (nextPresence) => {
+    setPresence(nextPresence);
+    setIsPresenceMenuOpen(false);
+  };
+
+  const handleContactViewToggle = () => {
+    setIsPresenceMenuOpen(false);
+    setIsShareToMenuOpen(false);
+    setIsShareEmoteOpen(false);
+    setIsSharePanelOpen(false);
+    setIsContactViewMenuOpen((prev) => !prev);
+  };
+
+  const handleToggleShowRecentContacts = () => {
+    setShowRecentContacts((prev) => !prev);
+    setIsContactViewMenuOpen(false);
+  };
+
+  const handleToggleShowOfflineContacts = () => {
+    setShowOfflineContacts((prev) => !prev);
+    setIsContactViewMenuOpen(false);
+  };
+
+  const handleContactViewModeSelect = (mode) => {
+    setContactViewMode(mode);
+    setIsContactViewMenuOpen(false);
+  };
+
+  const handleSortBySelect = (nextSortBy) => {
+    setSortBy(nextSortBy);
+    setIsContactViewMenuOpen(false);
+  };
+
   useEffect(() => {
-    if (!isSharePanelOpen && !isShareToMenuOpen) return;
+    if (
+      !isSharePanelOpen &&
+      !isShareToMenuOpen &&
+      !isShareEmoteOpen &&
+      !isPresenceMenuOpen &&
+      !isContactViewMenuOpen
+    ) {
+      return;
+    }
+
     const handleOutsideClick = (event) => {
       if (sharePanelRef.current?.contains(event.target)) return;
       if (statusButtonRef.current?.contains(event.target)) return;
@@ -88,16 +212,28 @@ const YahooSignedIn = ({
       if (shareToButtonRef.current?.contains(event.target)) return;
       if (shareEmoteMenuRef.current?.contains(event.target)) return;
       if (shareEmoteRef.current?.contains(event.target)) return;
+      if (presenceMenuRef.current?.contains(event.target)) return;
+      if (presenceTriggerRef.current?.contains(event.target)) return;
+      if (contactViewMenuRef.current?.contains(event.target)) return;
+      if (contactViewButtonRef.current?.contains(event.target)) return;
       setIsShareToMenuOpen(false);
       setIsShareEmoteOpen(false);
       setIsSharePanelOpen(false);
+      setIsPresenceMenuOpen(false);
+      setIsContactViewMenuOpen(false);
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [isSharePanelOpen, isShareToMenuOpen]);
+  }, [
+    isSharePanelOpen,
+    isShareToMenuOpen,
+    isShareEmoteOpen,
+    isPresenceMenuOpen,
+    isContactViewMenuOpen,
+  ]);
 
   useEffect(() => {
     if (!isSharePanelOpen) {
@@ -112,8 +248,10 @@ const YahooSignedIn = ({
     onOpenConversation?.(contact);
   };
 
-  const recentCount = recentContacts.length;
-  const friendsCount = friends.length;
+  const recentCount = displayedRecentContacts.length;
+  const recentTotalCount = normalizedRecentContacts.length;
+  const friendsCount = displayedFriends.length;
+  const friendsTotalCount = normalizedFriends.length;
 
   return (
     <div className="yahoo-signedin">
@@ -126,9 +264,43 @@ const YahooSignedIn = ({
         />
         <div className="yahoo-signedin-user">
           <div className="yahoo-signedin-name-row">
-            <span className="yahoo-signedin-status-dot" />
-            <span className="yahoo-signedin-name">{username}</span>
-            <span className="yahoo-signedin-name-arrow" aria-hidden="true" />
+            <span
+              className={`yahoo-signedin-status-dot${presence === "invisible" ? " is-invisible" : " is-online"}`}
+              aria-hidden="true"
+            />
+            <div className="yahoo-signedin-name-menu-wrap">
+              <button
+                type="button"
+                className="yahoo-signedin-name-trigger"
+                aria-haspopup="menu"
+                aria-expanded={isPresenceMenuOpen}
+                ref={presenceTriggerRef}
+                onClick={() => setIsPresenceMenuOpen((prev) => !prev)}
+              >
+                <span className="yahoo-signedin-name">{username}</span>
+                <span className="yahoo-signedin-name-arrow" aria-hidden="true" />
+              </button>
+              {isPresenceMenuOpen ? (
+                <div className="yahoo-signedin-presence-menu" role="menu" ref={presenceMenuRef}>
+                  {PRESENCE_OPTIONS.map((option) => (
+                    <button
+                      type="button"
+                      key={option.value}
+                      role="menuitemradio"
+                      aria-checked={presence === option.value}
+                      className={`yahoo-signedin-presence-option${presence === option.value ? " is-active" : ""}`}
+                      onClick={() => handlePresenceSelect(option.value)}
+                    >
+                      <span
+                        className={`yahoo-signedin-presence-indicator${option.value === "invisible" ? " is-invisible" : " is-online"}`}
+                        aria-hidden="true"
+                      />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <span className="yahoo-signedin-badge">
               <img
                 src={yahooBadgeIcon}
@@ -292,12 +464,104 @@ const YahooSignedIn = ({
           role="button"
           tabIndex={0}
         />
-        <img
-          src={contactViewIcon}
-          alt="Contact view"
-          className="yahoo-signedin-tool-icon is-contact"
-          draggable="false"
-        />
+        <div className="yahoo-signedin-contactview-wrap">
+          <img
+            src={contactViewIcon}
+            alt="Contact view"
+            className="yahoo-signedin-tool-icon is-contact"
+            draggable="false"
+            role="button"
+            tabIndex={0}
+            aria-haspopup="menu"
+            aria-expanded={isContactViewMenuOpen}
+            ref={contactViewButtonRef}
+            onClick={handleContactViewToggle}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleContactViewToggle();
+              }
+            }}
+          />
+          {isContactViewMenuOpen ? (
+            <div className="yahoo-signedin-contactview-menu" role="menu" ref={contactViewMenuRef}>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={contactViewMode === "detailed"}
+                className={`yahoo-signedin-contactview-item${contactViewMode === "detailed" ? " is-active" : ""}`}
+                onClick={() => handleContactViewModeSelect("detailed")}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {contactViewMode === "detailed" ? "•" : ""}
+                </span>
+                <span>Detailed View</span>
+              </button>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={contactViewMode === "compact"}
+                className={`yahoo-signedin-contactview-item${contactViewMode === "compact" ? " is-active" : ""}`}
+                onClick={() => handleContactViewModeSelect("compact")}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {contactViewMode === "compact" ? "•" : ""}
+                </span>
+                <span>Compact View</span>
+              </button>
+              <div className="yahoo-signedin-contactview-separator" />
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={showRecentContacts}
+                className="yahoo-signedin-contactview-item"
+                onClick={handleToggleShowRecentContacts}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {showRecentContacts ? "✓" : ""}
+                </span>
+                <span>Show Recent Contacts</span>
+              </button>
+              <button
+                type="button"
+                role="menuitemcheckbox"
+                aria-checked={showOfflineContacts}
+                className="yahoo-signedin-contactview-item"
+                onClick={handleToggleShowOfflineContacts}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {showOfflineContacts ? "✓" : ""}
+                </span>
+                <span>Show Offline Contacts</span>
+              </button>
+              <div className="yahoo-signedin-contactview-separator" />
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={sortBy === "status"}
+                className={`yahoo-signedin-contactview-item${sortBy === "status" ? " is-active" : ""}`}
+                onClick={() => handleSortBySelect("status")}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {sortBy === "status" ? "•" : ""}
+                </span>
+                <span>Sort by Status</span>
+              </button>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={sortBy === "name"}
+                className={`yahoo-signedin-contactview-item${sortBy === "name" ? " is-active" : ""}`}
+                onClick={() => handleSortBySelect("name")}
+              >
+                <span className="yahoo-signedin-contactview-mark" aria-hidden="true">
+                  {sortBy === "name" ? "•" : ""}
+                </span>
+                <span>Sort by Name</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
         <div className="yahoo-signedin-search">
           <img
             src={searchIcon}
@@ -309,53 +573,60 @@ const YahooSignedIn = ({
             type="text"
             placeholder="type some contact information..."
             aria-label="Search contacts"
-            readOnly
+            value={contactSearch}
+            onChange={(event) => setContactSearch(event.target.value)}
           />
         </div>
       </div>
 
-      <div className="yahoo-signedin-list">
-        <div
-          className={`yahoo-signedin-group${collapsedGroups.recent ? " is-collapsed" : ""}`}
-          onClick={() =>
-            setCollapsedGroups((prev) => ({ ...prev, recent: !prev.recent }))
-          }
-        >
-          <img
-            src={collapsedGroups.recent ? rightArrowIcon : downArrowIcon}
-            alt=""
-            className="yahoo-signedin-group-toggle"
-            draggable="false"
-            aria-hidden="true"
-          />
-          <img
-            src={yahooWatchIcon}
-            alt="Recent contacts"
-            className="yahoo-signedin-group-icon"
-            draggable="false"
-          />
-          <span className="yahoo-signedin-group-title">
-            {`Recent Contacts (${recentCount}/${recentCount})`}
-          </span>
-        </div>
-        {!collapsedGroups.recent
-          ? recentContacts.map((contact) => (
-              <div
-                key={`recent-${contact.id}`}
-                className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}
-                onClick={() => handleContactSelect(contact)}
-              >
-                <img
-                  src={contact.icon}
-                  alt={contact.name}
-                  className="yahoo-signedin-contact-avatar"
-                  draggable="false"
-                />
-                <span className="yahoo-signedin-contact-status" />
-                <span className="yahoo-signedin-contact-name">{contact.name}</span>
-              </div>
-            ))
-          : null}
+      <div className={`yahoo-signedin-list${contactViewMode === "compact" ? " is-compact" : ""}`}>
+        {showRecentContacts ? (
+          <>
+            <div
+              className={`yahoo-signedin-group${collapsedGroups.recent ? " is-collapsed" : ""}`}
+              onClick={() =>
+                setCollapsedGroups((prev) => ({ ...prev, recent: !prev.recent }))
+              }
+            >
+              <img
+                src={collapsedGroups.recent ? rightArrowIcon : downArrowIcon}
+                alt=""
+                className="yahoo-signedin-group-toggle"
+                draggable="false"
+                aria-hidden="true"
+              />
+              <img
+                src={yahooWatchIcon}
+                alt="Recent contacts"
+                className="yahoo-signedin-group-icon"
+                draggable="false"
+              />
+              <span className="yahoo-signedin-group-title">
+                {`Recent Contacts (${recentCount}/${recentTotalCount})`}
+              </span>
+            </div>
+            {!collapsedGroups.recent
+              ? displayedRecentContacts.map((contact) => (
+                  <div
+                    key={`recent-${contact.id}`}
+                    className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}
+                    onClick={() => handleContactSelect(contact)}
+                  >
+                    <img
+                      src={contact.icon}
+                      alt={contact.name}
+                      className="yahoo-signedin-contact-avatar"
+                      draggable="false"
+                    />
+                    <span
+                      className={`yahoo-signedin-contact-status${contact.status === "offline" ? " is-offline" : " is-online"}`}
+                    />
+                    <span className="yahoo-signedin-contact-name">{contact.name}</span>
+                  </div>
+                ))
+              : null}
+          </>
+        ) : null}
         <div
           className={`yahoo-signedin-group${collapsedGroups.friends ? " is-collapsed" : ""}`}
           onClick={() =>
@@ -370,11 +641,11 @@ const YahooSignedIn = ({
             aria-hidden="true"
           />
           <span className="yahoo-signedin-group-title">
-            {`Friends (${friendsCount}/${friendsCount})`}
+            {`Friends (${friendsCount}/${friendsTotalCount})`}
           </span>
         </div>
         {!collapsedGroups.friends
-          ? friends.map((contact) => (
+          ? displayedFriends.map((contact) => (
               <div
                 key={contact.id}
                 className={`yahoo-signedin-contact${contact.isFriend ? " friends" : ""}`}
@@ -386,7 +657,9 @@ const YahooSignedIn = ({
                   className="yahoo-signedin-contact-avatar"
                   draggable="false"
                 />
-                <span className="yahoo-signedin-contact-status" />
+                <span
+                  className={`yahoo-signedin-contact-status${contact.status === "offline" ? " is-offline" : " is-online"}`}
+                />
                 <span className="yahoo-signedin-contact-name">{contact.name}</span>
               </div>
             ))

@@ -609,6 +609,21 @@ const YahooWindow = ({
     );
   }, []);
 
+  const getContactAvailability = useCallback(
+    (name = "") => {
+      const normalizedName = String(name).trim().toLowerCase();
+      const contact = friendContacts.find(
+        (item) => item.name.trim().toLowerCase() === normalizedName
+      );
+      const rawStatus = String(contact?.status || "").trim().toLowerCase();
+      if (rawStatus === "offline" || rawStatus === "invisible") {
+        return "offline";
+      }
+      return "online";
+    },
+    [friendContacts]
+  );
+
   const sendMessage = useCallback(
     async (id, text, { isBuzz = false, clearDraft = false } = {}) => {
       const trimmed = (text || "").trim();
@@ -620,6 +635,9 @@ const YahooWindow = ({
       const buildNextConversations = (list) =>
         list.map((item) => {
           if (item.id !== id) return item;
+          const aiContact = isAiContactName(item.contactName);
+          const offlineContact =
+            aiContact && getContactAvailability(item.contactName) === "offline";
           const nextMessages = [
             ...(item.messages || []),
             {
@@ -634,19 +652,24 @@ const YahooWindow = ({
               contactName: item.contactName,
               username: displayName,
               messages: nextMessages,
+              isAiContact: aiContact,
+              isOfflineContact: offlineContact,
             };
           }
           return {
             ...item,
             draft: clearDraft ? "" : item.draft,
             messages: nextMessages,
-            isTyping: isAiContactName(item.contactName),
+            isTyping: aiContact && !offlineContact,
           };
         });
 
       buildNextConversations(conversationsRef.current || []);
       if (!payload) return;
       setConversations((prev) => buildNextConversations(prev));
+      if (payload.isAiContact && payload.isOfflineContact) {
+        return;
+      }
 
       const history = payload.messages
         .slice(-12)
@@ -747,7 +770,7 @@ const YahooWindow = ({
         playMessageSound();
       }
     },
-    [playMessageSound, signedInUser, username]
+    [getContactAvailability, playMessageSound, signedInUser, username]
   );
 
   const sendConversationMessage = useCallback(
