@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import userAvatar from "../../../../assets/yahoo/soccer.png";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import defaultUserAvatar from "../../../../assets/yahoo/soccer.png";
+import snowmanAvatar from "../../../../assets/yahoo/snowman.png";
 import chatgptIcon from "../../../../assets/yahoo/chatgpt.jpg";
 import geminiIcon from "../../../../assets/about-me/gemini.png";
 import diceIcon from "../../../../assets/yahoo/dice.png";
@@ -17,13 +18,22 @@ import yahooBadgeIcon from "../../../../assets/yahoo/Yahoo-icon.png";
 import yahooWatchIcon from "../../../../assets/yahoo/yahoowatch.png";
 import downArrowIcon from "../../../../assets/yahoo/down-arrow.png";
 import rightArrowIcon from "../../../../assets/yahoo/right-arrow.png";
-import closeIcon from "../../../../assets/yahoo/header/close.png";
+import classicAvatarOne from "../../../../assets/yahoo/yahoo-window/Untitled design (20).png";
+import classicAvatarTwo from "../../../../assets/yahoo/yahoo-window/Untitled design (21).png";
+import classicAvatarThree from "../../../../assets/yahoo/yahoo-window/Untitled design (22).png";
+import classicAvatarFour from "../../../../assets/yahoo/yahoo-window/Untitled design (27).png";
 import YahooEmoticonMenu from "./emoticonmenu";
+import YahooAccountInfoPopup from "./yahoo-signedin-popups/yahoo-account-info-popup";
+import YahooContactDetailsPopup from "./yahoo-signedin-popups/yahoo-contact-details-popup";
+import YahooDisplayImagePopup from "./yahoo-signedin-popups/yahoo-display-image-popup";
+import YahooManageUpdatesPopup from "./yahoo-signedin-popups/yahoo-manage-updates-popup";
+import YahooWebcamPopup from "./yahoo-signedin-popups/yahoo-webcam-popup";
 import "../../../../styles/desktop/apps/yahoo/yahoosignedin.css";
 
 const DEFAULT_STATUS = "This is a drill";
 const YAHOO_MAIL_URL = "https://mail.yahoo.com";
 const GAMES_PORTAL_URL = "https://www.crazygames.com/";
+const YAHOO_ACCOUNT_INFO_URL = "https://login.yahoo.com/account";
 const PRESENCE_OPTIONS = [
   { value: "online", label: "Online" },
   { value: "invisible", label: "Invisible" },
@@ -33,6 +43,14 @@ const SHARE_TARGETS = [
   { label: "Yahoo! Updates", icon: yahooUpdatesIcon, iconClass: "is-yahoo-updates" },
   { label: "Facebook", icon: facebookIcon },
   { label: "Twitter", icon: twitterIcon },
+];
+const DISPLAY_IMAGE_OPTIONS = [
+  { id: "soccer", label: "Soccer", src: defaultUserAvatar },
+  { id: "snowman", label: "Snowman", src: snowmanAvatar },
+  { id: "classic-1", label: "Classic 1", src: classicAvatarOne },
+  { id: "classic-2", label: "Classic 2", src: classicAvatarTwo },
+  { id: "classic-3", label: "Classic 3", src: classicAvatarThree },
+  { id: "classic-4", label: "Classic 4", src: classicAvatarFour },
 ];
 export const DEFAULT_FRIEND_CONTACTS = [
   { id: "chatgpt", name: "ChatGPT", icon: chatgptIcon, isFriend: true, status: "online" },
@@ -49,7 +67,13 @@ const YahooSignedIn = ({
   noIncomingCalls = false,
   openInsiderRequestId = 0,
   openContactDetailsRequestId = 0,
+  openAccountInfoRequestId = 0,
+  openDisplayImageRequestId = 0,
+  openWebcamRequestId = 0,
+  openManageUpdatesRequestId = 0,
+  avatarSrc = defaultUserAvatar,
   onContactDetailsSave,
+  onDisplayImageSave,
 }) => {
   const [activeTab, setActiveTab] = useState("contacts");
   const [statusText, setStatusText] = useState(DEFAULT_STATUS);
@@ -70,6 +94,21 @@ const YahooSignedIn = ({
   const [isPhonePopupOpen, setIsPhonePopupOpen] = useState(false);
   const [isInsiderPopupOpen, setIsInsiderPopupOpen] = useState(false);
   const [isContactDetailsOpen, setIsContactDetailsOpen] = useState(false);
+  const [isAccountInfoOpen, setIsAccountInfoOpen] = useState(false);
+  const [isDisplayImageOpen, setIsDisplayImageOpen] = useState(false);
+  const [displayImageDraft, setDisplayImageDraft] = useState(defaultUserAvatar);
+  const [isWebcamPopupOpen, setIsWebcamPopupOpen] = useState(false);
+  const [isManageUpdatesOpen, setIsManageUpdatesOpen] = useState(false);
+  const [updatesAudience, setUpdatesAudience] = useState("connections");
+  const [broadcastStatus, setBroadcastStatus] = useState(true);
+  const [broadcastDisplayImage, setBroadcastDisplayImage] = useState(true);
+  const [broadcastSocial, setBroadcastSocial] = useState(true);
+  const [updatesAudienceDraft, setUpdatesAudienceDraft] = useState("connections");
+  const [broadcastStatusDraft, setBroadcastStatusDraft] = useState(true);
+  const [broadcastDisplayImageDraft, setBroadcastDisplayImageDraft] = useState(true);
+  const [broadcastSocialDraft, setBroadcastSocialDraft] = useState(true);
+  const [webcamState, setWebcamState] = useState("idle");
+  const [webcamError, setWebcamError] = useState("");
   const [isContactDetailsDragging, setIsContactDetailsDragging] = useState(false);
   const [contactDetailsPosition, setContactDetailsPosition] = useState({ x: 0, y: 22 });
   const [contactDetailsUsernameDraft, setContactDetailsUsernameDraft] = useState("");
@@ -95,9 +134,18 @@ const YahooSignedIn = ({
   const insiderPopupRef = useRef(null);
   const insiderTriggerRef = useRef(null);
   const contactDetailsPopupRef = useRef(null);
+  const accountInfoPopupRef = useRef(null);
+  const displayImagePopupRef = useRef(null);
+  const manageUpdatesPopupRef = useRef(null);
+  const webcamPopupRef = useRef(null);
+  const webcamVideoRef = useRef(null);
+  const webcamStreamRef = useRef(null);
+  const webcamRequestRef = useRef(0);
+  const isWebcamPopupOpenRef = useRef(false);
   const contactDetailsHostRef = useRef(null);
   const contactDetailsDragOffsetRef = useRef({ x: 0, y: 0 });
   const presence = controlledPresence ?? uncontrolledPresence;
+  const resolvedAvatarSrc = avatarSrc || defaultUserAvatar;
 
   const normalizeContactStatus = (contact) => {
     const rawStatus = String(contact?.status || "").toLowerCase();
@@ -169,7 +217,7 @@ const YahooSignedIn = ({
     if (statusText.trim() && statusText.trim() !== DEFAULT_STATUS) {
       updates.push({
         id: "my-status",
-        icon: userAvatar,
+        icon: resolvedAvatarSrc,
         name: username,
         text: `updated status to "${statusText.trim()}"`,
         time: "Just now",
@@ -203,7 +251,7 @@ const YahooSignedIn = ({
     });
 
     return updates.slice(0, 12);
-  }, [normalizedFriends, normalizedRecentContacts, presence, statusText, username]);
+  }, [normalizedFriends, normalizedRecentContacts, presence, resolvedAvatarSrc, statusText, username]);
 
   const displayedUpdates = useMemo(() => {
     if (!normalizedContactSearch) return updatesFeed;
@@ -259,6 +307,72 @@ const YahooSignedIn = ({
     window.open(GAMES_PORTAL_URL, "_blank", "noopener,noreferrer");
   };
 
+  const handleOpenAccountInfoPage = () => {
+    if (typeof window === "undefined") return;
+    window.open(YAHOO_ACCOUNT_INFO_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const stopWebcamPreview = useCallback(() => {
+    const stream = webcamStreamRef.current;
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      webcamStreamRef.current = null;
+    }
+    const videoElement = webcamVideoRef.current;
+    if (videoElement) {
+      videoElement.srcObject = null;
+    }
+    setWebcamState("idle");
+    setWebcamError("");
+  }, []);
+
+  const startWebcamPreview = useCallback(async () => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setWebcamState("error");
+      setWebcamError("Webcam is unavailable in this browser.");
+      return;
+    }
+
+    webcamRequestRef.current += 1;
+    const requestId = webcamRequestRef.current;
+
+    const previousStream = webcamStreamRef.current;
+    if (previousStream) {
+      previousStream.getTracks().forEach((track) => track.stop());
+      webcamStreamRef.current = null;
+    }
+
+    setWebcamState("requesting");
+    setWebcamError("");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if (requestId !== webcamRequestRef.current || !isWebcamPopupOpenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      webcamStreamRef.current = stream;
+      const videoElement = webcamVideoRef.current;
+      if (videoElement) {
+        videoElement.srcObject = stream;
+        await videoElement.play().catch(() => {});
+      }
+      setWebcamState("live");
+    } catch (error) {
+      if (requestId !== webcamRequestRef.current) return;
+      const errorName = String(error?.name || "");
+      if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+        setWebcamError("Camera permission was denied.");
+      } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+        setWebcamError("No webcam was detected on this device.");
+      } else {
+        setWebcamError("Webcam is unavailable on this device/browser.");
+      }
+      setWebcamState("error");
+    }
+  }, []);
+
   const handlePhoneIconClick = () => {
     setIsPhonePopupOpen((prev) => !prev);
   };
@@ -266,6 +380,28 @@ const YahooSignedIn = ({
   const handleInsiderClick = () => {
     setIsInsiderPopupOpen((prev) => !prev);
   };
+
+  const handleSaveDisplayImage = () => {
+    const nextAvatar = displayImageDraft || resolvedAvatarSrc;
+    onDisplayImageSave?.(nextAvatar);
+    setIsDisplayImageOpen(false);
+  };
+
+  const closeManageUpdates = useCallback(() => {
+    setUpdatesAudienceDraft(updatesAudience);
+    setBroadcastStatusDraft(broadcastStatus);
+    setBroadcastDisplayImageDraft(broadcastDisplayImage);
+    setBroadcastSocialDraft(broadcastSocial);
+    setIsManageUpdatesOpen(false);
+  }, [broadcastDisplayImage, broadcastSocial, broadcastStatus, updatesAudience]);
+
+  const handleSaveManageUpdates = useCallback(() => {
+    setUpdatesAudience(updatesAudienceDraft);
+    setBroadcastStatus(broadcastStatusDraft);
+    setBroadcastDisplayImage(broadcastDisplayImageDraft);
+    setBroadcastSocial(broadcastSocialDraft);
+    setIsManageUpdatesOpen(false);
+  }, [broadcastDisplayImageDraft, broadcastSocialDraft, broadcastStatusDraft, updatesAudienceDraft]);
 
   const handleSaveContactDetails = () => {
     const nextUsername = contactDetailsUsernameDraft.trim() || username;
@@ -335,6 +471,10 @@ const YahooSignedIn = ({
     setContactDetailsUsernameDraft(username);
     setContactDetailsStatusDraft(statusText);
     setContactDetailsPresenceDraft(presence);
+    setIsManageUpdatesOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsAccountInfoOpen(false);
     setIsContactDetailsOpen(true);
     requestAnimationFrame(() => {
       const hostRect = contactDetailsHostRef.current?.getBoundingClientRect();
@@ -342,7 +482,62 @@ const YahooSignedIn = ({
       const alignedX = (hostRect?.width || popupWidth) - popupWidth;
       setContactDetailsPosition({ x: alignedX, y: 22 });
     });
-  }, [openContactDetailsRequestId, presence, statusText, username]);
+  }, [openContactDetailsRequestId]);
+
+  useEffect(() => {
+    if (!openAccountInfoRequestId) return;
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsManageUpdatesOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsAccountInfoOpen(true);
+  }, [openAccountInfoRequestId]);
+
+  useEffect(() => {
+    if (!openDisplayImageRequestId) return;
+    setDisplayImageDraft(resolvedAvatarSrc);
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsDisplayImageOpen(true);
+  }, [openDisplayImageRequestId]);
+
+  useEffect(() => {
+    if (!openWebcamRequestId) return;
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsManageUpdatesOpen(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(true);
+    requestAnimationFrame(() => {
+      startWebcamPreview();
+    });
+  }, [openWebcamRequestId, startWebcamPreview]);
+
+  useEffect(() => {
+    if (!openManageUpdatesRequestId) return;
+    setUpdatesAudienceDraft(updatesAudience);
+    setBroadcastStatusDraft(broadcastStatus);
+    setBroadcastDisplayImageDraft(broadcastDisplayImage);
+    setBroadcastSocialDraft(broadcastSocial);
+    setIsContactDetailsOpen(false);
+    setIsContactDetailsDragging(false);
+    setIsAccountInfoOpen(false);
+    setIsDisplayImageOpen(false);
+    setIsWebcamPopupOpen(false);
+    setIsManageUpdatesOpen(true);
+  }, [openManageUpdatesRequestId]);
+
+  useEffect(() => {
+    isWebcamPopupOpenRef.current = isWebcamPopupOpen;
+    if (isWebcamPopupOpen) return;
+    webcamRequestRef.current += 1;
+    stopWebcamPreview();
+  }, [isWebcamPopupOpen, stopWebcamPreview]);
 
   useEffect(() => {
     if (!isContactDetailsDragging) return;
@@ -376,7 +571,11 @@ const YahooSignedIn = ({
       !isContactViewMenuOpen &&
       !isPhonePopupOpen &&
       !isInsiderPopupOpen &&
-      !isContactDetailsOpen
+      !isContactDetailsOpen &&
+      !isAccountInfoOpen &&
+      !isDisplayImageOpen &&
+      !isManageUpdatesOpen &&
+      !isWebcamPopupOpen
     ) {
       return;
     }
@@ -397,6 +596,10 @@ const YahooSignedIn = ({
       if (insiderPopupRef.current?.contains(event.target)) return;
       if (insiderTriggerRef.current?.contains(event.target)) return;
       if (contactDetailsPopupRef.current?.contains(event.target)) return;
+      if (accountInfoPopupRef.current?.contains(event.target)) return;
+      if (displayImagePopupRef.current?.contains(event.target)) return;
+      if (manageUpdatesPopupRef.current?.contains(event.target)) return;
+      if (webcamPopupRef.current?.contains(event.target)) return;
       setIsShareToMenuOpen(false);
       setIsShareEmoteOpen(false);
       setIsSharePanelOpen(false);
@@ -405,6 +608,10 @@ const YahooSignedIn = ({
       setIsPhonePopupOpen(false);
       setIsInsiderPopupOpen(false);
       setIsContactDetailsOpen(false);
+      setIsAccountInfoOpen(false);
+      setIsDisplayImageOpen(false);
+      setIsManageUpdatesOpen(false);
+      setIsWebcamPopupOpen(false);
       setIsContactDetailsDragging(false);
     };
 
@@ -421,6 +628,10 @@ const YahooSignedIn = ({
     isPhonePopupOpen,
     isInsiderPopupOpen,
     isContactDetailsOpen,
+    isAccountInfoOpen,
+    isDisplayImageOpen,
+    isManageUpdatesOpen,
+    isWebcamPopupOpen,
   ]);
 
   useEffect(() => {
@@ -440,12 +651,21 @@ const YahooSignedIn = ({
   const recentTotalCount = normalizedRecentContacts.length;
   const friendsCount = displayedFriends.length;
   const friendsTotalCount = normalizedFriends.length;
+  const availabilityLabel = presence === "invisible" ? "Invisible" : "Available";
+  const webcamStatusMessage =
+    webcamState === "live"
+      ? "Webcam preview is active."
+      : webcamState === "requesting"
+        ? "Requesting camera access..."
+        : webcamState === "error"
+          ? webcamError
+          : "Press Start Preview to enable webcam.";
 
   return (
     <div className="yahoo-signedin">
       <div className="yahoo-signedin-profile">
         <img
-          src={userAvatar}
+          src={resolvedAvatarSrc}
           alt={`${username} avatar`}
           className="yahoo-signedin-avatar"
           draggable="false"
@@ -528,95 +748,68 @@ const YahooSignedIn = ({
               ) : null}
             </span>
           </div>
-          {isContactDetailsOpen ? (
-            <div
-              className="yahoo-signedin-contact-details-popup"
-              role="dialog"
-              aria-label="My Contact Details"
-              ref={contactDetailsPopupRef}
-              style={{
-                left: `${contactDetailsPosition.x}px`,
-                top: `${contactDetailsPosition.y}px`,
-              }}
-            >
-              <div
-                className="yahoo-signedin-contact-details-header"
-                onMouseDown={handleContactDetailsHeaderMouseDown}
-              >
-                <div className="yahoo-signedin-contact-details-title">My Contact Details</div>
-                <button
-                  type="button"
-                  className="yahoo-signedin-contact-details-close"
-                  aria-label="Close"
-                  onClick={() => {
-                    setIsContactDetailsOpen(false);
-                    setIsContactDetailsDragging(false);
-                  }}
-                  onMouseDown={(event) => event.stopPropagation()}
-                >
-                  <img src={closeIcon} alt="" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="yahoo-signedin-contact-details-body">
-                <div className="yahoo-signedin-contact-details-grid">
-                  <label className="yahoo-signedin-contact-details-field">
-                    <span>Yahoo! ID:</span>
-                    <input
-                      type="text"
-                      value={contactDetailsUsernameDraft}
-                      onChange={(event) => setContactDetailsUsernameDraft(event.target.value)}
-                    />
-                  </label>
-                  <label className="yahoo-signedin-contact-details-field">
-                    <span>Network:</span>
-                    <select defaultValue="yahoo-messenger">
-                      <option value="yahoo-messenger">Yahoo! Messenger</option>
-                    </select>
-                  </label>
-                  <label className="yahoo-signedin-contact-details-field">
-                    <span>Status Message:</span>
-                    <input
-                      type="text"
-                      value={contactDetailsStatusDraft}
-                      onChange={(event) => setContactDetailsStatusDraft(event.target.value)}
-                    />
-                  </label>
-                  <label className="yahoo-signedin-contact-details-field">
-                    <span>Availability:</span>
-                    <select
-                      value={contactDetailsPresenceDraft}
-                      onChange={(event) => setContactDetailsPresenceDraft(event.target.value)}
-                    >
-                      {PRESENCE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="yahoo-signedin-contact-details-tip">
-                  Update your profile details shown in Messenger.
-                </div>
-                <div className="yahoo-signedin-contact-details-actions">
-                  <button
-                    type="button"
-                    className="yahoo-signedin-contact-details-btn is-primary"
-                    onClick={handleSaveContactDetails}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    className="yahoo-signedin-contact-details-btn"
-                    onClick={() => setIsContactDetailsOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <YahooContactDetailsPopup
+            isOpen={isContactDetailsOpen}
+            popupRef={contactDetailsPopupRef}
+            position={contactDetailsPosition}
+            usernameDraft={contactDetailsUsernameDraft}
+            statusDraft={contactDetailsStatusDraft}
+            presenceDraft={contactDetailsPresenceDraft}
+            presenceOptions={PRESENCE_OPTIONS}
+            onUsernameChange={setContactDetailsUsernameDraft}
+            onStatusChange={setContactDetailsStatusDraft}
+            onPresenceChange={setContactDetailsPresenceDraft}
+            onSave={handleSaveContactDetails}
+            onCancel={() => setIsContactDetailsOpen(false)}
+            onClose={() => {
+              setIsContactDetailsOpen(false);
+              setIsContactDetailsDragging(false);
+            }}
+            onHeaderMouseDown={handleContactDetailsHeaderMouseDown}
+          />
+          <YahooAccountInfoPopup
+            isOpen={isAccountInfoOpen}
+            popupRef={accountInfoPopupRef}
+            username={username}
+            availabilityLabel={availabilityLabel}
+            statusText={statusText}
+            onManageAccount={handleOpenAccountInfoPage}
+            onClose={() => setIsAccountInfoOpen(false)}
+          />
+          <YahooDisplayImagePopup
+            isOpen={isDisplayImageOpen}
+            popupRef={displayImagePopupRef}
+            selectedImage={displayImageDraft}
+            fallbackImage={resolvedAvatarSrc}
+            options={DISPLAY_IMAGE_OPTIONS}
+            onSelectImage={setDisplayImageDraft}
+            onSave={handleSaveDisplayImage}
+            onClose={() => setIsDisplayImageOpen(false)}
+          />
+          <YahooManageUpdatesPopup
+            isOpen={isManageUpdatesOpen}
+            popupRef={manageUpdatesPopupRef}
+            audience={updatesAudienceDraft}
+            broadcastStatus={broadcastStatusDraft}
+            broadcastDisplayImage={broadcastDisplayImageDraft}
+            broadcastSocial={broadcastSocialDraft}
+            onAudienceChange={setUpdatesAudienceDraft}
+            onBroadcastStatusChange={setBroadcastStatusDraft}
+            onBroadcastDisplayImageChange={setBroadcastDisplayImageDraft}
+            onBroadcastSocialChange={setBroadcastSocialDraft}
+            onSave={handleSaveManageUpdates}
+            onClose={closeManageUpdates}
+          />
+          <YahooWebcamPopup
+            isOpen={isWebcamPopupOpen}
+            popupRef={webcamPopupRef}
+            videoRef={webcamVideoRef}
+            webcamState={webcamState}
+            webcamStatusMessage={webcamStatusMessage}
+            onStartPreview={startWebcamPreview}
+            onStopPreview={stopWebcamPreview}
+            onClose={() => setIsWebcamPopupOpen(false)}
+          />
           {isSharePanelOpen ? (
             <div className="yahoo-signedin-share-panel" ref={sharePanelRef}>
               <div className="yahoo-signedin-share-inputs">

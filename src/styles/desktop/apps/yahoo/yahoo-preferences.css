@@ -273,6 +273,108 @@
   gap: 8px;
 }
 
+.yahoo-preferences-language {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-language-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.yahoo-preferences-language-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.yahoo-preferences-language-current {
+  border: 1px solid #a784a4;
+  padding: 8px 10px;
+  background: rgba(90, 30, 87, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+}
+
+.yahoo-preferences-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-mobile-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.yahoo-preferences-mobile-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.yahoo-preferences-mobile-inline {
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+}
+
+.yahoo-preferences-mobile-input {
+  margin-left: 0;
+  min-width: 0;
+}
+
+.yahoo-preferences-mobile-status {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.yahoo-preferences-mobile-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.yahoo-preferences-music {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.yahoo-preferences-music-player-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.yahoo-preferences-music-unavailable {
+  margin-top: 10px;
+  border: 1px solid #b8a9bb;
+  background: #f7f2fb;
+  color: #3b2a3b;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+  max-width: 280px;
+}
+
+.yahoo-preferences-music-unavailable-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.yahoo-preferences-music-unavailable-body {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.yahoo-preferences-music-unavailable .yahoo-preferences-btn {
+  justify-self: end;
+}
+
 .yahoo-preferences-hint {
   margin: 4px 0 6px;
   color: rgba(255, 255, 255, 0.85);
@@ -307,6 +409,11 @@
 
 .yahoo-preferences-btn:hover {
   background: #7b2f77;
+}
+
+.yahoo-preferences-btn:disabled {
+  opacity: 0.58;
+  cursor: default;
 }
 
 .yahoo-preferences-networks {

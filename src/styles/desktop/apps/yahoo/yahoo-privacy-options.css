@@ -1,0 +1,144 @@
+.yahoo-privacy-options-window {
+  min-width: 500px;
+  min-height: 460px;
+}
+
+.yahoo-privacy-options-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: #7a2f74;
+  color: #f6effb;
+  font-size: 12px;
+  min-height: 0;
+}
+
+.yahoo-privacy-options-group {
+  border: 1px solid #a784a4;
+  background: rgba(90, 30, 87, 0.3);
+  padding: 8px 10px;
+}
+
+.yahoo-privacy-options-group-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #f7efff;
+}
+
+.yahoo-privacy-options-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.yahoo-privacy-options-option input {
+  margin-top: 2px;
+}
+
+.yahoo-privacy-options-group.is-ignore-list {
+  flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.yahoo-privacy-options-ignore-layout {
+  display: grid;
+  grid-template-columns: 1fr 148px;
+  gap: 10px;
+  align-items: start;
+  min-height: 0;
+}
+
+.yahoo-privacy-options-ignore-list {
+  border: 1px solid #d5c6de;
+  background: #ffffff;
+  height: 96px;
+  min-height: 96px;
+  overflow: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.yahoo-privacy-options-ignore-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 3px 6px;
+  color: #3b2a3b;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.yahoo-privacy-options-ignore-item:hover {
+  background: #e6d9ec;
+}
+
+.yahoo-privacy-options-ignore-item.is-selected {
+  background: #7b2f77;
+  color: #ffffff;
+}
+
+.yahoo-privacy-options-ignore-empty {
+  padding: 4px 6px;
+  color: #6b5a72;
+  font-size: 11px;
+}
+
+.yahoo-privacy-options-ignore-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.yahoo-privacy-options-input {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid #d5c6de;
+  background: #ffffff;
+  color: #3b2a3b;
+  font-size: 11px;
+}
+
+.yahoo-privacy-options-ignore-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.yahoo-privacy-options-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.yahoo-privacy-options-btn {
+  min-width: 72px;
+  padding: 4px 12px;
+  border: 1px solid #6b3e69;
+  background: #8f4c8b;
+  color: #f7f1ff;
+  font-size: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.yahoo-privacy-options-btn.is-primary {
+  background: #7b2f77;
+}
+
+.yahoo-privacy-options-btn:hover:not(:disabled) {
+  background: #7b2f77;
+}
+
+.yahoo-privacy-options-btn:disabled {
+  opacity: 0.58;
+  cursor: default;
+}

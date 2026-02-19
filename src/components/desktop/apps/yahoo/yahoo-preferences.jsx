@@ -38,6 +38,36 @@ const CATEGORY_ITEMS = [
   "Yahoo! Music",
   "Yahoo! Updates",
 ];
+const DEFAULT_LANGUAGE = "English (U.S.)";
+const LANGUAGE_OPTIONS = [
+  "English (U.S.)",
+  "English (UK)",
+  "Deutsch",
+  "Espanol",
+  "Francais",
+  "Italiano",
+  "Nederlands",
+  "Portugues (Brasil)",
+  "Portugues (Portugal)",
+  "Dansk",
+  "Svenska",
+  "Norsk",
+  "Suomi",
+  "Magyar",
+  "Polski",
+  "Turkce",
+];
+const DEFAULT_MOBILE_COUNTRY = "United States (+1)";
+const MOBILE_COUNTRY_OPTIONS = [
+  "United States (+1)",
+  "Canada (+1)",
+  "United Kingdom (+44)",
+  "Romania (+40)",
+  "Germany (+49)",
+  "France (+33)",
+  "Italy (+39)",
+  "Spain (+34)",
+];
 
 const YahooPreferencesWindow = ({
   windowId = "yahoo-preferences-window",
@@ -51,6 +81,28 @@ const YahooPreferencesWindow = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState("General");
   const [activeAlertIndex, setActiveAlertIndex] = useState(0);
+  const [languageDraft, setLanguageDraft] = useState(DEFAULT_LANGUAGE);
+  const [savedLanguage, setSavedLanguage] = useState(DEFAULT_LANGUAGE);
+  const [mobileCountryDraft, setMobileCountryDraft] = useState(DEFAULT_MOBILE_COUNTRY);
+  const [mobileNumberDraft, setMobileNumberDraft] = useState("");
+  const [mobileCodeDraft, setMobileCodeDraft] = useState("");
+  const [mobileVerifiedDraft, setMobileVerifiedDraft] = useState(false);
+  const [mobileSignInOnExitDraft, setMobileSignInOnExitDraft] = useState(false);
+  const [mobileForwardOfflineDraft, setMobileForwardOfflineDraft] = useState(false);
+  const [savedMobileCountry, setSavedMobileCountry] = useState(DEFAULT_MOBILE_COUNTRY);
+  const [savedMobileNumber, setSavedMobileNumber] = useState("");
+  const [savedMobileVerified, setSavedMobileVerified] = useState(false);
+  const [savedMobileSignInOnExit, setSavedMobileSignInOnExit] = useState(false);
+  const [savedMobileForwardOffline, setSavedMobileForwardOffline] = useState(false);
+  const [musicShowTrackDraft, setMusicShowTrackDraft] = useState(true);
+  const [musicShareWithContactsDraft, setMusicShareWithContactsDraft] = useState(true);
+  const [musicAutoDetectDraft, setMusicAutoDetectDraft] = useState(true);
+  const [musicPlayerDraft, setMusicPlayerDraft] = useState("Windows Media Player");
+  const [savedMusicShowTrack, setSavedMusicShowTrack] = useState(true);
+  const [savedMusicShareWithContacts, setSavedMusicShareWithContacts] = useState(true);
+  const [savedMusicAutoDetect, setSavedMusicAutoDetect] = useState(true);
+  const [savedMusicPlayer, setSavedMusicPlayer] = useState("Windows Media Player");
+  const [isMusicUnavailablePopupOpen, setIsMusicUnavailablePopupOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [position, setPosition] = useState(getDefaultPosition);
@@ -120,6 +172,90 @@ const YahooPreferencesWindow = ({
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging]);
+
+  const hasLanguageChanges = languageDraft !== savedLanguage;
+  const hasMobileChanges =
+    mobileCountryDraft !== savedMobileCountry ||
+    mobileNumberDraft !== savedMobileNumber ||
+    mobileVerifiedDraft !== savedMobileVerified ||
+    mobileSignInOnExitDraft !== savedMobileSignInOnExit ||
+    mobileForwardOfflineDraft !== savedMobileForwardOffline;
+  const hasMusicChanges =
+    musicShowTrackDraft !== savedMusicShowTrack ||
+    musicShareWithContactsDraft !== savedMusicShareWithContacts ||
+    musicAutoDetectDraft !== savedMusicAutoDetect ||
+    musicPlayerDraft !== savedMusicPlayer;
+
+  const applyCategoryIfNeeded = () => {
+    if (activeCategory === "Language") {
+      if (!hasLanguageChanges) return;
+      setSavedLanguage(languageDraft);
+      return;
+    }
+    if (activeCategory === "Mobile") {
+      if (!hasMobileChanges) return;
+      setSavedMobileCountry(mobileCountryDraft);
+      setSavedMobileNumber(mobileNumberDraft);
+      setSavedMobileVerified(mobileVerifiedDraft && Boolean(mobileNumberDraft.trim()));
+      setSavedMobileSignInOnExit(mobileSignInOnExitDraft);
+      setSavedMobileForwardOffline(mobileForwardOfflineDraft);
+      return;
+    }
+    if (activeCategory === "Yahoo! Music") {
+      if (!hasMusicChanges) return;
+      setSavedMusicShowTrack(musicShowTrackDraft);
+      setSavedMusicShareWithContacts(musicShareWithContactsDraft);
+      setSavedMusicAutoDetect(musicAutoDetectDraft);
+      setSavedMusicPlayer(musicPlayerDraft);
+    }
+  };
+
+  const handleOkClick = () => {
+    applyCategoryIfNeeded();
+    onClose?.(windowId);
+  };
+
+  const handleCancelClick = () => {
+    if (activeCategory === "Language") {
+      setLanguageDraft(savedLanguage);
+    } else if (activeCategory === "Mobile") {
+      setMobileCountryDraft(savedMobileCountry);
+      setMobileNumberDraft(savedMobileNumber);
+      setMobileCodeDraft("");
+      setMobileVerifiedDraft(savedMobileVerified);
+      setMobileSignInOnExitDraft(savedMobileSignInOnExit);
+      setMobileForwardOfflineDraft(savedMobileForwardOffline);
+    } else if (activeCategory === "Yahoo! Music") {
+      setMusicShowTrackDraft(savedMusicShowTrack);
+      setMusicShareWithContactsDraft(savedMusicShareWithContacts);
+      setMusicAutoDetectDraft(savedMusicAutoDetect);
+      setMusicPlayerDraft(savedMusicPlayer);
+      setIsMusicUnavailablePopupOpen(false);
+    }
+    onClose?.(windowId);
+  };
+
+  const handleApplyClick = () => {
+    applyCategoryIfNeeded();
+  };
+
+  const isApplyDisabled =
+    (activeCategory === "Language" && !hasLanguageChanges) ||
+    (activeCategory === "Mobile" && !hasMobileChanges) ||
+    (activeCategory === "Yahoo! Music" && !hasMusicChanges) ||
+    (activeCategory !== "Language" &&
+      activeCategory !== "Mobile" &&
+      activeCategory !== "Yahoo! Music");
+  const mobileStatusLabel = savedMobileNumber
+    ? savedMobileVerified
+      ? "Verified"
+      : "Pending verification"
+    : "Not set up";
+
+  useEffect(() => {
+    if (activeCategory === "Yahoo! Music") return;
+    setIsMusicUnavailablePopupOpen(false);
+  }, [activeCategory]);
 
   return (
     <div
@@ -465,6 +601,200 @@ const YahooPreferencesWindow = ({
                 </div>
               </div>
             </div>
+          ) : activeCategory === "Language" ? (
+            <div className="yahoo-preferences-language">
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">Select Language</div>
+                <label className="yahoo-preferences-language-row">
+                  <span className="yahoo-preferences-language-label">Language:</span>
+                  <select
+                    className="yahoo-preferences-select"
+                    value={languageDraft}
+                    onChange={(event) => setLanguageDraft(event.target.value)}
+                  >
+                    {LANGUAGE_OPTIONS.map((language) => (
+                      <option key={language} value={language}>
+                        {language}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="yahoo-preferences-hint">
+                  Changes take effect after restart.
+                </p>
+              </div>
+              <div className="yahoo-preferences-language-current">
+                Current Messenger language: <strong>{savedLanguage}</strong>
+              </div>
+            </div>
+          ) : activeCategory === "Mobile" ? (
+            <div className="yahoo-preferences-mobile">
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">Mobile Device Setup</div>
+                <div className="yahoo-preferences-mobile-row">
+                  <span className="yahoo-preferences-mobile-label">Country:</span>
+                  <select
+                    className="yahoo-preferences-select"
+                    value={mobileCountryDraft}
+                    onChange={(event) => setMobileCountryDraft(event.target.value)}
+                  >
+                    {MOBILE_COUNTRY_OPTIONS.map((country) => (
+                      <option key={country} value={country}>
+                        {country}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="yahoo-preferences-mobile-row">
+                  <span className="yahoo-preferences-mobile-label">Mobile number:</span>
+                  <input
+                    type="text"
+                    className="yahoo-preferences-input yahoo-preferences-mobile-input"
+                    value={mobileNumberDraft}
+                    placeholder="(555) 555-1212"
+                    onChange={(event) => {
+                      setMobileNumberDraft(event.target.value);
+                      if (!event.target.value.trim()) {
+                        setMobileVerifiedDraft(false);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="yahoo-preferences-mobile-row yahoo-preferences-mobile-inline">
+                  <span className="yahoo-preferences-mobile-label">Verification code:</span>
+                  <input
+                    type="text"
+                    className="yahoo-preferences-input yahoo-preferences-mobile-input"
+                    value={mobileCodeDraft}
+                    placeholder="Enter code"
+                    onChange={(event) => setMobileCodeDraft(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="yahoo-preferences-btn"
+                    onClick={() => {
+                      if (!mobileNumberDraft.trim()) return;
+                      setMobileVerifiedDraft(mobileCodeDraft.trim().length >= 4);
+                    }}
+                    disabled={!mobileNumberDraft.trim()}
+                  >
+                    Verify
+                  </button>
+                </div>
+                <div className="yahoo-preferences-mobile-status">
+                  Mobile status: <strong>{mobileStatusLabel}</strong>
+                </div>
+                <p className="yahoo-preferences-hint">
+                  Carrier SMS charges may apply.
+                </p>
+              </div>
+
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">When I leave Messenger</div>
+                <label className="yahoo-preferences-option">
+                  <input
+                    type="checkbox"
+                    checked={mobileSignInOnExitDraft}
+                    onChange={(event) => setMobileSignInOnExitDraft(event.target.checked)}
+                  />
+                  <span>Always sign into my mobile device when I exit Messenger.</span>
+                </label>
+                <label className="yahoo-preferences-option">
+                  <input
+                    type="checkbox"
+                    checked={mobileForwardOfflineDraft}
+                    onChange={(event) => setMobileForwardOfflineDraft(event.target.checked)}
+                  />
+                  <span>Forward IM alerts to my phone when I am offline.</span>
+                </label>
+              </div>
+
+              <div className="yahoo-preferences-mobile-actions">
+                <button
+                  type="button"
+                  className="yahoo-preferences-btn"
+                  onClick={() => {
+                    setMobileNumberDraft("");
+                    setMobileCodeDraft("");
+                    setMobileVerifiedDraft(false);
+                    setMobileSignInOnExitDraft(false);
+                    setMobileForwardOfflineDraft(false);
+                  }}
+                >
+                  Remove Mobile Device
+                </button>
+              </div>
+            </div>
+          ) : activeCategory === "Yahoo! Music" ? (
+            <div className="yahoo-preferences-music">
+              <div className="yahoo-preferences-group">
+                <div className="yahoo-preferences-group-title">Yahoo! Music Integration</div>
+                <label className="yahoo-preferences-option">
+                  <input
+                    type="checkbox"
+                    checked={musicShowTrackDraft}
+                    onChange={(event) => setMusicShowTrackDraft(event.target.checked)}
+                  />
+                  <span>Show what I'm listening to in my Messenger status.</span>
+                </label>
+                <label className="yahoo-preferences-option">
+                  <input
+                    type="checkbox"
+                    checked={musicShareWithContactsDraft}
+                    onChange={(event) => setMusicShareWithContactsDraft(event.target.checked)}
+                  />
+                  <span>Allow contacts to see my current song.</span>
+                </label>
+                <label className="yahoo-preferences-option">
+                  <input
+                    type="checkbox"
+                    checked={musicAutoDetectDraft}
+                    onChange={(event) => setMusicAutoDetectDraft(event.target.checked)}
+                  />
+                  <span>Detect music player automatically.</span>
+                </label>
+                <div className="yahoo-preferences-music-player-row">
+                  <span className="yahoo-preferences-mobile-label">Preferred player:</span>
+                  <select
+                    className="yahoo-preferences-select"
+                    value={musicPlayerDraft}
+                    onChange={(event) => setMusicPlayerDraft(event.target.value)}
+                    disabled={musicAutoDetectDraft}
+                  >
+                    <option>Windows Media Player</option>
+                    <option>Winamp</option>
+                    <option>iTunes</option>
+                    <option>RealPlayer</option>
+                  </select>
+                </div>
+              </div>
+              <div className="yahoo-preferences-group">
+                <button
+                  type="button"
+                  className="yahoo-preferences-btn"
+                  onClick={() => setIsMusicUnavailablePopupOpen(true)}
+                >
+                  Open Yahoo! Music
+                </button>
+                {isMusicUnavailablePopupOpen ? (
+                  <div className="yahoo-preferences-music-unavailable">
+                    <div className="yahoo-preferences-music-unavailable-title">
+                      Yahoo! Music
+                    </div>
+                    <div className="yahoo-preferences-music-unavailable-body">
+                      Yahoo! Music service is no longer available.
+                    </div>
+                    <button
+                      type="button"
+                      className="yahoo-preferences-btn"
+                      onClick={() => setIsMusicUnavailablePopupOpen(false)}
+                    >
+                      OK
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           ) : (
             <>
               <div className="yahoo-preferences-group">
@@ -542,13 +872,22 @@ const YahooPreferencesWindow = ({
           )}
 
           <div className="yahoo-preferences-actions">
-            <button type="button" className="yahoo-preferences-btn is-primary">
+            <button
+              type="button"
+              className="yahoo-preferences-btn is-primary"
+              onClick={handleOkClick}
+            >
               OK
             </button>
-            <button type="button" className="yahoo-preferences-btn">
+            <button type="button" className="yahoo-preferences-btn" onClick={handleCancelClick}>
               Cancel
             </button>
-            <button type="button" className="yahoo-preferences-btn">
+            <button
+              type="button"
+              className="yahoo-preferences-btn"
+              onClick={handleApplyClick}
+              disabled={isApplyDisabled}
+            >
               Apply
             </button>
           </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import defaultContactImage from "../../../../../assets/yahoo/yahoo-window/123.png";
-import userAvatar from "../../../../../assets/yahoo/soccer.png";
+import defaultUserAvatar from "../../../../../assets/yahoo/soccer.png";
 import YahooConversationHeader from "./yahoo-conversation-header";
 import YahooConversationBody from "./yahoo-conversation-body";
 import YahooConversationFooter from "./yahoo-conversation-footer";
@@ -9,6 +9,7 @@ import "../../../../../styles/desktop/apps/yahoo/yahoo-conversation-window/yahoo
 const YahooConversationWindowDesign = ({
   contactName = "softpedia_review3",
   contactImage,
+  userAvatar,
   username = "angelo_lucaci",
   messages = [],
   isTyping = false,
@@ -21,6 +22,7 @@ const YahooConversationWindowDesign = ({
   onTabSelect,
 }) => {
   const contactImageSrc = contactImage || defaultContactImage;
+  const userAvatarSrc = userAvatar || defaultUserAvatar;
 
   return (
     <div className="yahoo-conversation-design">
@@ -39,7 +41,7 @@ const YahooConversationWindowDesign = ({
             <img src={contactImageSrc} alt={`${contactName} photo`} draggable="false" />
           </div>
           <div className="yahoo-conversation-side-card is-user">
-            <img src={userAvatar} alt={`${username} avatar`} draggable="false" />
+            <img src={userAvatarSrc} alt={`${username} avatar`} draggable="false" />
           </div>
         </aside>
         <div className="yahoo-conversation-footer-wrap">

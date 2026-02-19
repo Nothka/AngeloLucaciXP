@@ -13,12 +13,14 @@ import YahooSignedIn, { DEFAULT_FRIEND_CONTACTS } from "./yahoosignedin";
 import YahooAddFriendsWindow from "./addfriends";
 import YahooConversationWindow from "./yahoo-conversation-window/yahoo-window";
 import YahooPreferencesWindow from "./yahoo-preferences";
+import YahooPrivacyOptionsWindow from "./yahoo-privacy-options";
 import { EMOTICON_CODES } from "./emoticonData";
 import ResizeHandles from "../../ResizeHandles";
 import useWindowResize from "../../hooks/useWindowResize";
 import "../../../../styles/desktop/window.css";
 import "../../../../styles/desktop/apps/yahoo/yahoo.css";
 import snowmanIcon from "../../../../assets/yahoo/snowman.png";
+import defaultUserAvatar from "../../../../assets/yahoo/soccer.png";
 import { getDesktopPoint } from "../../utils/desktopTransform";
 
 const WINDOW_SIZE = { width: 320, height: 520 };
@@ -146,22 +148,32 @@ const YahooWindow = ({
   const [noIncomingCalls, setNoIncomingCalls] = useState(false);
   const [insiderPopupRequestId, setInsiderPopupRequestId] = useState(0);
   const [contactDetailsRequestId, setContactDetailsRequestId] = useState(0);
+  const [accountInfoRequestId, setAccountInfoRequestId] = useState(0);
+  const [displayImageRequestId, setDisplayImageRequestId] = useState(0);
+  const [webcamRequestId, setWebcamRequestId] = useState(0);
+  const [manageUpdatesRequestId, setManageUpdatesRequestId] = useState(0);
   const [conversations, setConversations] = useState([]);
   const [useLoginVideo, setUseLoginVideo] = useState(true);
   const loginVideoRef = useRef(null);
   const [friendContacts, setFriendContacts] = useState(() =>
     DEFAULT_FRIEND_CONTACTS.map((contact) => ({ ...contact }))
   );
+  const [signedInAvatar, setSignedInAvatar] = useState(defaultUserAvatar);
   const conversationsRef = useRef([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [isConversationWindowMinimized, setIsConversationWindowMinimized] = useState(false);
   const [isAddFriendsOpen, setIsAddFriendsOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [isPrivacyOptionsOpen, setIsPrivacyOptionsOpen] = useState(false);
+  const [privacyAllowOnlyContacts, setPrivacyAllowOnlyContacts] = useState(false);
+  const [privacyShowYahooSites, setPrivacyShowYahooSites] = useState(true);
+  const [privacyIgnoredUsers, setPrivacyIgnoredUsers] = useState([]);
   const [subWindowOrder, setSubWindowOrder] = useState([
     "main",
     "conversation",
     "addfriends",
     "preferences",
+    "privacy",
   ]);
   const windowRef = useRef(null);
   const signInTimeoutRef = useRef(null);
@@ -230,6 +242,7 @@ const YahooWindow = ({
     activeConversationId && !isConversationWindowMinimized ? "conversation" : null,
     isAddFriendsOpen ? "addfriends" : null,
     isPreferencesOpen ? "preferences" : null,
+    isPrivacyOptionsOpen ? "privacy" : null,
   ].filter(Boolean);
   const topSubWindow =
     [...subWindowOrder].reverse().find((key) => openSubWindows.includes(key)) || "main";
@@ -320,6 +333,15 @@ const YahooWindow = ({
     setIsPreferencesOpen(false);
   }, []);
 
+  const openPrivacyOptions = useCallback(() => {
+    setIsPrivacyOptionsOpen(true);
+    bringSubWindowToFront("privacy");
+  }, [bringSubWindowToFront]);
+
+  const closePrivacyOptions = useCallback(() => {
+    setIsPrivacyOptionsOpen(false);
+  }, []);
+
   const handleAddFriend = useCallback((name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -351,6 +373,7 @@ const YahooWindow = ({
     setIsConversationWindowMinimized(false);
     setIsAddFriendsOpen(false);
     setIsPreferencesOpen(false);
+    setIsPrivacyOptionsOpen(false);
     setActiveMenu(null);
     setActiveHeaderSubmenu(null);
     setSignedInPresence("online");
@@ -894,6 +917,7 @@ const YahooWindow = ({
   const isMainActive = isActive && topSubWindow === "main";
   const isAddFriendsActive = isActive && topSubWindow === "addfriends";
   const isPreferencesActive = isActive && topSubWindow === "preferences";
+  const isPrivacyOptionsActive = isActive && topSubWindow === "privacy";
 
   return (
     <>
@@ -973,13 +997,28 @@ const YahooWindow = ({
                     activeMenu === "Messenger" && entry.label === "No Incoming Calls";
                   const isMyContactDetailsEntry =
                     activeMenu === "Messenger" && entry.label === "My Contact Details";
+                  const isMyAccountInfoEntry =
+                    activeMenu === "Messenger" && entry.label === "My Account Info";
+                  const isMyDisplayImageEntry =
+                    activeMenu === "Messenger" && entry.label === "My Display Image";
+                  const isMyWebcamEntry =
+                    activeMenu === "Messenger" && entry.label === "My Webcam";
+                  const isPrivacyOptionsEntry =
+                    activeMenu === "Messenger" && entry.label === "Privacy Options";
+                  const isManageUpdatesBroadcastEntry =
+                    activeMenu === "Messenger" && entry.label === "Manage Updates I Broadcast...";
                   const isAvailabilitySubmenuOpen =
                     isAvailabilityEntry && activeHeaderSubmenu === "availability";
                   const isDisabled =
                     entry.disabled ||
                     (isAvailabilityEntry && !isSignedIn) ||
                     (isNoIncomingCallsEntry && !isSignedIn) ||
-                    (isMyContactDetailsEntry && !isSignedIn);
+                    (isMyContactDetailsEntry && !isSignedIn) ||
+                    (isMyAccountInfoEntry && !isSignedIn) ||
+                    (isMyDisplayImageEntry && !isSignedIn) ||
+                    (isMyWebcamEntry && !isSignedIn) ||
+                    (isPrivacyOptionsEntry && !isSignedIn) ||
+                    (isManageUpdatesBroadcastEntry && !isSignedIn);
                   const isSelected =
                     Boolean(entry.selected) || (isNoIncomingCallsEntry && noIncomingCalls);
                   const itemRole = isNoIncomingCallsEntry ? "menuitemcheckbox" : "menuitem";
@@ -1011,6 +1050,24 @@ const YahooWindow = ({
                       setActiveHeaderSubmenu(null);
                       return;
                     }
+                    if (isMyAccountInfoEntry) {
+                      setAccountInfoRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isMyDisplayImageEntry) {
+                      setDisplayImageRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isMyWebcamEntry) {
+                      setWebcamRequestId((prev) => prev + 1);
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
                     if (entry.label === "Sign Out") {
                       handleSignOut();
                       return;
@@ -1023,6 +1080,18 @@ const YahooWindow = ({
                     }
                     if (entry.label === "Preferences") {
                       openPreferences();
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isPrivacyOptionsEntry) {
+                      openPrivacyOptions();
+                      setActiveMenu(null);
+                      setActiveHeaderSubmenu(null);
+                      return;
+                    }
+                    if (isManageUpdatesBroadcastEntry) {
+                      setManageUpdatesRequestId((prev) => prev + 1);
                       setActiveMenu(null);
                       setActiveHeaderSubmenu(null);
                       return;
@@ -1096,7 +1165,13 @@ const YahooWindow = ({
               noIncomingCalls={noIncomingCalls}
               openInsiderRequestId={insiderPopupRequestId}
               openContactDetailsRequestId={contactDetailsRequestId}
+              openAccountInfoRequestId={accountInfoRequestId}
+              openDisplayImageRequestId={displayImageRequestId}
+              openWebcamRequestId={webcamRequestId}
+              openManageUpdatesRequestId={manageUpdatesRequestId}
+              avatarSrc={signedInAvatar}
               onContactDetailsSave={handleContactDetailsSave}
+              onDisplayImageSave={setSignedInAvatar}
               onOpenConversation={openConversation}
               onAddContact={openAddFriends}
               friends={friendContacts}
@@ -1219,6 +1294,7 @@ const YahooWindow = ({
           title={conversationTitleText || activeConversation.contactName}
           contactName={activeConversation.contactName}
           contactImage={activeConversation.icon}
+          userAvatar={signedInAvatar}
           username={signedInUser || username.trim() || "angelo_lucaci"}
           messages={activeConversation.messages || []}
           isTyping={Boolean(activeConversation.isTyping)}
@@ -1264,6 +1340,31 @@ const YahooWindow = ({
           isMinimized={isMinimized}
           onClose={closePreferences}
           onMouseDown={() => bringSubWindowToFront("preferences")}
+        />
+      ) : null}
+      {isPrivacyOptionsOpen ? (
+        <YahooPrivacyOptionsWindow
+          zIndex={getSubWindowZIndex("privacy")}
+          isActive={isPrivacyOptionsActive}
+          isMinimized={isMinimized}
+          onClose={closePrivacyOptions}
+          onMouseDown={() => bringSubWindowToFront("privacy")}
+          initialPresence={signedInPresence}
+          noIncomingCalls={noIncomingCalls}
+          allowOnlyContacts={privacyAllowOnlyContacts}
+          showYahooSites={privacyShowYahooSites}
+          ignoredUsers={privacyIgnoredUsers}
+          onApply={(settings = {}) => {
+            setSignedInPresence(settings.isInvisible ? "invisible" : "online");
+            setNoIncomingCalls(Boolean(settings.noIncomingCalls));
+            setPrivacyAllowOnlyContacts(Boolean(settings.allowOnlyContacts));
+            setPrivacyShowYahooSites(Boolean(settings.showYahooSites));
+            setPrivacyIgnoredUsers(
+              Array.isArray(settings.ignoredUsers)
+                ? settings.ignoredUsers.filter((item) => typeof item === "string")
+                : []
+            );
+          }}
         />
       ) : null}
     </>

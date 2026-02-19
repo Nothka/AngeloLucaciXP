@@ -25,6 +25,7 @@ const YahooConversationWindow = ({
   title = "softpedia_review3, softpedia...",
   contactName = "softpedia_review3",
   contactImage,
+  userAvatar,
   username = "angelo_lucaci",
   messages = [],
   isTyping = false,
@@ -160,6 +161,7 @@ const YahooConversationWindow = ({
         <YahooConversationWindowDesign
           contactName={contactName}
           contactImage={contactImage}
+          userAvatar={userAvatar}
           username={username}
           messages={messages}
           isTyping={isTyping}
