@@ -1,24 +1,23 @@
 // src/components/desktop/MenuList.jsx
 import React from "react";
-import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
-import githubIcon from "../../../../assets/startmenu/github.webp";
-import linkedinIcon from "../../../../assets/startmenu/linkedin.webp";
-import commandpromptIcon from "../../../../assets/startmenu/commandprompt.webp";
-import imageviewerIcon from "../../../../assets/startmenu/imageviewer.webp";
-import resumeIcon from "../../../../assets/startmenu/Pdf.webp"; // Placeholder
-import recentlyUsedIcon from "../../../../assets/startmenu/Recent.webp"; // Placeholder
-import chatgptIcon from "../../../../assets/about-me/chatgpt.webp";
-import geminiIcon from "../../../../assets/about-me/gemini.webp";
-import gitIcon from "../../../../assets/about-me/git.webp";
-import adobeCcIcon from "../../../../assets/about-me/adobecc.webp";
-import davinciIcon from "../../../../assets/startmenu/recentlyused/davinci.webp";
-import lightroomIcon from "../../../../assets/startmenu/recentlyused/lightroom.webp";
-import notepadIcon from "../../../../assets/startmenu/recentlyused/notepad.webp";
-import minesweeperIcon from "../../../../assets/startmenu/recentlyused/minesweeper.webp";
-import yahooIcon from "../../../../assets/startmenu/recentlyused/yahoo.jpeg";
-import youtubeIcon from "../../../../assets/startmenu/recentlyused/youtube.jpg";
-import gitCopilotIcon from "../../../../assets/about-me/gitcopilot.webp";
-import vscodeIcon from "../../../../assets/about-me/vscode.jpeg";
+import instagramIcon from "../../../../assets/icons/apps/instagram.jpeg";
+import githubIcon from "../../../../assets/icons/apps/github.webp";
+import linkedinIcon from "../../../../assets/icons/apps/linkedin.webp";
+import commandpromptIcon from "../../../../assets/icons/apps/commandprompt.webp";
+import resumeIcon from "../../../../assets/icons/apps/Pdf.webp"; // Placeholder
+import recentlyUsedIcon from "../../../../assets/icons/apps/Recent.webp"; // Placeholder
+import chatgptIcon from "../../../../assets/icons/skills/chatgpt.webp";
+import geminiIcon from "../../../../assets/icons/skills/gemini.webp";
+import gitIcon from "../../../../assets/icons/skills/git.webp";
+import adobeCcIcon from "../../../../assets/icons/skills/adobecc.webp";
+import davinciIcon from "../../../../assets/icons/apps/recentlyused/davinci.webp";
+import lightroomIcon from "../../../../assets/icons/apps/recentlyused/lightroom.webp";
+import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
+import minesweeperIcon from "../../../../assets/icons/apps/recentlyused/minesweeper.webp";
+import yahooIcon from "../../../../assets/icons/apps/recentlyused/yahoo.jpeg";
+import youtubeIcon from "../../../../assets/icons/apps/recentlyused/youtube.jpg";
+import gitCopilotIcon from "../../../../assets/icons/skills/gitcopilot.webp";
+import vscodeIcon from "../../../../assets/icons/skills/vscode.jpeg";
 import "../../../../styles/desktop/taskbar/startmenu/menulist.css";
 
 const recentlyUsedApps = [
@@ -49,13 +48,21 @@ const links = [
     submenu: recentlyUsedApps,
   },
   { key: "separator2", isSeparator: true },
+  { key: "run", title: "Run...", iconSrc: commandpromptIcon, action: "run-dialog" },
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon},
   { key: "resume", title: "My Resume", iconSrc: resumeIcon },
 ];
 
-const MenuList = ({ openApp, closeMenu }) => {
+const MenuList = ({ openApp, closeMenu, onOpenRunDialog }) => {
   const handleItemClick = (item) => {
     if (item.submenu) {
+      return;
+    }
+    if (item.action === "run-dialog") {
+      if (closeMenu) {
+        closeMenu();
+      }
+      onOpenRunDialog?.();
       return;
     }
     if (openApp && item.title) {

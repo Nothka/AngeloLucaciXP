@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import wallpaper from "../../assets/xp-wallpaper.webp"; 
-import startupSound from "../../assets/xp-startup.wav";
-import balloonSound from "../../assets/balloon.mp3";
+import wallpaper from "../../assets/images/backgrounds/xp-wallpaper.webp"; 
+import startupSound from "../../assets/audio/xp-startup.wav";
+import balloonSound from "../../assets/audio/balloon.mp3";
 import Taskbar from "../desktop/taskbar/Taskbar";
 import WelcomeToast from "./WelcomeToast";
 import MyProjectWindow from "./apps/MyProjectWindow";
@@ -13,10 +13,17 @@ import MyResumeWindow from "./apps/MyResumeWindow";
 import ContactMeWindow from "./apps/contactme";
 import AboutMeWindow from "./apps/aboutme";
 import YahooWindow from "./apps/yahoo/yahoo";
-import myProjectsIcon from "../../assets/startmenu/myprojects.webp";
-import resumeIcon from "../../assets/startmenu/Pdf.webp";
-import aboutMeIcon from "../../assets/startmenu/about.webp";
+import myProjectsIcon from "../../assets/icons/apps/myprojects.webp";
+import resumeIcon from "../../assets/icons/apps/Pdf.webp";
+import aboutMeIcon from "../../assets/icons/apps/about.webp";
+import contactIcon from "../../assets/icons/apps/contact.webp";
+import instagramIcon from "../../assets/icons/apps/instagram.jpeg";
+import githubIcon from "../../assets/icons/apps/github.webp";
+import linkedinIcon from "../../assets/icons/apps/linkedin.webp";
+import commandPromptIcon from "../../assets/icons/apps/commandprompt.webp";
+import yahooIcon from "../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import DesktopIcons from "./DesktopIcons";
+import RunDialog from "./RunDialog";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -32,6 +39,38 @@ const formatTimeWithPeriod = (date) =>
 let windowIdCounter = 0; 
 const MIN_DESKTOP_WIDTH = 1280;
 const MIN_DESKTOP_HEIGHT = 720;
+const RUN_APP_ALIASES = {
+  about: { title: "About Me", icon: aboutMeIcon },
+  "about me": { title: "About Me", icon: aboutMeIcon },
+  aboutme: { title: "About Me", icon: aboutMeIcon },
+  winver: { title: "About Me", icon: aboutMeIcon },
+  resume: { title: "My Resume", icon: resumeIcon },
+  cv: { title: "My Resume", icon: resumeIcon },
+  projects: { title: "My Projects", icon: myProjectsIcon },
+  portfolio: { title: "My Projects", icon: myProjectsIcon },
+  iexplore: { title: "My Projects", icon: myProjectsIcon },
+  contact: { title: "Contact Me", icon: contactIcon },
+  "contact me": { title: "Contact Me", icon: contactIcon },
+  contactme: { title: "Contact Me", icon: contactIcon },
+  linkedin: { title: "LinkedIn", icon: linkedinIcon },
+  instagram: { title: "Instagram", icon: instagramIcon },
+  github: { title: "Github", icon: githubIcon },
+  git: { title: "Github", icon: githubIcon },
+  cmd: { title: "Command Prompt", icon: commandPromptIcon },
+  command: { title: "Command Prompt", icon: commandPromptIcon },
+  "command prompt": { title: "Command Prompt", icon: commandPromptIcon },
+  commandprompt: { title: "Command Prompt", icon: commandPromptIcon },
+  yahoo: { title: "Yahoo Messenger", icon: yahooIcon },
+  "yahoo messenger": { title: "Yahoo Messenger", icon: yahooIcon },
+  ymail: { title: "Yahoo Messenger", icon: yahooIcon },
+};
+const RUN_SYSTEM_ALIASES = {
+  shutdown: "shutdown",
+  restart: "shutdown",
+  logoff: "logoff",
+  "log off": "logoff",
+};
+const URL_COMMAND_PATTERN = /^(https?:\/\/|www\.)/i;
 
 const Desktop = ({ onLogOff, onShutdown }) => {
   const [time, setTime] = useState("");
@@ -46,6 +85,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectionEnd, setSelectionEnd] = useState(null);
+  const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
   const desktopRef = useRef(null);
   const [desktopMetrics, setDesktopMetrics] = useState({
     scale: 1,
@@ -185,6 +225,56 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const handleYahooConversationApiReady = useCallback((api) => {
     yahooConversationApiRef.current = api;
   }, []);
+  const openRunDialog = useCallback(() => {
+    setIsRunDialogOpen(true);
+  }, []);
+  const closeRunDialog = useCallback(() => {
+    setIsRunDialogOpen(false);
+  }, []);
+
+  const executeRunCommand = (rawCommand) => {
+    const typedValue = rawCommand.trim();
+    if (!typedValue) {
+      return {
+        success: false,
+        message: "Type the name of a program, folder, document, or Internet resource.",
+      };
+    }
+
+    const normalized = typedValue.toLowerCase().replace(/\s+/g, " ");
+    const normalizedNoExe = normalized.replace(/\.exe$/, "");
+    const firstToken = normalizedNoExe.split(" ")[0].replace(/\.exe$/, "");
+    const candidates = [normalized, normalizedNoExe, firstToken];
+
+    for (const key of candidates) {
+      const targetApp = RUN_APP_ALIASES[key];
+      if (!targetApp) continue;
+      openApp(targetApp.title, targetApp.icon);
+      return { success: true };
+    }
+
+    for (const key of candidates) {
+      const systemAction = RUN_SYSTEM_ALIASES[key];
+      if (!systemAction) continue;
+      if (systemAction === "shutdown") {
+        onShutdown?.();
+      } else if (systemAction === "logoff") {
+        onLogOff?.();
+      }
+      return { success: true };
+    }
+
+    if (URL_COMMAND_PATTERN.test(typedValue)) {
+      const url = /^https?:\/\//i.test(typedValue) ? typedValue : `https://${typedValue}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message: `Windows cannot find "${typedValue}". Make sure you typed the name correctly, and then try again.`,
+    };
+  };
 
 
   useEffect(() => {
@@ -233,6 +323,22 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   }, [showWelcome, shouldPlayBalloon]);
 
   useEffect(() => {
+    const handleRunShortcut = (event) => {
+      const key = event.key?.toLowerCase();
+      const isRunShortcut = key === "r" && (event.metaKey || event.ctrlKey) && !event.altKey;
+      if (!isRunShortcut) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsRunDialogOpen(true);
+    };
+
+    window.addEventListener("keydown", handleRunShortcut, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", handleRunShortcut, { capture: true });
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isSelecting) return;
 
     const handleMouseMove = (event) => {
@@ -259,6 +365,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
 
   const handleDesktopMouseDown = (event) => {
     if (event.button !== 0) return;
+    if (isRunDialogOpen) return;
     if (event.target?.closest?.(".window")) return;
     setActiveWindowId(null);
     if (event.target?.closest?.(".taskbar")) return;
@@ -484,6 +591,11 @@ const Desktop = ({ onLogOff, onShutdown }) => {
             onOpenProjects={() => openApp("My Projects", myProjectsIcon)}
           />
         ) : null}
+        <RunDialog
+          isOpen={isRunDialogOpen}
+          onClose={closeRunDialog}
+          onRun={executeRunCommand}
+        />
 
           <Taskbar
             time={time}
@@ -497,6 +609,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
             onExtraAppClick={handleConversationTaskbarClick}
             onLogOff={onLogOff}
             onShutdown={onShutdown}
+            onOpenRunDialog={openRunDialog}
           />
         </div>
       </div>

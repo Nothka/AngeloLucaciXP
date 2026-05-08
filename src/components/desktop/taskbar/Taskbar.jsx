@@ -16,6 +16,7 @@ const Taskbar = ({
   onExtraAppClick,
   onLogOff,
   onShutdown,
+  onOpenRunDialog,
 }) => {
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
   const startMenuRef = useRef(null);
@@ -81,6 +82,7 @@ const Taskbar = ({
           closeMenu={closeStartMenu}
           onLogOff={onLogOff}
           onShutdown={onShutdown}
+          onOpenRunDialog={onOpenRunDialog}
         />
       </div>
 

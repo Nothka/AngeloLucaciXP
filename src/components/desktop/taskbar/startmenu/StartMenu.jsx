@@ -4,14 +4,14 @@ import MenuList from "./MenuList"; // For the right-side list
 import PinnedList from "./PinnedList"; // For the left-side pinned programs
 import StartMenuFooter from "./StartMenuFooter";
 import StartMenuHeader from "./StartMenuHeader";
-import aboutMeIcon from "../../../../assets/startmenu/about.webp";
-import resumeIcon from "../../../../assets/startmenu/Pdf.webp";
-import myProjectsIcon from "../../../../assets/startmenu/myprojects.webp";
-import contactMeIcon from "../../../../assets/startmenu/contact.webp";
-import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
-import githubIcon from "../../../../assets/startmenu/github.webp";
-import linkedinIcon from "../../../../assets/startmenu/linkedin.webp";
-import commandpromptIcon from "../../../../assets/startmenu/commandprompt.webp";
+import aboutMeIcon from "../../../../assets/icons/apps/about.webp";
+import resumeIcon from "../../../../assets/icons/apps/Pdf.webp";
+import myProjectsIcon from "../../../../assets/icons/apps/myprojects.webp";
+import contactMeIcon from "../../../../assets/icons/apps/contact.webp";
+import instagramIcon from "../../../../assets/icons/apps/instagram.jpeg";
+import githubIcon from "../../../../assets/icons/apps/github.webp";
+import linkedinIcon from "../../../../assets/icons/apps/linkedin.webp";
+import commandpromptIcon from "../../../../assets/icons/apps/commandprompt.webp";
 import "../../../../styles/desktop/taskbar/startmenu/startmenu.css";
 
 const allProgramsItems = [
@@ -25,7 +25,7 @@ const allProgramsItems = [
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon },
 ];
 
-const StartMenu = ({ isOpen, openApp, closeMenu, onLogOff, onShutdown }) => {
+const StartMenu = ({ isOpen, openApp, closeMenu, onLogOff, onShutdown, onOpenRunDialog }) => {
   // Render nothing if the menu is not open
   if (!isOpen) return null;
 
@@ -70,7 +70,11 @@ const StartMenu = ({ isOpen, openApp, closeMenu, onLogOff, onShutdown }) => {
 
         {/* 2. Right Column: System Links */}
         <div className="start-menu-right">
-          <MenuList openApp={openApp} closeMenu={closeMenu} />
+          <MenuList
+            openApp={openApp}
+            closeMenu={closeMenu}
+            onOpenRunDialog={onOpenRunDialog}
+          />
         </div>
       </div>
 
