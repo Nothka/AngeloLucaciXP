@@ -1,5 +1,5 @@
 import React from "react";
-import closeIcon from "../../../../../assets/yahoo/header/close.png";
+import closeIcon from "../../../../../assets/yahoo/header/close.webp";
 import "../../../../../styles/desktop/apps/yahoo/yahoo-signedin-popups/yahoo-import-contacts-popup.css";
 
 const YahooImportContactsPopup = ({

@@ -14,7 +14,7 @@ import ContactMeWindow from "./apps/contactme";
 import AboutMeWindow from "./apps/aboutme";
 import YahooWindow from "./apps/yahoo/yahoo";
 import myProjectsIcon from "../../assets/startmenu/myprojects.webp";
-import resumeIcon from "../../assets/startmenu/Pdf.png";
+import resumeIcon from "../../assets/startmenu/Pdf.webp";
 import aboutMeIcon from "../../assets/startmenu/about.webp";
 import DesktopIcons from "./DesktopIcons";
 import "../../styles/desktop/desktop-icons.css";

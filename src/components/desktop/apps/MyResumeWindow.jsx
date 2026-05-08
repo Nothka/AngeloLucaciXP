@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
-import resumeIcon from "../../../assets/startmenu/Pdf.png";
-import zoomIcon from "../../../assets/startmenu/Search.png";
-import saveIcon from "../../../assets/startmenu/Pdf.png";
+import resumeIcon from "../../../assets/startmenu/Pdf.webp";
+import zoomIcon from "../../../assets/startmenu/Search.webp";
+import saveIcon from "../../../assets/startmenu/Pdf.webp";
 import printIcon from "../../../assets/startmenu/Recent.webp";
 import contactIcon from "../../../assets/startmenu/contact.webp";
 import minimizeIcon from "../../../assets/window/Minimize.webp";
 import maximizeIcon from "../../../assets/window/Maximize.webp";
-import closeIcon from "../../../assets/window/Exit.png";
+import closeIcon from "../../../assets/window/Exit.webp";
 import resumePdf from "../../../assets/cv/CV_AngeloLucaci.pdf";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";

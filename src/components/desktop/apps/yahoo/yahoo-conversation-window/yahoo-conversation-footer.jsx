@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import smileIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (21).png";
-import talkIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (20).png";
-import textIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (22).png";
-import buzzIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (27).png";
-import attachIcon from "../../../../../assets/yahoo/yahoo-window/files.png";
-import screenshotIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (29).png";
-import contactsIcon from "../../../../../assets/yahoo/yahoo-window/contacts.png";
-import leftArrowIcon from "../../../../../assets/yahoo/yahoo-window/left-arrow.png";
+import smileIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (21).webp";
+import talkIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (20).webp";
+import textIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (22).webp";
+import buzzIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (27).webp";
+import attachIcon from "../../../../../assets/yahoo/yahoo-window/files.webp";
+import screenshotIcon from "../../../../../assets/yahoo/yahoo-window/Untitled design (29).webp";
+import contactsIcon from "../../../../../assets/yahoo/yahoo-window/contacts.webp";
+import leftArrowIcon from "../../../../../assets/yahoo/yahoo-window/left-arrow.webp";
 import YahooEmoticonMenu from "../emoticonmenu";
 import "../../../../../styles/desktop/apps/yahoo/yahoo-conversation-window/yahoo-conversation-footer.css";
 

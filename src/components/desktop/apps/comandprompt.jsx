@@ -1,5 +1,5 @@
 import React from "react";
-import commandprompt from "../../../../../assets/startmenu/commandprompt.png";
+import commandprompt from "../../../../../assets/startmenu/commandprompt.webp";
 import "../../../../../styles/desktop/taskbar/startmenu/apps/comandprompt.css";
 function ControlPanel() {
   return (

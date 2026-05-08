@@ -1,23 +1,23 @@
 // src/components/desktop/MenuList.jsx
 import React from "react";
 import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
-import githubIcon from "../../../../assets/startmenu/github.png";
-import linkedinIcon from "../../../../assets/startmenu/linkedin.png";
-import commandpromptIcon from "../../../../assets/startmenu/commandprompt.png";
+import githubIcon from "../../../../assets/startmenu/github.webp";
+import linkedinIcon from "../../../../assets/startmenu/linkedin.webp";
+import commandpromptIcon from "../../../../assets/startmenu/commandprompt.webp";
 import imageviewerIcon from "../../../../assets/startmenu/imageviewer.webp";
-import resumeIcon from "../../../../assets/startmenu/Pdf.png"; // Placeholder
+import resumeIcon from "../../../../assets/startmenu/Pdf.webp"; // Placeholder
 import recentlyUsedIcon from "../../../../assets/startmenu/Recent.webp"; // Placeholder
-import chatgptIcon from "../../../../assets/about-me/chatgpt.png";
-import geminiIcon from "../../../../assets/about-me/gemini.png";
-import gitIcon from "../../../../assets/about-me/git.png";
-import adobeCcIcon from "../../../../assets/about-me/adobecc.png";
-import davinciIcon from "../../../../assets/startmenu/recentlyused/davinci.png";
-import lightroomIcon from "../../../../assets/startmenu/recentlyused/lightroom.png";
+import chatgptIcon from "../../../../assets/about-me/chatgpt.webp";
+import geminiIcon from "../../../../assets/about-me/gemini.webp";
+import gitIcon from "../../../../assets/about-me/git.webp";
+import adobeCcIcon from "../../../../assets/about-me/adobecc.webp";
+import davinciIcon from "../../../../assets/startmenu/recentlyused/davinci.webp";
+import lightroomIcon from "../../../../assets/startmenu/recentlyused/lightroom.webp";
 import notepadIcon from "../../../../assets/startmenu/recentlyused/notepad.webp";
 import minesweeperIcon from "../../../../assets/startmenu/recentlyused/minesweeper.webp";
 import yahooIcon from "../../../../assets/startmenu/recentlyused/yahoo.jpeg";
 import youtubeIcon from "../../../../assets/startmenu/recentlyused/youtube.jpg";
-import gitCopilotIcon from "../../../../assets/about-me/gitcopilot.png";
+import gitCopilotIcon from "../../../../assets/about-me/gitcopilot.webp";
 import vscodeIcon from "../../../../assets/about-me/vscode.jpeg";
 import "../../../../styles/desktop/taskbar/startmenu/menulist.css";
 

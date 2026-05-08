@@ -14,7 +14,7 @@ const BootScreen = ({ isReady = false }) => {
           showInstructions={false}
         />
 
-        <div className="boot-bar" aria-label="Loading">
+        <div className="boot-bar" role="progressbar" aria-label="Loading" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
           <div className="boot-bar-track">
             <div className="boot-bar-fill" aria-hidden="true">
               <span className="boot-bar-block" />

@@ -1,5 +1,5 @@
 import React from "react";
-import restartIcon from "../../assets/restart.png";
+import restartIcon from "../../assets/restart.webp";
 
 const Footer = ({ productName, mobileInstruction, onRestart }) => {
   return (

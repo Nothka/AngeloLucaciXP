@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import minimizeIcon from "../../../../assets/yahoo/header/window-minimize.png";
-import maximizeIcon from "../../../../assets/yahoo/header/maximise.png";
-import closeIcon from "../../../../assets/yahoo/header/close.png";
+import minimizeIcon from "../../../../assets/yahoo/header/window-minimize.webp";
+import maximizeIcon from "../../../../assets/yahoo/header/maximise.webp";
+import closeIcon from "../../../../assets/yahoo/header/close.webp";
 import ResizeHandles from "../../ResizeHandles";
 import useWindowResize from "../../hooks/useWindowResize";
 import { getDesktopPoint } from "../../utils/desktopTransform";

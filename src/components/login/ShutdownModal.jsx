@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import restartIcon from "../../assets/restart.png";
+import restartIcon from "../../assets/restart.webp";
 import shutdownIcon from "../../assets/237.ico"; // dacă nu ai încă, poți comenta
 import xpLogo from "../../assets/xp-logo.webp";
 

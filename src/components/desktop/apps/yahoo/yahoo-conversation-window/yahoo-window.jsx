@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import typingIcon from "../../../../../assets/yahoo/yahoo-window/typing.png";
-import minimizeIcon from "../../../../../assets/yahoo/header/window-minimize.png";
-import maximizeIcon from "../../../../../assets/yahoo/header/maximise.png";
-import closeIcon from "../../../../../assets/yahoo/header/close.png";
+import typingIcon from "../../../../../assets/yahoo/yahoo-window/typing.webp";
+import minimizeIcon from "../../../../../assets/yahoo/header/window-minimize.webp";
+import maximizeIcon from "../../../../../assets/yahoo/header/maximise.webp";
+import closeIcon from "../../../../../assets/yahoo/header/close.webp";
 import YahooConversationWindowDesign from "./yahoo-window-design";
 import ResizeHandles from "../../../ResizeHandles";
 import useWindowResize from "../../../hooks/useWindowResize";

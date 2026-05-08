@@ -5,13 +5,13 @@ import PinnedList from "./PinnedList"; // For the left-side pinned programs
 import StartMenuFooter from "./StartMenuFooter";
 import StartMenuHeader from "./StartMenuHeader";
 import aboutMeIcon from "../../../../assets/startmenu/about.webp";
-import resumeIcon from "../../../../assets/startmenu/Pdf.png";
+import resumeIcon from "../../../../assets/startmenu/Pdf.webp";
 import myProjectsIcon from "../../../../assets/startmenu/myprojects.webp";
 import contactMeIcon from "../../../../assets/startmenu/contact.webp";
 import instagramIcon from "../../../../assets/startmenu/instagram.jpeg";
-import githubIcon from "../../../../assets/startmenu/github.png";
-import linkedinIcon from "../../../../assets/startmenu/linkedin.png";
-import commandpromptIcon from "../../../../assets/startmenu/commandprompt.png";
+import githubIcon from "../../../../assets/startmenu/github.webp";
+import linkedinIcon from "../../../../assets/startmenu/linkedin.webp";
+import commandpromptIcon from "../../../../assets/startmenu/commandprompt.webp";
 import "../../../../styles/desktop/taskbar/startmenu/startmenu.css";
 
 const allProgramsItems = [

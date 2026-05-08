@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import videoCallIcon from "../../../../../assets/yahoo/videocall.png";
-import voiceCallIcon from "../../../../../assets/yahoo/voicecall.png";
-import imvironmentsIcon from "../../../../../assets/yahoo/IMViroments.png";
-import activitiesIcon from "../../../../../assets/yahoo/activities.png";
-import photosIcon from "../../../../../assets/yahoo/photos.png";
+import videoCallIcon from "../../../../../assets/yahoo/videocall.webp";
+import voiceCallIcon from "../../../../../assets/yahoo/voicecall.webp";
+import imvironmentsIcon from "../../../../../assets/yahoo/IMViroments.webp";
+import activitiesIcon from "../../../../../assets/yahoo/activities.webp";
+import photosIcon from "../../../../../assets/yahoo/photos.webp";
 import "../../../../../styles/desktop/apps/yahoo/yahoo-conversation-window/yahoo-conversation-header.css";
 
 const MENU_ITEMS = ["Conversation", "Edit", "View", "Actions", "Help"];

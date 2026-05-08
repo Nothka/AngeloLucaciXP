@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import commandpromptIcon from "../../assets/startmenu/commandprompt.png";
+import commandpromptIcon from "../../assets/startmenu/commandprompt.webp";
 import minimizeIcon from "../../assets/window/Minimize.webp";
 import maximizeIcon from "../../assets/window/Maximize.webp";
-import closeIcon from "../../assets/window/Exit.png";
+import closeIcon from "../../assets/window/Exit.webp";
 import ResizeHandles from "./ResizeHandles";
 import useWindowResize from "./hooks/useWindowResize";
 import { getDesktopPoint } from "./utils/desktopTransform";

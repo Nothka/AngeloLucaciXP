@@ -425,7 +425,7 @@
   left: 50%;
   width: 12px;
   height: 12px;
-  background: url("../../../../assets/yahoo/down-arrow.png") no-repeat center / contain;
+  background: url("../../../../assets/yahoo/down-arrow.webp") no-repeat center / contain;
   transform: translate(-50%, -50%);
 }
 
