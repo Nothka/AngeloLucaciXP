@@ -1,6 +1,6 @@
 import React from "react";
 import { userProfile } from "../login/User/UserProfile";
-import infoIcon from "../../assets/976.ico";
+import infoIcon from "../../assets/icons/ui/976.ico";
 import "../../styles/desktop/welcome-toast.css";
 
 const WelcomeToast = ({ onClose, onOpenAbout, onOpenProjects }) => {

@@ -1,0 +1,291 @@
+.wordpad-window {
+  --window-surface-color: #ebe9df;
+}
+
+.wordpad-window .window-header {
+  --window-header-height: 26px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.wordpad-window .window-title {
+  gap: 6px;
+}
+
+.wordpad-menu-bar {
+  position: relative;
+  min-height: 22px;
+  padding-left: 4px;
+  background: #efede2;
+  border-top: 1px solid #f8f8f5;
+  border-bottom: 1px solid #bab7aa;
+}
+
+.wordpad-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.wordpad-menu-trigger {
+  min-width: 40px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #111;
+}
+
+.wordpad-menu-trigger.is-open,
+.wordpad-menu-trigger:hover {
+  background: #316ac5;
+  color: #fff;
+}
+
+.wordpad-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 230px;
+  padding: 2px;
+  border: 1px solid #7f9db9;
+  background: #f6f5f0;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
+  z-index: 20;
+}
+
+.wordpad-menu-item {
+  width: 100%;
+  min-height: 22px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: #111;
+  font-size: 12px;
+  font-family: "Tahoma", Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.wordpad-menu-item:hover:enabled {
+  background: #316ac5;
+  color: #fff;
+}
+
+.wordpad-menu-item.is-disabled,
+.wordpad-menu-item:disabled {
+  color: #8a8a8a;
+}
+
+.wordpad-shortcut {
+  margin-left: 18px;
+  opacity: 0.9;
+}
+
+.wordpad-menu-divider {
+  height: 1px;
+  margin: 2px 0;
+  background: #cfcfcf;
+}
+
+.wordpad-toolbar {
+  min-height: 30px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #efede2;
+  border-top: 1px solid #f8f8f5;
+  border-bottom: 1px solid #c5c1b2;
+}
+
+.wordpad-toolbar--standard {
+  min-height: 32px;
+}
+
+.wordpad-toolbar--format {
+  min-height: 34px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.wordpad-toolbar-icon-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #a7a39a;
+  background: linear-gradient(180deg, #fdfdfb 0%, #e3e1d4 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wordpad-toolbar-icon-btn img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.wordpad-toolbar-icon-btn:hover {
+  filter: brightness(1.06);
+}
+
+.wordpad-toolbar-btn {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid #a7a39a;
+  background: linear-gradient(180deg, #fdfdfb 0%, #e3e1d4 100%);
+  font-family: "Tahoma", Arial, sans-serif;
+  font-size: 13px;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wordpad-toolbar-btn:hover {
+  filter: brightness(1.06);
+}
+
+.wordpad-toolbar-btn.is-bold {
+  font-weight: 700;
+}
+
+.wordpad-toolbar-btn.is-italic {
+  font-style: italic;
+}
+
+.wordpad-toolbar-btn.is-underline {
+  text-decoration: underline;
+}
+
+.wordpad-toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background: #bdb9ae;
+  margin: 0 3px;
+}
+
+.wordpad-select {
+  height: 24px;
+  border: 1px solid #9aa7bf;
+  background: linear-gradient(180deg, #ffffff 0%, #e6edf9 100%);
+  color: #111;
+  font-size: 12px;
+  font-family: "Tahoma", Arial, sans-serif;
+  padding: 0 6px;
+}
+
+.wordpad-select--font {
+  width: 190px;
+}
+
+.wordpad-select--size {
+  width: 64px;
+}
+
+.wordpad-select--script {
+  width: 140px;
+}
+
+.wordpad-ruler {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  background: #f4f3ee;
+  border-top: 1px solid #f8f8f5;
+  border-bottom: 1px solid #c5c1b2;
+}
+
+.wordpad-ruler-start {
+  width: 22px;
+  height: 100%;
+  border-right: 1px solid #bdb9ae;
+  position: relative;
+}
+
+.wordpad-ruler-start::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 4px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 8px solid #e7e6df;
+  filter: drop-shadow(0 1px 0 #8c8a84);
+}
+
+.wordpad-ruler-track {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  color: #2c2c2c;
+  font-size: 11px;
+  font-family: "Tahoma", Arial, sans-serif;
+  background-image: repeating-linear-gradient(
+    to right,
+    #8d8b85 0,
+    #8d8b85 1px,
+    transparent 1px,
+    transparent 20px
+  );
+  background-position-y: 4px;
+  background-size: auto 6px;
+}
+
+.wordpad-content {
+  flex: 1;
+  min-height: 0;
+  margin: 0 2px 2px;
+  background: #fff;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #9f9f9f;
+  border-bottom: 1px solid #9f9f9f;
+  overflow: auto;
+}
+
+.wordpad-editor {
+  min-height: 100%;
+  padding: 10px 10px 12px;
+  color: #000;
+  font-family: "Tahoma", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.42;
+  outline: none;
+  cursor: text;
+}
+
+.wordpad-statusbar {
+  height: 22px;
+  margin: 0 2px 2px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #d0d0d0;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #9f9f9f;
+  border-bottom: 1px solid #9f9f9f;
+  background: #ece9d8;
+  color: #222;
+  font-family: "Tahoma", Arial, sans-serif;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .wordpad-select--font {
+    width: 140px;
+  }
+
+  .wordpad-select--script {
+    width: 95px;
+  }
+
+  .wordpad-editor {
+    font-size: 13px;
+  }
+}

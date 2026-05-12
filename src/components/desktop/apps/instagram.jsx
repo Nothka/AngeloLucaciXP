@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import instagramIcon from "../../../assets/startmenu/instagram.jpeg";
-import closeIcon from "../../../assets/window/Exit.webp";
+import instagramIcon from "../../../assets/icons/apps/instagram.jpeg";
+import closeIcon from "../../../assets/icons/ui/window-controls/Exit.webp";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
 import { getDesktopPoint } from "../utils/desktopTransform";

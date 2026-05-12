@@ -1,5 +1,5 @@
 import React from "react";
-import avatar from "../../../../assets/login-avatar.webp";
+import avatar from "../../../../assets/logos/login-avatar.webp";
 import { fullName} from "../../../login/User/UserProfile";
 import "../../../../styles/desktop/taskbar/startmenu/startmenuheader.css";
 

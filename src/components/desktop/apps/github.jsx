@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import githubIcon from "../../../assets/startmenu/github.webp";
-import closeIcon from "../../../assets/window/Exit.webp";
+import githubIcon from "../../../assets/icons/apps/github.webp";
+import closeIcon from "../../../assets/icons/ui/window-controls/Exit.webp";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
 import { getDesktopPoint } from "../utils/desktopTransform";

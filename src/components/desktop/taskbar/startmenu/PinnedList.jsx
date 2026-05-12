@@ -1,8 +1,9 @@
 import React from "react";
-import myProjectsIcon from "../../../../assets/startmenu/myprojects.webp";
-import contactMeIcon from "../../../../assets/startmenu/contact.webp";
-import aboutMeIcon from "../../../../assets/startmenu/about.webp";
-import yahooIcon from "../../../../assets/startmenu/recentlyused/yahoo.jpeg";
+import myProjectsIcon from "../../../../assets/icons/apps/myprojects.webp";
+import contactMeIcon from "../../../../assets/icons/apps/contact.webp";
+import aboutMeIcon from "../../../../assets/icons/apps/about.webp";
+import yahooIcon from "../../../../assets/icons/apps/recentlyused/yahoo.jpeg";
+import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
 
 const pinnedItems = [
   {
@@ -10,6 +11,12 @@ const pinnedItems = [
     title: "My Projects",
     subtitle: "View my work",
     iconSrc: myProjectsIcon,
+  },
+  {
+    key: "notepad",
+    title: "Notepad",
+    subtitle: "Edit text files",
+    iconSrc: notepadIcon,
   },
   {
     key: "yahoo",

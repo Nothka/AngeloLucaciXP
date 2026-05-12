@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import Header from "../login/Header";
 import Footer from "../login/Footer";
 import { instructions, productName } from "../login/User/UserProfile";
-import shutdownSound from "../../assets/windows-shutdown.mp3";
-import startupSound from "../../assets/xp-startup.wav";
-import balloonSound from "../../assets/balloon.mp3";
+import shutdownSound from "../../assets/audio/windows-shutdown.mp3";
+import startupSound from "../../assets/audio/xp-startup.wav";
+import balloonSound from "../../assets/audio/balloon.mp3";
 import "../../styles/welcome/welcome.css";
 
 const preloadAudio = (sources, timeoutMs = 4000) =>

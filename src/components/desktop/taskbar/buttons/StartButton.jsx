@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import startIdle from "../../../../assets/start.webp";
-import startHover from "../../../../assets/start-hovered.webp";
-import startActive from "../../../../assets/start-clicked.webp";
+import startIdle from "../../../../assets/icons/ui/start.webp";
+import startHover from "../../../../assets/icons/ui/start-hovered.webp";
+import startActive from "../../../../assets/icons/ui/start-clicked.webp";
 
 const StartButton = ({ className = "", onClick, isActive = false }) => {
   const [currentSrc, setCurrentSrc] = useState(startIdle);

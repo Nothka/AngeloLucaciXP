@@ -1,23 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import myProjectsIcon from "../../../assets/startmenu/myprojects.webp";
-import backIcon from "../../../assets/window/Back.webp";
-import forwardIcon from "../../../assets/window/Forward.webp";
-import favoritesIcon from "../../../assets/window/Favorites.webp";
-import homeIcon from "../../../assets/window/home.webp";
-import minimizeIcon from "../../../assets/window/Minimize.webp";
-import maximizeIcon from "../../../assets/window/Maximize.webp";
-import closeIcon from "../../../assets/window/Exit.webp";
-import myURLIcon from "../../../assets/window/URL.webp"
-import goIcon from "../../../assets/startmenu/adressbar/Go.webp";
-import addIcon from "../../../assets/my-projects/add.webp";
-import basicUiIcon from "../../../assets/my-projects/basic-ui.webp";
-import bookmarkIcon from "../../../assets/my-projects/bookmark.webp";
-import chatIcon from "../../../assets/my-projects/chat.webp";
-import heartIcon from "../../../assets/my-projects/heart.webp";
-import sendIcon from "../../../assets/my-projects/send.webp";
-import settingIcon from "../../../assets/my-projects/setting.webp";
-import videoIcon from "../../../assets/my-projects/video.webp";
-import profilePhotoAsset from "../../../assets/my-projects/profilepic.webp";
+import myProjectsIcon from "../../../assets/icons/apps/myprojects.webp";
+import backIcon from "../../../assets/icons/ui/window-controls/Back.webp";
+import forwardIcon from "../../../assets/icons/ui/window-controls/Forward.webp";
+import favoritesIcon from "../../../assets/icons/ui/window-controls/Favorites.webp";
+import homeIcon from "../../../assets/icons/ui/window-controls/home.webp";
+import minimizeIcon from "../../../assets/icons/ui/window-controls/Minimize.webp";
+import maximizeIcon from "../../../assets/icons/ui/window-controls/Maximize.webp";
+import closeIcon from "../../../assets/icons/ui/window-controls/Exit.webp";
+import myURLIcon from "../../../assets/icons/ui/window-controls/URL.webp"
+import goIcon from "../../../assets/icons/apps/adressbar/Go.webp";
+import addIcon from "../../../assets/images/projects/add.webp";
+import basicUiIcon from "../../../assets/images/projects/basic-ui.webp";
+import bookmarkIcon from "../../../assets/images/projects/bookmark.webp";
+import chatIcon from "../../../assets/images/projects/chat.webp";
+import heartIcon from "../../../assets/images/projects/heart.webp";
+import sendIcon from "../../../assets/images/projects/send.webp";
+import settingIcon from "../../../assets/images/projects/setting.webp";
+import videoIcon from "../../../assets/images/projects/video.webp";
+import profilePhotoAsset from "../../../assets/images/projects/profilepic.webp";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
 import { getDesktopPoint } from "../utils/desktopTransform";
@@ -25,7 +25,7 @@ import "../../../styles/desktop/window.css";
 import "../../../styles/desktop/apps/myprojects.css";
 
 const localProjectImages = import.meta.glob(
-  "../../../assets/my-projects/*.{png,jpg,jpeg,webp}",
+  "../../../assets/images/projects/*.{png,jpg,jpeg,webp}",
   { eager: true, import: "default" }
 );
 const localProjectAssets = Object.entries(localProjectImages).reduce((acc, [path, src]) => {

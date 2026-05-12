@@ -1,8 +1,8 @@
 import React from "react";
-import logoffIcon from "../../../../assets/logoff.webp";
-import shutdownIcon from "../../../../assets/shutdown.webp";
-import logoffSound from "../../../../assets/windows-xp-logoff.mp3";
-import shutdownSound from "../../../../assets/windows-shutdown.mp3";
+import logoffIcon from "../../../../assets/icons/ui/logoff.webp";
+import shutdownIcon from "../../../../assets/icons/ui/shutdown.webp";
+import logoffSound from "../../../../assets/audio/windows-xp-logoff.mp3";
+import shutdownSound from "../../../../assets/audio/windows-shutdown.mp3";
 import "../../../../styles/desktop/taskbar/startmenu/startmenufooter.css";
 
 const StartMenuFooter = ({ onLogOff, onShutdown, closeMenu }) => {

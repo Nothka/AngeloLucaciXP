@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import linkedinIcon from "../../../assets/startmenu/linkedin.webp";
-import closeIcon from "../../../assets/window/Exit.webp";
+import linkedinIcon from "../../../assets/icons/apps/linkedin.webp";
+import closeIcon from "../../../assets/icons/ui/window-controls/Exit.webp";
 import ResizeHandles from "../ResizeHandles";
 import useWindowResize from "../hooks/useWindowResize";
 import { getDesktopPoint } from "../utils/desktopTransform";

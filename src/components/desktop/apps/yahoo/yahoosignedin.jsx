@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import defaultUserAvatar from "../../../../assets/yahoo/soccer.webp";
 import snowmanAvatar from "../../../../assets/yahoo/snowman.webp";
 import chatgptIcon from "../../../../assets/yahoo/chatgpt.jpg";
-import geminiIcon from "../../../../assets/about-me/gemini.webp";
+import geminiIcon from "../../../../assets/icons/skills/gemini.webp";
 import diceIcon from "../../../../assets/yahoo/dice.webp";
 import emailIcon from "../../../../assets/yahoo/fastemail.webp";
 import addFriendIcon from "../../../../assets/yahoo/addfriend.webp";

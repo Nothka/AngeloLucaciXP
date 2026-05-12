@@ -6,6 +6,7 @@ import linkedinIcon from "../../../../assets/icons/apps/linkedin.webp";
 import commandpromptIcon from "../../../../assets/icons/apps/commandprompt.webp";
 import resumeIcon from "../../../../assets/icons/apps/Pdf.webp"; // Placeholder
 import recentlyUsedIcon from "../../../../assets/icons/apps/Recent.webp"; // Placeholder
+import wordpadIcon from "../../../../assets/icons/apps/wordpad.webp";
 import chatgptIcon from "../../../../assets/icons/skills/chatgpt.webp";
 import geminiIcon from "../../../../assets/icons/skills/gemini.webp";
 import gitIcon from "../../../../assets/icons/skills/git.webp";
@@ -49,6 +50,8 @@ const links = [
   },
   { key: "separator2", isSeparator: true },
   { key: "run", title: "Run...", iconSrc: commandpromptIcon, action: "run-dialog" },
+  { key: "notepad", title: "Notepad", iconSrc: notepadIcon },
+  { key: "wordpad", title: "WordPad", iconSrc: wordpadIcon },
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon},
   { key: "resume", title: "My Resume", iconSrc: resumeIcon },
 ];

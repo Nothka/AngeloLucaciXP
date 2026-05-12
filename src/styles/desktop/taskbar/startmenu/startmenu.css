@@ -86,7 +86,7 @@
   content: "";
   width: 18px;
   height: 18px;
-  background: url("../../../../assets/greentriangle.webp") no-repeat center;
+  background: url("../../../../assets/icons/ui/greentriangle.webp") no-repeat center;
   background-size: contain;
   filter:
     drop-shadow(1px 0 0 rgba(18, 90, 22, 0.8))

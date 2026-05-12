@@ -22,8 +22,12 @@ import githubIcon from "../../assets/icons/apps/github.webp";
 import linkedinIcon from "../../assets/icons/apps/linkedin.webp";
 import commandPromptIcon from "../../assets/icons/apps/commandprompt.webp";
 import yahooIcon from "../../assets/icons/apps/recentlyused/yahoo.jpeg";
+import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
+import wordpadIcon from "../../assets/icons/apps/wordpad.webp";
 import DesktopIcons from "./DesktopIcons";
 import RunDialog from "./RunDialog";
+import NotepadWindow from "./apps/NotepadWindow";
+import WordPadWindow from "./apps/WordPadWindow";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -39,6 +43,48 @@ const formatTimeWithPeriod = (date) =>
 let windowIdCounter = 0; 
 const MIN_DESKTOP_WIDTH = 1280;
 const MIN_DESKTOP_HEIGHT = 720;
+const RUN_COMMANDS_TEXT = [
+  "Windows XP Run Commands (Portfolio Edition)",
+  "",
+  "Apps",
+  "about / about me / aboutme / winver      Open About Me",
+  "resume / cv                               Open My Resume",
+  "projects / portfolio / iexplore           Open My Projects",
+  "contact / contact me / contactme          Open Contact Me",
+  "linkedin                                  Open LinkedIn",
+  "instagram                                 Open Instagram",
+  "github / git                              Open Github",
+  "cmd / command / command prompt            Open Command Prompt",
+  "yahoo / yahoo messenger / ymail           Open Yahoo Messenger",
+  "notepad                                   Open Notepad",
+  "wordpad / write                           Open WordPad",
+  "help / commands                           Open this file in Notepad",
+  "readme / read me                          Open desktop ReadMe file",
+  "",
+  "System",
+  "shutdown / restart                        Trigger Shut Down flow",
+  "logoff / log off                          Return to login screen",
+  "",
+  "Web",
+  "https://... or www....                    Open URL in new tab",
+  "",
+  "Tip: Press Ctrl+R (or Cmd+R on Mac) to open Run.",
+].join("\n");
+const DESKTOP_README_TEXT = [
+  "ReadMe.txt",
+  "",
+  "Welcome to Angelo's Windows XP Desktop Portfolio.",
+  "",
+  "Quick start:",
+  "1. Press Ctrl+R (Cmd+R on Mac) to open Run.",
+  "2. Type commands like notepad, wordpad, about, projects, or yahoo.",
+  "3. Use help in Run to open the full command list.",
+  "",
+  "Tips:",
+  "- Notepad supports save/open in your browser storage.",
+  "- WordPad supports rich text formatting controls.",
+  "- Double-click desktop icons to open apps quickly.",
+].join("\n");
 const RUN_APP_ALIASES = {
   about: { title: "About Me", icon: aboutMeIcon },
   "about me": { title: "About Me", icon: aboutMeIcon },
@@ -63,6 +109,16 @@ const RUN_APP_ALIASES = {
   yahoo: { title: "Yahoo Messenger", icon: yahooIcon },
   "yahoo messenger": { title: "Yahoo Messenger", icon: yahooIcon },
   ymail: { title: "Yahoo Messenger", icon: yahooIcon },
+  notepad: { title: "Notepad", icon: notepadIcon },
+  wordpad: { title: "WordPad", icon: wordpadIcon },
+  "word pad": { title: "WordPad", icon: wordpadIcon },
+  write: { title: "WordPad", icon: wordpadIcon },
+};
+const RUN_SPECIAL_ALIASES = {
+  help: "commands",
+  commands: "commands",
+  readme: "readme",
+  "read me": "readme",
 };
 const RUN_SYSTEM_ALIASES = {
   shutdown: "shutdown",
@@ -86,6 +142,11 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const [selectionStart, setSelectionStart] = useState(null);
   const [selectionEnd, setSelectionEnd] = useState(null);
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
+  const [notepadLaunchRequest, setNotepadLaunchRequest] = useState({
+    id: 0,
+    document: null,
+    forceDiscard: false,
+  });
   const desktopRef = useRef(null);
   const [desktopMetrics, setDesktopMetrics] = useState({
     scale: 1,
@@ -231,6 +292,23 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   const closeRunDialog = useCallback(() => {
     setIsRunDialogOpen(false);
   }, []);
+  const openNotepadDocument = (name, content, forceDiscard = false) => {
+    openApp("Notepad", notepadIcon);
+    setNotepadLaunchRequest((prev) => ({
+      id: prev.id + 1,
+      document: {
+        name,
+        content,
+      },
+      forceDiscard,
+    }));
+  };
+  const openCommandsInNotepad = () => {
+    openNotepadDocument("Commands.txt", RUN_COMMANDS_TEXT, false);
+  };
+  const openReadmeInNotepad = () => {
+    openNotepadDocument("ReadMe.txt", DESKTOP_README_TEXT, false);
+  };
 
   const executeRunCommand = (rawCommand) => {
     const typedValue = rawCommand.trim();
@@ -245,6 +323,17 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     const normalizedNoExe = normalized.replace(/\.exe$/, "");
     const firstToken = normalizedNoExe.split(" ")[0].replace(/\.exe$/, "");
     const candidates = [normalized, normalizedNoExe, firstToken];
+
+    for (const key of candidates) {
+      const specialAction = RUN_SPECIAL_ALIASES[key];
+      if (!specialAction) continue;
+      if (specialAction === "commands") {
+        openCommandsInNotepad();
+      } else if (specialAction === "readme") {
+        openReadmeInNotepad();
+      }
+      return { success: true };
+    }
 
     for (const key of candidates) {
       const targetApp = RUN_APP_ALIASES[key];
@@ -430,6 +519,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
         <div className="desktop" ref={desktopRef}>
         <DesktopIcons
           openApp={openApp}
+          onOpenReadme={openReadmeInNotepad}
           selectionRect={selectionRectClient}
           isSelecting={isSelecting}
         />
@@ -478,6 +568,30 @@ const Desktop = ({ onLogOff, onShutdown }) => {
             >
               {window.content}
             </CommandPromptWindow>
+          ) : window.title === "Notepad" ? (
+            <NotepadWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
+              launchRequest={notepadLaunchRequest}
+              onOpenCommands={openCommandsInNotepad}
+            />
+          ) : window.title === "WordPad" ? (
+            <WordPadWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
+            />
           ) : window.title === "LinkedIn" ? (
             <LinkedInWindow
               key={window.id}
