@@ -4,6 +4,7 @@ import contactMeIcon from "../../../../assets/icons/apps/contact.webp";
 import aboutMeIcon from "../../../../assets/icons/apps/about.webp";
 import yahooIcon from "../../../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
+import feedbackIcon from "../../../../assets/icons/apps/feedback.png";
 
 const pinnedItems = [
   {
@@ -17,6 +18,12 @@ const pinnedItems = [
     title: "Notepad",
     subtitle: "Edit text files",
     iconSrc: notepadIcon,
+  },
+  {
+    key: "feedback",
+    title: "Feedback",
+    subtitle: "Rate this website",
+    iconSrc: feedbackIcon,
   },
   {
     key: "yahoo",

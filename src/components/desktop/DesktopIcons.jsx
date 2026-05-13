@@ -4,12 +4,14 @@ import myProjectsIcon from "../../assets/icons/apps/myprojects.webp";
 import contactIcon from "../../assets/icons/apps/contact.webp";
 import PdfIcon from "../../assets/icons/apps/Pdf.webp";
 import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
+import feedbackIcon from "../../assets/icons/apps/feedback.png";
 
 const desktopIcons = [
   { label: "About Me", icon: aboutIcon },
   { label: "My Resume", icon: PdfIcon },
   { label: "My Projects", icon: myProjectsIcon },
   { label: "Contact Me", icon: contactIcon },
+  { label: "Feedback", icon: feedbackIcon },
   { label: "ReadMe", icon: notepadIcon, action: "open-readme" },
 ];
 

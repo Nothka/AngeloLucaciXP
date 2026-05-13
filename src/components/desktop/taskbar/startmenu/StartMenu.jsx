@@ -14,6 +14,7 @@ import linkedinIcon from "../../../../assets/icons/apps/linkedin.webp";
 import commandpromptIcon from "../../../../assets/icons/apps/commandprompt.webp";
 import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
 import wordpadIcon from "../../../../assets/icons/apps/wordpad.webp";
+import feedbackIcon from "../../../../assets/icons/apps/feedback.png";
 import "../../../../styles/desktop/taskbar/startmenu/startmenu.css";
 
 const allProgramsItems = [
@@ -26,6 +27,7 @@ const allProgramsItems = [
   { key: "linkedin", title: "LinkedIn", iconSrc: linkedinIcon },
   { key: "notepad", title: "Notepad", iconSrc: notepadIcon },
   { key: "wordpad", title: "WordPad", iconSrc: wordpadIcon },
+  { key: "feedback", title: "Feedback", iconSrc: feedbackIcon },
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon },
 ];
 

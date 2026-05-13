@@ -24,10 +24,12 @@ import commandPromptIcon from "../../assets/icons/apps/commandprompt.webp";
 import yahooIcon from "../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
 import wordpadIcon from "../../assets/icons/apps/wordpad.webp";
+import feedbackIcon from "../../assets/icons/apps/feedback.png";
 import DesktopIcons from "./DesktopIcons";
 import RunDialog from "./RunDialog";
 import NotepadWindow from "./apps/NotepadWindow";
 import WordPadWindow from "./apps/WordPadWindow";
+import FeedbackWindow from "./apps/FeedbackWindow";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -58,6 +60,7 @@ const RUN_COMMANDS_TEXT = [
   "yahoo / yahoo messenger / ymail           Open Yahoo Messenger",
   "notepad                                   Open Notepad",
   "wordpad / write                           Open WordPad",
+  "feedback / review / guestbook             Open Website Feedback",
   "help / commands                           Open this file in Notepad",
   "readme / read me                          Open desktop ReadMe file",
   "",
@@ -83,6 +86,7 @@ const DESKTOP_README_TEXT = [
   "Tips:",
   "- Notepad supports save/open in your browser storage.",
   "- WordPad supports rich text formatting controls.",
+  "- Feedback saves ratings and comments in Firebase Firestore.",
   "- Double-click desktop icons to open apps quickly.",
 ].join("\n");
 const RUN_APP_ALIASES = {
@@ -113,6 +117,10 @@ const RUN_APP_ALIASES = {
   wordpad: { title: "WordPad", icon: wordpadIcon },
   "word pad": { title: "WordPad", icon: wordpadIcon },
   write: { title: "WordPad", icon: wordpadIcon },
+  feedback: { title: "Feedback", icon: feedbackIcon },
+  review: { title: "Feedback", icon: feedbackIcon },
+  reviews: { title: "Feedback", icon: feedbackIcon },
+  guestbook: { title: "Feedback", icon: feedbackIcon },
 };
 const RUN_SPECIAL_ALIASES = {
   help: "commands",
@@ -583,6 +591,17 @@ const Desktop = ({ onLogOff, onShutdown }) => {
             />
           ) : window.title === "WordPad" ? (
             <WordPadWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
+            />
+          ) : window.title === "Feedback" ? (
+            <FeedbackWindow
               key={window.id}
               windowId={window.id}
               zIndex={window.zIndex}
