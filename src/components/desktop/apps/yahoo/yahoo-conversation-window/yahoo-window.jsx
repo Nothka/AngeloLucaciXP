@@ -165,6 +165,7 @@ const YahooConversationWindow = ({
           username={username}
           messages={messages}
           isTyping={isTyping}
+          isActive={isActive}
           draft={draft}
           statusMessage={statusMessage}
           statusType={statusType}

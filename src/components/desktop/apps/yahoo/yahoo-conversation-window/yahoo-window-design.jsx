@@ -13,6 +13,7 @@ const YahooConversationWindowDesign = ({
   username = "angelo_lucaci",
   messages = [],
   isTyping = false,
+  isActive = true,
   draft = "",
   onDraftChange,
   onSendMessage,
@@ -34,6 +35,7 @@ const YahooConversationWindowDesign = ({
             username={username}
             messages={messages}
             isTyping={isTyping}
+            isActive={isActive}
           />
         </div>
         <aside className="yahoo-conversation-side">
