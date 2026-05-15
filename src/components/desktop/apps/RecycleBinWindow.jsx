@@ -523,7 +523,7 @@ const RecycleBinWindow = ({
                 ))}
               </div>
             ) : (
-              <p className="recycle-bin-empty">Recycle Bin is empty.</p>
+              <p className="recycle-bin-empty"></p>
             )}
           </div>
         </div>
