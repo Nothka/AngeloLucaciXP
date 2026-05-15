@@ -1,38 +1,131 @@
 import React, { useEffect, useRef, useState } from "react";
-import aboutIcon from "../../assets/icons/apps/about.webp";
-import myProjectsIcon from "../../assets/icons/apps/myprojects.webp";
-import contactIcon from "../../assets/icons/apps/contact.webp";
-import PdfIcon from "../../assets/icons/apps/Pdf.webp";
-import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
-import feedbackIcon from "../../assets/icons/apps/feedback.png";
 
-const desktopIcons = [
-  { label: "About Me", icon: aboutIcon },
-  { label: "My Resume", icon: PdfIcon },
-  { label: "My Projects", icon: myProjectsIcon },
-  { label: "Contact Me", icon: contactIcon },
-  { label: "Feedback", icon: feedbackIcon },
-  { label: "ReadMe", icon: notepadIcon, action: "open-readme" },
-];
+const DRAG_ICON_MIME = "text/x-desktop-icon-id";
+const TASKBAR_HEIGHT = 30;
+const FALLBACK_ICON_POSITION = { x: 24, y: 24 };
 
-const DesktopIcons = ({ openApp, onOpenReadme, selectionRect, isSelecting }) => {
-  const [activeIcon, setActiveIcon] = useState(null);
-  const [selectedIcons, setSelectedIcons] = useState([]);
+const DesktopIcons = ({
+  items = [],
+  onOpenItem,
+  onMoveToRecycleBin,
+  onMoveItem,
+  selectionRect,
+  isSelecting,
+}) => {
+  const [activeIconId, setActiveIconId] = useState(null);
+  const [selectedIconIds, setSelectedIconIds] = useState([]);
+  const [isRecycleDropTarget, setIsRecycleDropTarget] = useState(false);
+  const [draggedIconId, setDraggedIconId] = useState(null);
+  const desktopIconsRef = useRef(null);
+  const dragPointerOffsetRef = useRef({ x: 0, y: 0 });
   const iconRefs = useRef({});
+  const visibleSelectedIcons = selectedIconIds.filter((id) =>
+    items.some((item) => item.id === id)
+  );
+  const visibleActiveIcon = items.some((item) => item.id === activeIconId) ? activeIconId : null;
 
-  const handleClick = (label) => {
-    setActiveIcon(label);
-    setSelectedIcons([label]);
+  const handleClick = (item) => {
+    setActiveIconId(item.id);
+    setSelectedIconIds([item.id]);
   };
 
   const handleDoubleClick = (item) => {
-    if (item.action === "open-readme") {
-      onOpenReadme?.();
-      setActiveIcon(null);
-      return;
-    }
-    openApp(item.label, item.icon);
-    setActiveIcon(null); // Deselect icon after double click
+    onOpenItem?.(item);
+    setActiveIconId(null);
+  };
+
+  const handleDragStart = (event, item) => {
+    const sourceRect = event.currentTarget.getBoundingClientRect();
+    dragPointerOffsetRef.current = {
+      x: Math.max(0, event.clientX - sourceRect.left),
+      y: Math.max(0, event.clientY - sourceRect.top),
+    };
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(DRAG_ICON_MIME, item.id);
+    event.dataTransfer.setData("text/plain", item.id);
+    setDraggedIconId(item.id);
+    setActiveIconId(item.id);
+    setSelectedIconIds([item.id]);
+  };
+
+  const handleRecycleDragOver = (event, item) => {
+    if (!item.isRecycleBin) return;
+    const iconId =
+      draggedIconId ||
+      event.dataTransfer.getData(DRAG_ICON_MIME) ||
+      event.dataTransfer.getData("text/plain");
+    if (!iconId || iconId === item.id) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setIsRecycleDropTarget(true);
+  };
+
+  const handleRecycleDragLeave = (item) => {
+    if (!item.isRecycleBin) return;
+    setIsRecycleDropTarget(false);
+  };
+
+  const handleRecycleDrop = (event, item) => {
+    if (!item.isRecycleBin) return;
+    const iconId =
+      draggedIconId ||
+      event.dataTransfer.getData(DRAG_ICON_MIME) ||
+      event.dataTransfer.getData("text/plain");
+    event.preventDefault();
+    event.stopPropagation();
+    setIsRecycleDropTarget(false);
+    setDraggedIconId(null);
+    if (!iconId || iconId === item.id) return;
+    onMoveToRecycleBin?.(iconId);
+    setActiveIconId(null);
+    setSelectedIconIds([]);
+  };
+
+  const handleDesktopDragOver = (event) => {
+    const iconId =
+      draggedIconId ||
+      event.dataTransfer.getData(DRAG_ICON_MIME) ||
+      event.dataTransfer.getData("text/plain");
+    if (!iconId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDesktopDrop = (event) => {
+    const iconId =
+      draggedIconId ||
+      event.dataTransfer.getData(DRAG_ICON_MIME) ||
+      event.dataTransfer.getData("text/plain");
+    setIsRecycleDropTarget(false);
+    setDraggedIconId(null);
+    if (!iconId) return;
+    event.preventDefault();
+    const container = desktopIconsRef.current;
+    if (!container) return;
+    const containerRect = container.getBoundingClientRect();
+    const draggedIconNode = iconRefs.current[iconId];
+    const iconWidth = draggedIconNode?.offsetWidth ?? 110;
+    const iconHeight = draggedIconNode?.offsetHeight ?? 84;
+    const maxX = Math.max(0, containerRect.width - iconWidth);
+    const maxY = Math.max(0, containerRect.height - TASKBAR_HEIGHT - iconHeight);
+    const nextX = Math.round(
+      Math.min(
+        Math.max(0, event.clientX - containerRect.left - dragPointerOffsetRef.current.x),
+        maxX
+      )
+    );
+    const nextY = Math.round(
+      Math.min(
+        Math.max(0, event.clientY - containerRect.top - dragPointerOffsetRef.current.y),
+        maxY
+      )
+    );
+    onMoveItem?.(iconId, { x: nextX, y: nextY });
+  };
+
+  const handleDragEnd = () => {
+    setIsRecycleDropTarget(false);
+    setDraggedIconId(null);
   };
 
   useEffect(() => {
@@ -41,14 +134,14 @@ const DesktopIcons = ({ openApp, onOpenReadme, selectionRect, isSelecting }) => 
         return;
       }
       if (selectionRect.width < 2 && selectionRect.height < 2) {
-        setSelectedIcons([]);
-        setActiveIcon(null);
+        setSelectedIconIds([]);
+        setActiveIconId(null);
         return;
       }
 
-      const nextSelected = desktopIcons
+      const nextSelected = items
         .filter((item) => {
-          const node = iconRefs.current[item.label];
+          const node = iconRefs.current[item.id];
           if (!node) return false;
           const rect = node.getBoundingClientRect();
           return !(
@@ -58,27 +151,44 @@ const DesktopIcons = ({ openApp, onOpenReadme, selectionRect, isSelecting }) => 
             selectionRect.top > rect.bottom
           );
         })
-        .map((item) => item.label);
-      setSelectedIcons(nextSelected);
+        .map((item) => item.id);
+      setSelectedIconIds(nextSelected);
     }, 0);
 
     return () => window.clearTimeout(timerId);
-  }, [isSelecting, selectionRect]);
+  }, [isSelecting, items, selectionRect]);
 
   return (
-    <div className="desktop-icons">
-      {desktopIcons.map((item) => (
+    <div
+      className="desktop-icons"
+      ref={desktopIconsRef}
+      onDragOver={handleDesktopDragOver}
+      onDrop={handleDesktopDrop}
+    >
+      {items.map((item) => (
         <button
-          key={item.label}
+          key={item.id || item.label}
           type="button"
-          className={`icon ${activeIcon === item.label ? "active" : ""} ${
-            selectedIcons.includes(item.label) ? "is-selected" : ""
-          }`}
-          onClick={() => handleClick(item.label)}
+          draggable
+          className={`icon ${visibleActiveIcon === item.id ? "active" : ""} ${
+            visibleSelectedIcons.includes(item.id) ? "is-selected" : ""
+          } ${item.isRecycleBin && isRecycleDropTarget ? "is-drop-target" : ""}`}
+          style={{
+            left: `${item.position?.x ?? FALLBACK_ICON_POSITION.x}px`,
+            top: `${item.position?.y ?? FALLBACK_ICON_POSITION.y}px`,
+          }}
+          onClick={() => handleClick(item)}
           onDoubleClick={() => handleDoubleClick(item)}
+          onDragStart={(event) => handleDragStart(event, item)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(event) => handleRecycleDragOver(event, item)}
+          onDragLeave={() => handleRecycleDragLeave(item)}
+          onDrop={(event) => handleRecycleDrop(event, item)}
           ref={(node) => {
             if (node) {
-              iconRefs.current[item.label] = node;
+              iconRefs.current[item.id] = node;
+            } else {
+              delete iconRefs.current[item.id];
             }
           }}
         >

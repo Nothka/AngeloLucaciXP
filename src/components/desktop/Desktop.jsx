@@ -25,11 +25,14 @@ import yahooIcon from "../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
 import wordpadIcon from "../../assets/icons/apps/wordpad.webp";
 import feedbackIcon from "../../assets/icons/apps/feedback.png";
+import recycleBinEmptyIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-empty.webp";
+import recycleBinFullIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-full.webp";
 import DesktopIcons from "./DesktopIcons";
 import RunDialog from "./RunDialog";
 import NotepadWindow from "./apps/NotepadWindow";
 import WordPadWindow from "./apps/WordPadWindow";
 import FeedbackWindow from "./apps/FeedbackWindow";
+import RecycleBinWindow from "./apps/RecycleBinWindow";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -61,6 +64,7 @@ const RUN_COMMANDS_TEXT = [
   "notepad                                   Open Notepad",
   "wordpad / write                           Open WordPad",
   "feedback / review / guestbook             Open Website Feedback",
+  "recycle / recycle bin / bin               Open Recycle Bin",
   "help / commands                           Open this file in Notepad",
   "readme / read me                          Open desktop ReadMe file",
   "",
@@ -87,6 +91,7 @@ const DESKTOP_README_TEXT = [
   "- Notepad supports save/open in your browser storage.",
   "- WordPad supports rich text formatting controls.",
   "- Feedback saves ratings and comments in Firebase Firestore.",
+  "- Drag desktop icons onto Recycle Bin to move them there.",
   "- Double-click desktop icons to open apps quickly.",
 ].join("\n");
 const RUN_APP_ALIASES = {
@@ -121,6 +126,9 @@ const RUN_APP_ALIASES = {
   review: { title: "Feedback", icon: feedbackIcon },
   reviews: { title: "Feedback", icon: feedbackIcon },
   guestbook: { title: "Feedback", icon: feedbackIcon },
+  recycle: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
+  "recycle bin": { title: "Recycle Bin", icon: recycleBinEmptyIcon },
+  bin: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
 };
 const RUN_SPECIAL_ALIASES = {
   help: "commands",
@@ -135,6 +143,48 @@ const RUN_SYSTEM_ALIASES = {
   "log off": "logoff",
 };
 const URL_COMMAND_PATTERN = /^(https?:\/\/|www\.)/i;
+const DESKTOP_ICON_ORDER = [
+  "about",
+  "resume",
+  "projects",
+  "contact",
+  "yahoo",
+  "feedback",
+  "readme",
+  "recycle-bin",
+];
+const DESKTOP_ICON_START_X = 24;
+const DESKTOP_ICON_START_Y = 24;
+const DESKTOP_ICON_VERTICAL_SPACING = 92;
+
+const createInitialDesktopItems = () =>
+  [
+    { id: "about", label: "About Me", icon: aboutMeIcon, appTitle: "About Me", appIcon: aboutMeIcon },
+    { id: "resume", label: "My Resume", icon: resumeIcon, appTitle: "My Resume", appIcon: resumeIcon },
+    { id: "projects", label: "My Projects", icon: myProjectsIcon, appTitle: "My Projects", appIcon: myProjectsIcon },
+    { id: "contact", label: "Contact Me", icon: contactIcon, appTitle: "Contact Me", appIcon: contactIcon },
+    { id: "yahoo", label: "Yahoo Messenger", icon: yahooIcon, appTitle: "Yahoo Messenger", appIcon: yahooIcon },
+    { id: "feedback", label: "Feedback", icon: feedbackIcon, appTitle: "Feedback", appIcon: feedbackIcon },
+    { id: "readme", label: "ReadMe", icon: notepadIcon, action: "open-readme" },
+    {
+      id: "recycle-bin",
+      label: "Recycle Bin",
+      icon: recycleBinEmptyIcon,
+      appTitle: "Recycle Bin",
+      appIcon: recycleBinEmptyIcon,
+      action: "open-recycle-bin",
+      isRecycleBin: true,
+    },
+  ].map((item, index) => ({
+    ...item,
+    position: {
+      x: DESKTOP_ICON_START_X,
+      y: DESKTOP_ICON_START_Y + index * DESKTOP_ICON_VERTICAL_SPACING,
+    },
+  }));
+
+const sortDesktopItems = (items) =>
+  [...items].sort((a, b) => DESKTOP_ICON_ORDER.indexOf(a.id) - DESKTOP_ICON_ORDER.indexOf(b.id));
 
 const Desktop = ({ onLogOff, onShutdown }) => {
   const [time, setTime] = useState("");
@@ -155,6 +205,8 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     document: null,
     forceDiscard: false,
   });
+  const [desktopItems, setDesktopItems] = useState(() => createInitialDesktopItems());
+  const [recycleBinItems, setRecycleBinItems] = useState([]);
   const desktopRef = useRef(null);
   const [desktopMetrics, setDesktopMetrics] = useState({
     scale: 1,
@@ -318,6 +370,91 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     openNotepadDocument("ReadMe.txt", DESKTOP_README_TEXT, false);
   };
 
+  const openRecycleBin = () => {
+    openApp("Recycle Bin", recycleBinItems.length ? recycleBinFullIcon : recycleBinEmptyIcon);
+  };
+
+  const openDesktopItem = (item) => {
+    if (!item) return;
+    if (item.action === "open-readme") {
+      openReadmeInNotepad();
+      return;
+    }
+    if (item.action === "open-recycle-bin") {
+      openRecycleBin();
+      return;
+    }
+    if (item.appTitle) {
+      openApp(item.appTitle, item.appIcon || item.icon);
+      return;
+    }
+    openApp(item.label, item.icon);
+  };
+
+  const moveDesktopItem = (iconId, position) => {
+    if (!iconId || !position) return;
+    setDesktopItems((previousIcons) =>
+      previousIcons.map((item) =>
+        item.id === iconId
+          ? {
+              ...item,
+              position,
+            }
+          : item
+      )
+    );
+  };
+
+  const moveDesktopIconToRecycleBin = (iconId) => {
+    setDesktopItems((previousIcons) => {
+      const targetIcon = previousIcons.find((item) => item.id === iconId);
+      if (!targetIcon || targetIcon.isRecycleBin) return previousIcons;
+      setRecycleBinItems((previousBinItems) => {
+        if (previousBinItems.some((item) => item.id === targetIcon.id)) {
+          return previousBinItems;
+        }
+        return [
+          {
+            ...targetIcon,
+            deletedAt: Date.now(),
+          },
+          ...previousBinItems,
+        ];
+      });
+      return previousIcons.filter((item) => item.id !== targetIcon.id);
+    });
+  };
+
+  const restoreDesktopIconFromRecycleBin = (iconId) => {
+    setRecycleBinItems((previousBinItems) => {
+      const restoredIcon = previousBinItems.find((item) => item.id === iconId) || null;
+      if (!restoredIcon) return previousBinItems;
+
+      setDesktopItems((previousIcons) => {
+        if (previousIcons.some((item) => item.id === restoredIcon.id)) return previousIcons;
+        const cleanIcon = { ...restoredIcon };
+        delete cleanIcon.deletedAt;
+        return sortDesktopItems([...previousIcons, cleanIcon]);
+      });
+
+      return previousBinItems.filter((item) => item.id !== iconId);
+    });
+  };
+
+  const emptyRecycleBin = () => {
+    setRecycleBinItems([]);
+  };
+
+  const desktopItemsWithRecycleState = desktopItems.map((item) =>
+    item.isRecycleBin
+      ? {
+          ...item,
+          icon: recycleBinItems.length ? recycleBinFullIcon : recycleBinEmptyIcon,
+          appIcon: recycleBinItems.length ? recycleBinFullIcon : recycleBinEmptyIcon,
+        }
+      : item
+  );
+
   const executeRunCommand = (rawCommand) => {
     const typedValue = rawCommand.trim();
     if (!typedValue) {
@@ -460,13 +597,22 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     };
   }, [isSelecting]);
 
+  useEffect(() => {
+    const recycleIcon = recycleBinItems.length ? recycleBinFullIcon : recycleBinEmptyIcon;
+    setWindows((previousWindows) =>
+      previousWindows.map((window) =>
+        window.title === "Recycle Bin" ? { ...window, icon: recycleIcon } : window
+      )
+    );
+  }, [recycleBinItems.length]);
+
   const handleDesktopMouseDown = (event) => {
     if (event.button !== 0) return;
     if (isRunDialogOpen) return;
     if (event.target?.closest?.(".window")) return;
     setActiveWindowId(null);
     if (event.target?.closest?.(".taskbar")) return;
-    if (event.target?.closest?.(".desktop-icons")) return;
+    if (event.target?.closest?.(".icon")) return;
     const { x, y } = getDesktopPoint(event);
     const clampedX = Math.min(Math.max(0, x), desktopMetrics.width);
     const clampedY = Math.min(Math.max(0, y), desktopMetrics.height);
@@ -526,8 +672,10 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       >
         <div className="desktop" ref={desktopRef}>
         <DesktopIcons
-          openApp={openApp}
-          onOpenReadme={openReadmeInNotepad}
+          items={desktopItemsWithRecycleState}
+          onOpenItem={openDesktopItem}
+          onMoveToRecycleBin={moveDesktopIconToRecycleBin}
+          onMoveItem={moveDesktopItem}
           selectionRect={selectionRectClient}
           isSelecting={isSelecting}
         />
@@ -610,6 +758,20 @@ const Desktop = ({ onLogOff, onShutdown }) => {
               onMinimize={minimizeWindow}
               onMaximize={maximizeWindow}
               onMouseDown={bringToFront}
+            />
+          ) : window.title === "Recycle Bin" ? (
+            <RecycleBinWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
+              items={recycleBinItems}
+              onRestoreItem={restoreDesktopIconFromRecycleBin}
+              onEmptyBin={emptyRecycleBin}
             />
           ) : window.title === "LinkedIn" ? (
             <LinkedInWindow

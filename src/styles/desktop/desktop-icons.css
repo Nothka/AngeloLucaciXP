@@ -2,18 +2,16 @@
 
 .desktop-icons {
   position: absolute;
-  top: 24px;
-  left: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  inset: 0;
   z-index: 1;
 }
 
 .icon {
+  position: absolute;
   width: 110px;
   text-align: center;
   user-select: none;
+  cursor: default;
   background: none;
   border: 1px solid transparent;
   color: #fff;
@@ -33,6 +31,11 @@
 .icon.is-selected {
   background: rgba(36, 80, 255, 0.3);
   border: 1px solid rgba(0, 0, 255, 0.4);
+}
+
+.icon.is-drop-target {
+  background: rgba(42, 179, 76, 0.26);
+  border: 1px solid rgba(52, 176, 70, 0.72);
 }
 
 .icon-img {
@@ -55,12 +58,6 @@
 }
 
 @media (max-width: 768px) {
-  .desktop-icons {
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    left: calc(12px + env(safe-area-inset-left, 0px));
-    gap: 10px;
-  }
-
   .icon {
     width: 90px;
     padding: 2px;
@@ -77,12 +74,6 @@
 }
 
 @media (max-width: 480px) {
-  .desktop-icons {
-    gap: 8px;
-    top: calc(10px + env(safe-area-inset-top, 0px));
-    left: calc(10px + env(safe-area-inset-left, 0px));
-  }
-
   .icon {
     width: 78px;
   }
