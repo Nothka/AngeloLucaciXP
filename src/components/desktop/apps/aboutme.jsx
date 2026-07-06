@@ -23,11 +23,14 @@ import githubToolIcon from "../../../assets/icons/skills/github.webp";
 import tailwindIcon from "../../../assets/icons/skills/tailwind.webp";
 import stripeIcon from "../../../assets/icons/skills/stripe.webp";
 import firebaseIcon from "../../../assets/icons/skills/firebase.webp";
+import axiosIcon from "../../../assets/icons/skills/axios.webp";
 import expressIcon from "../../../assets/icons/skills/express.webp";
 import ejsIcon from "../../../assets/icons/skills/ejs.webp";
+import piniaIcon from "../../../assets/icons/skills/pinia.webp";
 import reactIcon from "../../../assets/icons/skills/react.webp";
 import strapiIcon from "../../../assets/icons/skills/strapi.webp";
 import threeIcon from "../../../assets/icons/skills/three.webp";
+import vueIcon from "../../../assets/icons/skills/vue.webp";
 import nodeIcon from "../../../assets/icons/skills/node.webp";
 import vscodeIcon from "../../../assets/icons/skills/vscode.jpeg";
 import minimizeIcon from "../../../assets/icons/ui/window-controls/Minimize.webp";
@@ -43,26 +46,26 @@ const DEFAULT_SIZE = { width: 860, height: 560 };
 const DEFAULT_POSITION = { x: 90, y: 70 };
 
 const ABOUT_SKILLS = [
-  "Model-based development (MATLAB/Simulink)",
-  "Automotive software and ECU integration",
-  "Python automation and test tooling",
-  "C/C++/C#/Java",
-  "Web apps with React and Node.js",
-  "CI/CD and unit testing",
-  "System integration and validation",
-  "Agile/Scrum teamwork",
+  "Frontend development with Vue.js, React, JavaScript, HTML5, CSS3",
+  "Role-based dashboards, dynamic views, and responsive UI",
+  "API integration with Axios, REST APIs, and async data flows",
+  "Frontend-backend collaboration, debugging, and API validation",
+  "TailwindCSS, Three.js, and interactive web experiences",
+  "Node.js, Express.js, Strapi, Firebase, and Stripe",
+  "Agile/Scrum delivery, client communication, and testing",
+  "Automotive software foundation: validation, test automation, MATLAB/Simulink",
 ];
 
 const ABOUT_SOFTWARE = [
+  { label: "VS Code", icon: vscodeIcon },
+  { label: "Git", icon: gitIcon },
+  { label: "GitHub", icon: githubToolIcon },
+  { label: "Figma", icon: figmaIcon },
+  { label: "Adobe CC", icon: adobeCcIcon },
+  { label: "Jira / Confluence", icon: confluenceIcon },
   { label: "MATLAB / Simulink", icon: matlabIcon },
   { label: "CANoe / CANape", icon: canoeIcon },
   { label: "Rational DOORS", icon: doorsIcon },
-  { label: "Git", icon: gitIcon },
-  { label: "GitHub", icon: githubToolIcon },
-  { label: "Jira / Confluence", icon: confluenceIcon },
-  { label: "Figma", icon: figmaIcon },
-  { label: "Adobe CC", icon: adobeCcIcon },
-  { label: "VS Code", icon: vscodeIcon },
 ];
 
 const ABOUT_TOOLS = [
@@ -72,6 +75,11 @@ const ABOUT_TOOLS = [
 ];
 
 const ABOUT_FRAMEWORKS = [
+  { label: "Vue.js", icon: vueIcon },
+  { label: "Pinia", icon: piniaIcon },
+  { label: "Vue Router" },
+  { label: "Axios", icon: axiosIcon },
+  { label: "REST APIs" },
   { label: "React", icon: reactIcon },
   { label: "Node.js", icon: nodeIcon },
   { label: "Express.js", icon: expressIcon },
@@ -421,7 +429,7 @@ const AboutMeWindow = ({
 
             <div className={`about-panel ${collapsedPanels.software ? "is-collapsed" : ""}`}>
               <div className="about-panel-header">
-                <span>Software</span>
+                <span>Workflow</span>
                 <button
                   type="button"
                   className="about-panel-toggle"
@@ -478,7 +486,7 @@ const AboutMeWindow = ({
 
             <div className={`about-panel ${collapsedPanels.frameworks ? "is-collapsed" : ""}`}>
               <div className="about-panel-header">
-                <span>Frameworks</span>
+                <span>Frontend Stack</span>
                 <button
                   type="button"
                   className="about-panel-toggle"
@@ -510,54 +518,57 @@ const AboutMeWindow = ({
           </aside>
 
           <section className="about-content">
-            <h1>About Me</h1>
+            <h1>Angelo Lucaci</h1>
             <div className="about-meta">
-              <div><span>Role:</span> Mid Software Developer</div>
+              <div><span>Role:</span> Frontend Developer</div>
               <div><span>Location:</span> Arad, Romania</div>
+              <div><span>Current:</span> Aumovio, Timisoara</div>
+              <div><span>Focus:</span> Vue.js, React, API integration, responsive UI</div>
               <div><span>Languages:</span> English (C2), Romanian (native)</div>
             </div>
             <p>
-              I am Angelo Lucaci, a mid software developer based in Arad, Romania. I build
-              model-based software for automotive instrument clusters and control systems at
-              Continental Automotive, focusing on MATLAB/Simulink, signal integrity, and ECU
-              communication.
+              I am a frontend-focused software engineer building user-facing web applications with
+              Vue.js, React, JavaScript, HTML/CSS, TailwindCSS, and REST API integrations. My current
+              work centers on large-scale enterprise platform features, including role-based dashboards,
+              dynamic views, async data flows, and interfaces shaped around clear user needs.
             </p>
             <p>
-              My work includes Python automation tools, integration testing, and documentation in
-              DOORS, aligned with ISO 9001, IATF 16949, and ISO 45001 quality standards.
+              At Aumovio, I collaborate closely with backend developers to align API contracts, validate
+              responses, troubleshoot integration issues, and deliver maintainable frontend features.
+              My previous Continental Automotive experience adds a strong engineering foundation in
+              debugging, validation, Agile delivery, and structured software quality.
             </p>
             <div className="about-section">
-              <h2>Experience Highlights</h2>
+              <h2>Current frontend work</h2>
               <ul>
-                <li>Built and validated software modules with a focus on interface consistency.</li>
-                <li>Automated signal creation and validation to shorten testing cycles.</li>
-                <li>Supported cross-functional integration and delivery in Agile teams.</li>
+                <li>Developing Vue.js features with Pinia and Vue Router for role-based dashboards and business workflows.</li>
+                <li>Integrating frontend components with backend services through Axios and REST APIs.</li>
+                <li>Translating customer and system requirements into usable, maintainable interfaces.</li>
+              </ul>
+            </div>
+            <div className="about-section">
+              <h2>Selected web projects</h2>
+              <ul>
+                <li>Designed, built, and deployed 5+ responsive websites for small businesses, personal brands, and freelance clients.</li>
+                <li>Built React and TailwindCSS interfaces with supporting Node.js, Express.js, Strapi, Firebase, and Stripe functionality.</li>
+                <li>Created interactive visual elements with Three.js and built AngeloLucaciXP as a custom React portfolio experience.</li>
               </ul>
             </div>
             <div className="about-section about-highlight">
-              <h2>Education</h2>
+              <h2>Engineering background</h2>
               <p>
-                B.Sc. in Systems Engineering, Polytechnic University of Timisoara (2022). High
-                School: National College Moise Nicoara, Mathematics and Informatics (2018).
+                From 2021 to 2025 at Continental Automotive Romania, I worked on software changes,
+                testing, bug fixing, validation, stakeholder communication, and Agile delivery across
+                structured engineering workflows.
               </p>
             </div>
             <div className="about-section">
-              <h2>Web Projects</h2>
+              <h2>Education & training</h2>
               <p>
-                I have delivered 5+ responsive websites using React, TailwindCSS, Node.js, Strapi,
-                and Stripe, including interactive 3D elements with Three.js.
+                Bachelor of Science in Systems Engineering from the Polytechnic University of Timisoara
+                (2022), plus frontend and full-stack training in React.js, Node.js &amp; Express.js,
+                modern JavaScript, advanced CSS/Flexbox, Figma UI/UX design, and SQL.
               </p>
-            </div>
-            <div className="about-section">
-              <h2>Certifications</h2>
-              <ul>
-                <li>React.js Development - Udemy</li>
-                <li>Node.js &amp; Express.js - Udemy</li>
-                <li>Modern JavaScript (ES6+) - Udemy</li>
-                <li>Advanced CSS &amp; Flexbox - Udemy</li>
-                <li>UI/UX Design with Figma - Udemy</li>
-                <li>SQL Bootcamp: Go from Zero to Hero - Udemy</li>
-              </ul>
             </div>
           </section>
         </div>

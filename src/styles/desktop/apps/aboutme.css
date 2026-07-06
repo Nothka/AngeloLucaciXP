@@ -277,14 +277,15 @@
 }
 
 .about-content h1 {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-size: 28px;
   letter-spacing: 0.5px;
 }
 
 .about-meta {
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
   margin-bottom: 12px;
   font-size: 13px;
 }
@@ -318,7 +319,7 @@
 .about-highlight {
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 4px;
 }
 
@@ -455,6 +456,10 @@
   .about-content p,
   .about-section ul {
     font-size: 10px;
+  }
+
+  .about-meta {
+    grid-template-columns: 1fr;
   }
 
   .about-section h2 {
