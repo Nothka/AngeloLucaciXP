@@ -5,6 +5,7 @@ import aboutMeIcon from "../../../../assets/icons/apps/about.webp";
 import yahooIcon from "../../../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
 import feedbackIcon from "../../../../assets/icons/apps/feedback.png";
+import warzoneIcon from "../../../../assets/icons/apps/warzone.svg";
 
 const pinnedItems = [
   {
@@ -24,6 +25,12 @@ const pinnedItems = [
     title: "Feedback",
     subtitle: "Rate this website",
     iconSrc: feedbackIcon,
+  },
+  {
+    key: "warzone",
+    title: "Warzone Store",
+    subtitle: "Tactical bundle hub",
+    iconSrc: warzoneIcon,
   },
   {
     key: "yahoo",

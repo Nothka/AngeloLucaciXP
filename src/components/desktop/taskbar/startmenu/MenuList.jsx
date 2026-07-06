@@ -15,6 +15,7 @@ import davinciIcon from "../../../../assets/icons/apps/recentlyused/davinci.webp
 import lightroomIcon from "../../../../assets/icons/apps/recentlyused/lightroom.webp";
 import notepadIcon from "../../../../assets/icons/apps/recentlyused/notepad.webp";
 import feedbackIcon from "../../../../assets/icons/apps/feedback.png";
+import warzoneIcon from "../../../../assets/icons/apps/warzone.svg";
 import minesweeperIcon from "../../../../assets/icons/apps/recentlyused/minesweeper.webp";
 import yahooIcon from "../../../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import youtubeIcon from "../../../../assets/icons/apps/recentlyused/youtube.jpg";
@@ -54,6 +55,7 @@ const links = [
   { key: "notepad", title: "Notepad", iconSrc: notepadIcon },
   { key: "wordpad", title: "WordPad", iconSrc: wordpadIcon },
   { key: "feedback", title: "Feedback", iconSrc: feedbackIcon },
+  { key: "warzone", title: "Warzone Store", iconSrc: warzoneIcon },
   { key: "command-prompt", title: "Command Prompt", iconSrc: commandpromptIcon},
   { key: "resume", title: "My Resume", iconSrc: resumeIcon },
 ];

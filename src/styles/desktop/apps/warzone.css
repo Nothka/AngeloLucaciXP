@@ -1,0 +1,584 @@
+.warzone-window {
+  --window-surface-color: #060c12;
+}
+
+.warzone-window .window-header {
+  --window-header-height: 24px;
+}
+
+.warzone-shell {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #02070c;
+  color: #d9f3ff;
+  font-family: "Segoe UI", "Tahoma", "Geneva", sans-serif;
+}
+
+.warzone-background {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.4) saturate(1.08) blur(2px);
+  transform: scale(1.04);
+}
+
+.warzone-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 24%, rgba(22, 215, 255, 0.22), transparent 44%),
+    radial-gradient(circle at 78% 68%, rgba(255, 127, 0, 0.2), transparent 40%),
+    linear-gradient(180deg, rgba(0, 5, 11, 0.58) 0%, rgba(0, 8, 16, 0.82) 100%);
+  pointer-events: none;
+}
+
+.warzone-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 3px);
+  mix-blend-mode: soft-light;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.warzone-topbar,
+.warzone-store-layout,
+.warzone-segment-row,
+.warzone-trending,
+.warzone-career-layout,
+.warzone-career-section-row,
+.warzone-statusbar {
+  position: relative;
+  z-index: 2;
+}
+
+.warzone-topbar {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(60, 123, 156, 0.42);
+  background: linear-gradient(180deg, rgba(4, 20, 33, 0.86), rgba(2, 14, 24, 0.66));
+}
+
+.warzone-brand {
+  font-size: 54px;
+  line-height: 0.7;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  color: #f2f8fc;
+  text-shadow: 0 2px 10px rgba(3, 12, 17, 0.8);
+}
+
+.warzone-main-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.warzone-main-tab {
+  border: none;
+  background: transparent;
+  color: rgba(156, 214, 235, 0.85);
+  font-size: 12px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-bottom: 2px solid transparent;
+}
+
+.warzone-main-tab.is-active {
+  color: #eef9ff;
+  border-bottom-color: #2ec5ff;
+  text-shadow: 0 0 12px rgba(46, 197, 255, 0.5);
+}
+
+.warzone-main-tab:hover {
+  color: #d8f4ff;
+}
+
+.warzone-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.warzone-meta-token,
+.warzone-meta-balance {
+  border: 1px solid rgba(85, 168, 201, 0.5);
+  background: rgba(7, 28, 44, 0.68);
+  color: #93dcff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 6px 10px;
+}
+
+.warzone-store-layout {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 12px;
+  padding: 12px 14px 10px;
+}
+
+.warzone-hero-card,
+.warzone-side-card,
+.warzone-trending-card {
+  position: relative;
+  border: 1px solid rgba(54, 102, 129, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(8, 27, 40, 0.7), 0 8px 24px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.warzone-hero-card {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.warzone-card-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(1, 10, 18, 0.86);
+  border: 1px solid rgba(38, 164, 215, 0.8);
+  color: #1fc8ff;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.9px;
+  padding: 4px 9px;
+}
+
+.warzone-card-copy {
+  padding: 16px 16px 10px;
+  background: linear-gradient(180deg, transparent, rgba(0, 10, 18, 0.88));
+}
+
+.warzone-card-label {
+  display: inline-block;
+  color: #8fcae0;
+  font-size: 12px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.warzone-card-copy h2 {
+  margin: 0;
+  font-size: 38px;
+  line-height: 0.95;
+  color: #f3fbff;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.warzone-hero-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(47, 165, 213, 0.46);
+}
+
+.warzone-hero-actions button {
+  min-height: 38px;
+  border: none;
+  color: #9ce7ff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  background: linear-gradient(180deg, rgba(3, 18, 29, 0.9), rgba(1, 10, 17, 0.95));
+}
+
+.warzone-hero-actions button + button {
+  border-left: 1px solid rgba(47, 165, 213, 0.4);
+}
+
+.warzone-hero-actions button:hover {
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(8, 45, 69, 0.92), rgba(3, 21, 32, 0.95));
+}
+
+.warzone-right-column {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 11px;
+}
+
+.warzone-side-card {
+  min-height: 144px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.warzone-side-card--large {
+  min-height: 274px;
+}
+
+.warzone-side-card h3 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 0.94;
+  text-transform: uppercase;
+  color: #f0f9ff;
+  text-shadow: 0 4px 14px rgba(0, 8, 16, 0.75);
+}
+
+.warzone-side-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.warzone-segment-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 11px;
+  padding: 0 14px 10px;
+}
+
+.warzone-segment {
+  min-height: 54px;
+  border: 1px solid rgba(67, 109, 131, 0.62);
+  color: #d2ebf8;
+  background: linear-gradient(180deg, rgba(4, 18, 30, 0.9), rgba(1, 12, 20, 0.95));
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.warzone-segment.is-active,
+.warzone-segment:hover {
+  border-color: rgba(62, 196, 255, 0.82);
+  color: #f5fdff;
+  box-shadow: inset 0 0 20px rgba(31, 164, 220, 0.14);
+}
+
+.warzone-trending {
+  padding: 0 14px 12px;
+}
+
+.warzone-trending header {
+  margin-bottom: 8px;
+  color: #89bdd5;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.warzone-trending-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.warzone-trending-card {
+  min-height: 126px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.warzone-trending-tag {
+  align-self: flex-end;
+  border: 1px solid rgba(46, 196, 255, 0.84);
+  color: #99e7ff;
+  background: rgba(4, 15, 23, 0.72);
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.warzone-trending-card h4 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: #effaff;
+}
+
+.warzone-statusbar {
+  min-height: 24px;
+  padding: 0 8px;
+  border-top: 1px solid #274053;
+  background: linear-gradient(180deg, #0d1a25, #08121b);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #8fcae3;
+  font-size: 11px;
+  font-family: "Tahoma", Arial, sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.warzone-career-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px 12px;
+}
+
+.warzone-career-stage {
+  position: relative;
+  min-height: 530px;
+  border: 1px solid rgba(56, 111, 143, 0.68);
+  box-shadow: inset 0 0 0 1px rgba(10, 24, 39, 0.74), 0 8px 24px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(180px, 25%) 1fr 330px;
+}
+
+.warzone-career-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 11, 19, 0.24) 0%, rgba(1, 6, 10, 0.42) 100%),
+    radial-gradient(circle at 45% 26%, rgba(255, 61, 25, 0.26), transparent 36%),
+    radial-gradient(circle at 24% 61%, rgba(40, 176, 255, 0.2), transparent 34%);
+  pointer-events: none;
+}
+
+.warzone-career-left-plate {
+  border-right: 1px solid rgba(89, 168, 210, 0.5);
+  background:
+    linear-gradient(180deg, rgba(244, 253, 255, 0.9), rgba(164, 231, 255, 0.42) 55%, rgba(35, 170, 214, 0.1)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0));
+}
+
+.warzone-career-character {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.warzone-career-character-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: 53% 52%;
+  background-repeat: no-repeat;
+}
+
+.warzone-career-character-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 53% 52%;
+  filter: saturate(1.18) contrast(1.08);
+  display: block;
+}
+
+.warzone-career-character-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 45% 42%, rgba(255, 72, 35, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(6, 16, 28, 0.04) 0%, rgba(4, 10, 18, 0.3) 100%);
+  pointer-events: none;
+}
+
+.warzone-career-rewards {
+  position: relative;
+  z-index: 1;
+  border-left: 1px solid rgba(64, 119, 152, 0.58);
+  background: linear-gradient(180deg, rgba(8, 14, 22, 0.9), rgba(6, 12, 19, 0.78));
+  padding: 16px 16px 14px;
+}
+
+.warzone-career-rewards h2 {
+  margin: 0 0 14px;
+  font-size: 34px;
+  line-height: 0.9;
+  letter-spacing: 0.4px;
+  color: #f2f8ff;
+  text-transform: uppercase;
+}
+
+.warzone-career-rewards-card {
+  border: 1px solid rgba(98, 126, 157, 0.62);
+  background: rgba(13, 21, 34, 0.72);
+  padding: 14px 14px 12px;
+}
+
+.warzone-career-level-row {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.warzone-career-level-row span {
+  color: #6eb6ea;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.warzone-career-level-row strong {
+  color: #ff7b31;
+  font-size: 58px;
+  line-height: 0.86;
+  font-weight: 900;
+}
+
+.warzone-career-next-level {
+  color: #d5e8f4;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.warzone-career-xp-bar {
+  height: 7px;
+  border: 1px solid rgba(95, 126, 160, 0.6);
+  background: rgba(4, 10, 19, 0.82);
+}
+
+.warzone-career-xp-bar span {
+  display: block;
+  width: 72%;
+  height: 100%;
+  background: linear-gradient(90deg, #68d4ff, #318dcd);
+}
+
+.warzone-career-reward-next {
+  margin-top: 12px;
+  border: 1px solid rgba(89, 113, 145, 0.56);
+  background: rgba(19, 24, 35, 0.7);
+  padding: 14px 12px 11px;
+  text-align: center;
+}
+
+.warzone-career-reward-title {
+  color: #e2edf7;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.warzone-career-hex {
+  width: 74px;
+  height: 44px;
+  margin: 20px auto 14px;
+  background: linear-gradient(180deg, #27d26f, #1aa451);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  box-shadow: 0 0 0 4px rgba(231, 239, 255, 0.18);
+}
+
+.warzone-career-reward-name {
+  color: #f4f8ff;
+  font-size: 40px;
+  line-height: 0.9;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.warzone-career-reward-type {
+  margin-top: 4px;
+  color: #d3dbe8;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.warzone-career-view-rewards {
+  margin-top: 12px;
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid rgba(133, 154, 183, 0.68);
+  background: linear-gradient(180deg, rgba(27, 35, 49, 0.9), rgba(10, 16, 24, 0.93));
+  color: #eff8ff;
+  font-size: 17px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.warzone-career-view-rewards:hover {
+  border-color: rgba(95, 214, 255, 0.7);
+  color: #ffffff;
+}
+
+.warzone-career-section-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.warzone-career-section {
+  min-height: 62px;
+  border: 1px solid rgba(88, 130, 156, 0.62);
+  background: linear-gradient(180deg, rgba(4, 19, 32, 0.72), rgba(2, 10, 18, 0.9));
+  color: #e7f4ff;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.warzone-career-section.is-active {
+  border-color: rgba(104, 215, 255, 0.92);
+  background: linear-gradient(180deg, rgba(47, 159, 217, 0.74), rgba(8, 79, 118, 0.84));
+  box-shadow: inset 0 0 22px rgba(94, 205, 255, 0.34);
+}
+
+.warzone-career-section:hover {
+  color: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .warzone-topbar {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .warzone-main-tabs {
+    justify-content: flex-start;
+  }
+
+  .warzone-store-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .warzone-trending-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .warzone-career-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .warzone-career-left-plate {
+    min-height: 120px;
+    border-right: none;
+    border-bottom: 1px solid rgba(89, 168, 210, 0.5);
+  }
+
+  .warzone-career-rewards {
+    border-left: none;
+    border-top: 1px solid rgba(64, 119, 152, 0.58);
+  }
+
+  .warzone-career-section-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

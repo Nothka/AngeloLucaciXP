@@ -25,6 +25,7 @@ import yahooIcon from "../../assets/icons/apps/recentlyused/yahoo.jpeg";
 import notepadIcon from "../../assets/icons/apps/recentlyused/notepad.webp";
 import wordpadIcon from "../../assets/icons/apps/wordpad.webp";
 import feedbackIcon from "../../assets/icons/apps/feedback.png";
+import warzoneIcon from "../../assets/icons/apps/warzone.svg";
 import recycleBinEmptyIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-empty.webp";
 import recycleBinFullIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-full.webp";
 import DesktopIcons from "./DesktopIcons";
@@ -33,6 +34,7 @@ import NotepadWindow from "./apps/NotepadWindow";
 import WordPadWindow from "./apps/WordPadWindow";
 import FeedbackWindow from "./apps/FeedbackWindow";
 import RecycleBinWindow from "./apps/RecycleBinWindow";
+import WarzoneStoreWindow from "./apps/WarzoneStoreWindow";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -64,6 +66,7 @@ const RUN_COMMANDS_TEXT = [
   "notepad                                   Open Notepad",
   "wordpad / write                           Open WordPad",
   "feedback / review / guestbook             Open Website Feedback",
+  "warzone / cod / wz store                  Open Warzone Store",
   "recycle / recycle bin / bin               Open Recycle Bin",
   "help / commands                           Open this file in Notepad",
   "readme / read me                          Open desktop ReadMe file",
@@ -91,6 +94,7 @@ const DESKTOP_README_TEXT = [
   "- Notepad supports save/open in your browser storage.",
   "- WordPad supports rich text formatting controls.",
   "- Feedback saves ratings and comments in Firebase Firestore.",
+  "- Warzone Store app is a UI-inspired desktop experience.",
   "- Drag desktop icons onto Recycle Bin to move them there.",
   "- Double-click desktop icons to open apps quickly.",
 ].join("\n");
@@ -126,6 +130,10 @@ const RUN_APP_ALIASES = {
   review: { title: "Feedback", icon: feedbackIcon },
   reviews: { title: "Feedback", icon: feedbackIcon },
   guestbook: { title: "Feedback", icon: feedbackIcon },
+  warzone: { title: "Warzone Store", icon: warzoneIcon },
+  cod: { title: "Warzone Store", icon: warzoneIcon },
+  wz: { title: "Warzone Store", icon: warzoneIcon },
+  "wz store": { title: "Warzone Store", icon: warzoneIcon },
   recycle: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
   "recycle bin": { title: "Recycle Bin", icon: recycleBinEmptyIcon },
   bin: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
@@ -150,6 +158,7 @@ const DESKTOP_ICON_ORDER = [
   "contact",
   "yahoo",
   "feedback",
+  "warzone",
   "readme",
   "recycle-bin",
 ];
@@ -165,6 +174,7 @@ const createInitialDesktopItems = () =>
     { id: "contact", label: "Contact Me", icon: contactIcon, appTitle: "Contact Me", appIcon: contactIcon },
     { id: "yahoo", label: "Yahoo Messenger", icon: yahooIcon, appTitle: "Yahoo Messenger", appIcon: yahooIcon },
     { id: "feedback", label: "Feedback", icon: feedbackIcon, appTitle: "Feedback", appIcon: feedbackIcon },
+    { id: "warzone", label: "Warzone Store", icon: warzoneIcon, appTitle: "Warzone Store", appIcon: warzoneIcon },
     { id: "readme", label: "ReadMe", icon: notepadIcon, action: "open-readme" },
     {
       id: "recycle-bin",
@@ -772,6 +782,17 @@ const Desktop = ({ onLogOff, onShutdown }) => {
               items={recycleBinItems}
               onRestoreItem={restoreDesktopIconFromRecycleBin}
               onEmptyBin={emptyRecycleBin}
+            />
+          ) : window.title === "Warzone Store" ? (
+            <WarzoneStoreWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
             />
           ) : window.title === "LinkedIn" ? (
             <LinkedInWindow
