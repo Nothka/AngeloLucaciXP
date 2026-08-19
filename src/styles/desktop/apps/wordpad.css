@@ -59,7 +59,7 @@
   background: transparent;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -135,7 +135,7 @@
   padding: 0 6px;
   border: 1px solid #a7a39a;
   background: linear-gradient(180deg, #fdfdfb 0%, #e3e1d4 100%);
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 13px;
   color: #111;
   display: inline-flex;
@@ -172,7 +172,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #e6edf9 100%);
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   padding: 0 6px;
 }
 
@@ -224,7 +224,7 @@
   align-items: center;
   color: #2c2c2c;
   font-size: 11px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   background-image: repeating-linear-gradient(
     to right,
     #8d8b85 0,
@@ -252,7 +252,7 @@
   min-height: 100%;
   padding: 10px 10px 12px;
   color: #000;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 14px;
   line-height: 1.42;
   outline: none;
@@ -272,7 +272,7 @@
   border-bottom: 1px solid #9f9f9f;
   background: #ece9d8;
   color: #222;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 12px;
 }
 

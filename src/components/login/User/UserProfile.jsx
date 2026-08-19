@@ -1,7 +1,7 @@
 export const userProfile = {
   firstName: "Angelo",
   lastName: "Lucaci",
-  role: "Software Developer",
+  role: "Senior Frontend Developer",
   xpSuffix: "xp",
 };
 

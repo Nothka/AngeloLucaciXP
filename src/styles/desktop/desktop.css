@@ -20,7 +20,7 @@
   background-size: cover;
   background-repeat: no-repeat;
   overflow: hidden;
-  font-family: "Tahoma", system-ui, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .desktop {
@@ -63,5 +63,25 @@
   .desktop-viewport,
   .desktop-body {
     background-position: top center;
+  }
+}
+
+/*
+ * Turn Off Computer: XP desaturates and dims the live desktop behind the
+ * dialog rather than covering it with a scrim, so the wallpaper, open windows
+ * and taskbar all stay readable underneath in grey.
+ */
+.desktop-body {
+  transition: filter 220ms ease;
+}
+
+.desktop-body.is-turning-off {
+  filter: grayscale(1) brightness(0.62);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-body {
+    transition: none;
   }
 }

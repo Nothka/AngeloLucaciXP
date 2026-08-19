@@ -247,7 +247,7 @@ const ContactMeWindow = ({
 
   const handleSendMessage = () => {
     if (!isComposing) return;
-    const toAddress = "angelolucaci@gmail.com";
+    const toAddress = "lucaciangelo@gmail.com";
     const subject = subjectValue.trim();
     const trimmedMessage = messageValue.trim();
 
@@ -463,7 +463,7 @@ const ContactMeWindow = ({
           <div className="contact-row">
             <label htmlFor={`contact-to-${windowId}`}>To:</label>
             <div id={`contact-to-${windowId}`} className="contact-static">
-              angelolucaci@gmail.com
+              lucaciangelo@gmail.com
             </div>
           </div>
           <div className="contact-row">

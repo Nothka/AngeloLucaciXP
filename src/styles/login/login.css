@@ -106,7 +106,7 @@
 .welcome-message {
   color: #ffffff;
   display: none;
-  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-family: var(--xp-font-pixel);
   font-size: 3rem;
   left: 50%;
   letter-spacing: 2px;

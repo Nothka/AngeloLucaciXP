@@ -32,7 +32,7 @@ npm run dev:api
 
 The frontend proxies `/api` to `http://localhost:5174` via Vite.
 
-## Firebase reviews setup (Feedback app)
+## Firebase setup (reviews and project likes)
 1) Create a Firebase project and enable Cloud Firestore (Production or Test mode).
 
 2) Add these variables in `.env`:
@@ -52,7 +52,10 @@ VITE_FIREBASE_APP_ID=...
 - `approved` (boolean, optional; defaults true in app)
 - `createdAt` (timestamp, written by app)
 
-4) Example Firestore security rules for public review writing:
+The `projectLikes` collection is created automatically the first time a project is liked. Its
+documents use the project id as their document id and store `count` and `updatedAt` fields.
+
+4) Deploy the included `firestore.rules` file (or paste these rules into the Firebase console):
 ```txt
 rules_version = '2';
 service cloud.firestore {
@@ -73,8 +76,35 @@ service cloud.firestore {
         request.resource.data.approved == true;
       allow update, delete: if false;
     }
+
+    match /projectLikes/{projectId} {
+      allow read: if projectId in ['portfolio', 'applewebsite'];
+      allow create: if
+        projectId in ['portfolio', 'applewebsite'] &&
+        request.resource.data.keys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.count == 1 &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if
+        projectId in ['portfolio', 'applewebsite'] &&
+        request.resource.data.keys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.count is int &&
+        request.resource.data.count >= 0 &&
+        (
+          request.resource.data.count == resource.data.count + 1 ||
+          request.resource.data.count == resource.data.count - 1
+        ) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
   }
 }
+```
+
+With the Firebase CLI, deploy them with:
+
+```bash
+firebase deploy --only firestore:rules --project xp-react
 ```
 
 ## Scripts

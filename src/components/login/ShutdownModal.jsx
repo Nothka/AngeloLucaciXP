@@ -3,12 +3,20 @@ import restartIcon from "../../assets/icons/ui/restart.webp";
 import shutdownIcon from "../../assets/icons/ui/237.ico"; // dacă nu ai încă, poți comenta
 import xpLogo from "../../assets/logos/xp-logo.webp";
 
-const ShutdownModal = ({ onClose, onRestart, productName }) => {
+const ShutdownModal = ({ onClose, onRestart, onShutDown, productName }) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     setVisible(true);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleRestart = () => {
     onRestart?.();
@@ -35,7 +43,12 @@ const ShutdownModal = ({ onClose, onRestart, productName }) => {
             <span>Restart</span>
           </button>
 
-          <button type="button" className="mi-shutdown-option">
+          <button
+            type="button"
+            className="mi-shutdown-option"
+            disabled={!onShutDown}
+            onClick={() => onShutDown?.()}
+          >
             <div className="shutdown-icon-wrap">
               <img src={shutdownIcon} alt="Shut Down" className="shutdown-icon" />
             </div>

@@ -54,7 +54,7 @@
   background: transparent;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: flex;
   align-items: center;
   text-align: left;
@@ -96,7 +96,7 @@
   background: transparent;
   color: #0f3f83;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -182,7 +182,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-weight: 700;
   color: #ffffff;
   background: linear-gradient(180deg, #2b71d1 0%, #1b59b2 100%);
@@ -238,7 +238,7 @@
   color: #0c306d;
   text-align: left;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   padding: 4px 6px;
   cursor: pointer;
   line-height: 1.2;
@@ -320,7 +320,7 @@
   row-gap: 0;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   text-align: left;
 }
 
@@ -376,7 +376,7 @@
   margin: 4px;
   color: #666;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .recycle-bin-statusbar {
@@ -392,7 +392,7 @@
   border-bottom: 1px solid #9f9f9f;
   background: #ece9d8;
   color: #222;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 12px;
 }
 

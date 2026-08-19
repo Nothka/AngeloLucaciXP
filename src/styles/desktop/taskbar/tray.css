@@ -37,10 +37,10 @@
   user-select: none;
 
   /* Typography */
-  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-family: var(--xp-font-pixel);
   font-size: 10px;
   line-height: 16.5px;
-  font-family: Tahoma, sans-serif;
+  font-family: var(--xp-font-ui);
   color: #fff; 
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.6); /* XP text shadow */
 

@@ -64,6 +64,7 @@
 
 .footer-text {
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .start-menu-footer-btn:hover .footer-icon-box {

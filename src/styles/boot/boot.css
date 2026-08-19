@@ -6,14 +6,14 @@
   height: 100%;
   background: #000;
   color: #fff;
-font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+font-family: var(--xp-font-pixel);
   overflow: hidden;
 }
 
 .boot-screen {
   position: absolute;
   inset: 0;
-  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-family: var(--xp-font-pixel);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -27,7 +27,7 @@ font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  font-family: "Pixelated MS Sans Serif", Tahoma, sans-serif;
+  font-family: var(--xp-font-pixel);
   text-align: center;
 }
 

@@ -3,7 +3,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  font-family: Tahoma, Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 12px;
   color: #f5ecff;
 }

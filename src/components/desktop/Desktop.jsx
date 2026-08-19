@@ -28,7 +28,10 @@ import feedbackIcon from "../../assets/icons/apps/feedback.png";
 import recycleBinEmptyIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-empty.webp";
 import recycleBinFullIcon from "../../assets/icons/apps/recycle-bin/recycle-bin-full.webp";
 import DesktopIcons from "./DesktopIcons";
+import ContextMenu from "./ContextMenu";
+import ShutdownModal from "../login/ShutdownModal";
 import RunDialog from "./RunDialog";
+import shutdownSound from "../../assets/audio/windows-shutdown.mp3";
 import NotepadWindow from "./apps/NotepadWindow";
 import WordPadWindow from "./apps/WordPadWindow";
 import FeedbackWindow from "./apps/FeedbackWindow";
@@ -45,9 +48,10 @@ const formatTimeWithPeriod = (date) =>
     })
     .replace(/\u202f/g, " "); 
 
-let windowIdCounter = 0; 
+let windowIdCounter = 0;
 const MIN_DESKTOP_WIDTH = 1280;
 const MIN_DESKTOP_HEIGHT = 720;
+const TASKBAR_HEIGHT = 30;
 const RUN_COMMANDS_TEXT = [
   "Windows XP Run Commands (Portfolio Edition)",
   "",
@@ -156,6 +160,13 @@ const DESKTOP_ICON_ORDER = [
 const DESKTOP_ICON_START_X = 24;
 const DESKTOP_ICON_START_Y = 24;
 const DESKTOP_ICON_VERTICAL_SPACING = 92;
+const DESKTOP_ICON_HORIZONTAL_SPACING = 110;
+// Rough "file type" ranking so Arrange Icons By > Type groups the way XP does:
+// folders/system objects first, then programs, then plain documents.
+const DESKTOP_ICON_TYPE_RANK = {
+  "recycle-bin": 0,
+  readme: 2,
+};
 
 const createInitialDesktopItems = () =>
   [
@@ -207,6 +218,11 @@ const Desktop = ({ onLogOff, onShutdown }) => {
   });
   const [desktopItems, setDesktopItems] = useState(() => createInitialDesktopItems());
   const [recycleBinItems, setRecycleBinItems] = useState([]);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [isTurnOffDialogOpen, setIsTurnOffDialogOpen] = useState(false);
+  const [iconRefreshKey, setIconRefreshKey] = useState(0);
+  const [isAutoArrange, setIsAutoArrange] = useState(false);
+  const [isAlignToGrid, setIsAlignToGrid] = useState(true);
   const desktopRef = useRef(null);
   const [desktopMetrics, setDesktopMetrics] = useState({
     scale: 1,
@@ -391,37 +407,127 @@ const Desktop = ({ onLogOff, onShutdown }) => {
     openApp(item.label, item.icon);
   };
 
+  // Reflow icons top-to-bottom, wrapping into a new column when the desktop
+  // runs out of vertical room — the same fill order Explorer uses.
+  const layoutIconsInColumns = useCallback(
+    (items) => {
+      const usableHeight = Math.max(
+        DESKTOP_ICON_VERTICAL_SPACING,
+        desktopMetrics.height - TASKBAR_HEIGHT - DESKTOP_ICON_START_Y
+      );
+      const perColumn = Math.max(1, Math.floor(usableHeight / DESKTOP_ICON_VERTICAL_SPACING));
+      return items.map((item, index) => ({
+        ...item,
+        position: {
+          x: DESKTOP_ICON_START_X + Math.floor(index / perColumn) * DESKTOP_ICON_HORIZONTAL_SPACING,
+          y: DESKTOP_ICON_START_Y + (index % perColumn) * DESKTOP_ICON_VERTICAL_SPACING,
+        },
+      }));
+    },
+    [desktopMetrics.height]
+  );
+
+  const snapToGrid = useCallback(
+    (position) => ({
+      x:
+        DESKTOP_ICON_START_X +
+        Math.round((position.x - DESKTOP_ICON_START_X) / DESKTOP_ICON_HORIZONTAL_SPACING) *
+          DESKTOP_ICON_HORIZONTAL_SPACING,
+      y:
+        DESKTOP_ICON_START_Y +
+        Math.round((position.y - DESKTOP_ICON_START_Y) / DESKTOP_ICON_VERTICAL_SPACING) *
+          DESKTOP_ICON_VERTICAL_SPACING,
+    }),
+    []
+  );
+
+  const arrangeIconsBy = (mode) => {
+    setDesktopItems((previousIcons) => {
+      const sorted = [...previousIcons].sort((a, b) => {
+        if (mode === "type") {
+          const rankA = DESKTOP_ICON_TYPE_RANK[a.id] ?? 1;
+          const rankB = DESKTOP_ICON_TYPE_RANK[b.id] ?? 1;
+          if (rankA !== rankB) return rankA - rankB;
+        }
+        return a.label.localeCompare(b.label);
+      });
+      return layoutIconsInColumns(sorted);
+    });
+  };
+
+  const toggleAutoArrange = () => {
+    setIsAutoArrange((previous) => {
+      const next = !previous;
+      if (next) {
+        setDesktopItems((previousIcons) =>
+          layoutIconsInColumns(sortDesktopItems(previousIcons))
+        );
+      }
+      return next;
+    });
+  };
+
+  const toggleAlignToGrid = () => {
+    setIsAlignToGrid((previous) => {
+      const next = !previous;
+      if (next) {
+        setDesktopItems((previousIcons) =>
+          previousIcons.map((item) => ({
+            ...item,
+            position: snapToGrid(item.position ?? { x: DESKTOP_ICON_START_X, y: DESKTOP_ICON_START_Y }),
+          }))
+        );
+      }
+      return next;
+    });
+  };
+
+  // Remounts the icon layer so it visibly repaints, like pressing F5 on the shell.
+  const refreshDesktop = () => {
+    setIconRefreshKey((previous) => previous + 1);
+  };
+
   const moveDesktopItem = (iconId, position) => {
     if (!iconId || !position) return;
+    // Auto Arrange pins icons to the grid flow, so a free drop is ignored.
+    if (isAutoArrange) return;
+    const nextPosition = isAlignToGrid ? snapToGrid(position) : position;
     setDesktopItems((previousIcons) =>
       previousIcons.map((item) =>
         item.id === iconId
           ? {
               ...item,
-              position,
+              position: nextPosition,
             }
           : item
       )
     );
   };
 
-  const moveDesktopIconToRecycleBin = (iconId) => {
-    setDesktopItems((previousIcons) => {
-      const targetIcon = previousIcons.find((item) => item.id === iconId);
-      if (!targetIcon || targetIcon.isRecycleBin) return previousIcons;
-      setRecycleBinItems((previousBinItems) => {
-        if (previousBinItems.some((item) => item.id === targetIcon.id)) {
-          return previousBinItems;
-        }
-        return [
-          {
-            ...targetIcon,
-            deletedAt: Date.now(),
-          },
-          ...previousBinItems,
-        ];
-      });
-      return previousIcons.filter((item) => item.id !== targetIcon.id);
+  /*
+   * Accepts one id or a whole selection. Both state updates are issued from
+   * the handler rather than nesting setRecycleBinItems inside the
+   * setDesktopItems updater, which would fire a second time under StrictMode.
+   */
+  const moveDesktopIconToRecycleBin = (iconIds) => {
+    const ids = (Array.isArray(iconIds) ? iconIds : [iconIds]).filter(Boolean);
+    if (!ids.length) return;
+
+    // The Recycle Bin itself cannot be thrown away.
+    const targets = desktopItems.filter(
+      (item) => ids.includes(item.id) && !item.isRecycleBin
+    );
+    if (!targets.length) return;
+
+    const targetIds = new Set(targets.map((item) => item.id));
+    const deletedAt = Date.now();
+
+    setDesktopItems((previousIcons) => previousIcons.filter((item) => !targetIds.has(item.id)));
+    setRecycleBinItems((previousBinItems) => {
+      const additions = targets
+        .filter((target) => !previousBinItems.some((item) => item.id === target.id))
+        .map((target) => ({ ...target, deletedAt }));
+      return additions.length ? [...additions, ...previousBinItems] : previousBinItems;
     });
   };
 
@@ -454,6 +560,140 @@ const Desktop = ({ onLogOff, onShutdown }) => {
         }
       : item
   );
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  /*
+   * XP desaturates and dims the whole desktop behind the Turn Off dialog, so
+   * Shut Down opens this first rather than powering off on the spot. The
+   * shutdown sound belongs to the confirmed action, not to opening the dialog.
+   */
+  const requestTurnOff = useCallback(() => {
+    setContextMenu(null);
+    setIsTurnOffDialogOpen(true);
+  }, []);
+
+  const cancelTurnOff = useCallback(() => setIsTurnOffDialogOpen(false), []);
+
+  const confirmTurnOff = useCallback(() => {
+    setIsTurnOffDialogOpen(false);
+    const audio = new Audio(shutdownSound);
+    audio.volume = 0.9;
+    audio.play().catch(() => {});
+    onShutdown?.();
+  }, [onShutdown]);
+
+  // Right-clicking bare desktop: Explorer's own menu, minus the items that have
+  // no meaning here (clipboard, Display Properties) which stay greyed out.
+  const openDesktopContextMenu = (event) => {
+    if (event.target?.closest?.(".window")) return;
+    if (event.target?.closest?.(".taskbar")) return;
+    if (event.target?.closest?.(".icon")) return;
+    if (event.target?.closest?.(".xp-context-menu")) return;
+    event.preventDefault();
+    setActiveWindowId(null);
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [
+        {
+          id: "arrange",
+          label: "Arrange Icons By",
+          submenu: [
+            { id: "arrange-name", label: "Name", onSelect: () => arrangeIconsBy("name") },
+            { id: "arrange-type", label: "Type", onSelect: () => arrangeIconsBy("type") },
+            { id: "arrange-sep", separator: true },
+            {
+              id: "arrange-auto",
+              label: "Auto Arrange",
+              checked: isAutoArrange,
+              onSelect: toggleAutoArrange,
+            },
+            {
+              id: "arrange-grid",
+              label: "Align to Grid",
+              checked: isAlignToGrid,
+              onSelect: toggleAlignToGrid,
+            },
+          ],
+        },
+        { id: "refresh", label: "Refresh", onSelect: refreshDesktop },
+        { id: "sep-1", separator: true },
+        { id: "paste", label: "Paste", disabled: true },
+        { id: "paste-shortcut", label: "Paste Shortcut", disabled: true },
+        { id: "sep-2", separator: true },
+        {
+          id: "new",
+          label: "New",
+          submenu: [
+            { id: "new-folder", label: "Folder", disabled: true },
+            { id: "new-sep", separator: true },
+            {
+              id: "new-text",
+              label: "Text Document",
+              onSelect: () => openNotepadDocument("New Text Document.txt", "", true),
+            },
+          ],
+        },
+        { id: "sep-3", separator: true },
+        { id: "properties", label: "Properties", disabled: true },
+      ],
+    });
+  };
+
+  const openIconContextMenu = (item, point, selectedIds) => {
+    setActiveWindowId(null);
+    const isRecycleBin = Boolean(item.isRecycleBin);
+    // Everything the menu acts on: the whole selection when the clicked icon
+    // is part of one, otherwise just that icon.
+    const targetIds = selectedIds?.length ? selectedIds : [item.id];
+    const targets = desktopItems.filter((entry) => targetIds.includes(entry.id));
+    const deletableCount = targets.filter((entry) => !entry.isRecycleBin).length;
+    const items = isRecycleBin
+      ? [
+          { id: "open", label: "Open", bold: true, onSelect: () => openDesktopItem(item) },
+          { id: "explore", label: "Explore", disabled: true },
+          { id: "sep-1", separator: true },
+          {
+            id: "empty-bin",
+            label: "Empty Recycle Bin",
+            disabled: recycleBinItems.length === 0,
+            onSelect: emptyRecycleBin,
+          },
+          { id: "sep-2", separator: true },
+          { id: "create-shortcut", label: "Create Shortcut", disabled: true },
+          { id: "rename", label: "Rename", disabled: true },
+          { id: "sep-3", separator: true },
+          { id: "properties", label: "Properties", disabled: true },
+        ]
+      : [
+          {
+            id: "open",
+            label: "Open",
+            bold: true,
+            onSelect: () => targets.forEach((entry) => openDesktopItem(entry)),
+          },
+          { id: "sep-1", separator: true },
+          { id: "cut", label: "Cut", disabled: true },
+          { id: "copy", label: "Copy", disabled: true },
+          { id: "sep-2", separator: true },
+          {
+            id: "create-shortcut",
+            label: "Create Shortcut",
+            disabled: true,
+          },
+          {
+            id: "delete",
+            label: "Delete",
+            disabled: deletableCount === 0,
+            onSelect: () => moveDesktopIconToRecycleBin(targetIds),
+          },
+          { id: "rename", label: "Rename", disabled: true },
+          { id: "sep-3", separator: true },
+          { id: "properties", label: "Properties", disabled: true },
+        ];
+    setContextMenu({ x: point.x, y: point.y, items });
+  };
 
   const executeRunCommand = (rawCommand) => {
     const typedValue = rawCommand.trim();
@@ -660,7 +900,7 @@ const Desktop = ({ onLogOff, onShutdown }) => {
       style={{ backgroundImage: `url(${wallpaper})` }}
     >
       <div
-        className="desktop-body"
+        className={`desktop-body ${isTurnOffDialogOpen ? "is-turning-off" : ""}`}
         style={{
           backgroundImage: `url(${wallpaper})`,
           width: desktopMetrics.width,
@@ -669,13 +909,16 @@ const Desktop = ({ onLogOff, onShutdown }) => {
           transformOrigin: "top left",
         }}
         onMouseDown={handleDesktopMouseDown}
+        onContextMenu={openDesktopContextMenu}
       >
         <div className="desktop" ref={desktopRef}>
         <DesktopIcons
+          key={iconRefreshKey}
           items={desktopItemsWithRecycleState}
           onOpenItem={openDesktopItem}
           onMoveToRecycleBin={moveDesktopIconToRecycleBin}
           onMoveItem={moveDesktopItem}
+          onIconContextMenu={openIconContextMenu}
           selectionRect={selectionRectClient}
           isSelecting={isSelecting}
         />
@@ -891,6 +1134,14 @@ const Desktop = ({ onLogOff, onShutdown }) => {
           onClose={closeRunDialog}
           onRun={executeRunCommand}
         />
+        {contextMenu ? (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            items={contextMenu.items}
+            onClose={closeContextMenu}
+          />
+        ) : null}
 
           <Taskbar
             time={time}
@@ -903,11 +1154,26 @@ const Desktop = ({ onLogOff, onShutdown }) => {
             extraApps={yahooConversationEntries}
             onExtraAppClick={handleConversationTaskbarClick}
             onLogOff={onLogOff}
-            onShutdown={onShutdown}
+            onShutdown={requestTurnOff}
             onOpenRunDialog={openRunDialog}
           />
         </div>
       </div>
+
+      {/*
+        Rendered outside .desktop-body on purpose: that element carries the
+        wallpaper and the grayscale filter, and a filtered ancestor would both
+        desaturate this dialog and become the containing block for its fixed
+        positioning.
+      */}
+      {isTurnOffDialogOpen ? (
+        <ShutdownModal
+          productName="AngeloLucaci XP"
+          onClose={cancelTurnOff}
+          onRestart={confirmTurnOff}
+          onShutDown={confirmTurnOff}
+        />
+      ) : null}
     </div>
   );
 };

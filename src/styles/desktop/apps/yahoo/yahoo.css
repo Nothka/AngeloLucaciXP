@@ -40,7 +40,7 @@
   align-items: center;
   gap: 16px;
   font-weight: 300;
-  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--xp-font-ui);
   padding: 0 calc(6px + var(--window-chrome-inset)) 4px;
   font-size: 11px;
   color: #ffffff;

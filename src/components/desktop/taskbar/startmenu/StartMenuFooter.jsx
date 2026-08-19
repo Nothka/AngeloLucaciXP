@@ -2,7 +2,6 @@ import React from "react";
 import logoffIcon from "../../../../assets/icons/ui/logoff.webp";
 import shutdownIcon from "../../../../assets/icons/ui/shutdown.webp";
 import logoffSound from "../../../../assets/audio/windows-xp-logoff.mp3";
-import shutdownSound from "../../../../assets/audio/windows-shutdown.mp3";
 import "../../../../styles/desktop/taskbar/startmenu/startmenufooter.css";
 
 const StartMenuFooter = ({ onLogOff, onShutdown, closeMenu }) => {
@@ -29,16 +28,14 @@ const StartMenuFooter = ({ onLogOff, onShutdown, closeMenu }) => {
         className="start-menu-footer-btn"
         onClick={() => {
           if (closeMenu) closeMenu();
-          const audio = new Audio(shutdownSound);
-          audio.volume = 0.9;
-          audio.play().catch(() => {});
+          // Only opens the Turn Off dialog — the sound plays on confirmation.
           if (onShutdown) onShutdown();
         }}
       >
         <span className="footer-icon-box footer-shutdown">
           <img src={shutdownIcon} alt="" className="footer-icon-image" />
         </span>
-        <span className="footer-text">Shut Down</span>
+        <span className="footer-text">Turn Off Computer</span>
       </button>
     </div>
   );

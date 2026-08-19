@@ -8,7 +8,7 @@
   height: 480px;
   display: flex;
   flex-direction: column;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   color: #000;
   background: #f0f0f0;
   border-radius: 6px;

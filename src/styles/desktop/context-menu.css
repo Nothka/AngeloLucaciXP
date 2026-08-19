@@ -1,0 +1,96 @@
+/* Windows XP (Luna) shell context menu */
+.xp-context-menu {
+  position: fixed;
+  z-index: 100000;
+  min-width: 148px;
+  padding: 2px;
+  background: #ffffff;
+  border: 1px solid #a0a0a0;
+  border-radius: 0;
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.35);
+  font-family: var(--xp-font-ui);
+  font-size: 11px;
+  color: #000000;
+  user-select: none;
+  /* XP draws the flat white plate over a 1px grey frame, no rounding. */
+}
+
+.xp-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  height: 20px;
+  padding: 0 22px 0 0;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: #000000;
+  text-align: left;
+  cursor: default;
+  position: relative;
+}
+
+.xp-context-menu-item:hover:not(.is-disabled),
+.xp-context-menu-item.is-open:not(.is-disabled) {
+  background: #316ac5;
+  color: #ffffff;
+}
+
+.xp-context-menu-item:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -2px;
+}
+
+.xp-context-menu-item.is-default .xp-context-menu-label {
+  font-weight: bold;
+}
+
+.xp-context-menu-item.is-disabled {
+  color: #6d6d6d;
+  cursor: default;
+}
+
+.xp-context-menu-check {
+  flex: 0 0 auto;
+  width: 20px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.xp-context-menu-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  padding-right: 16px;
+}
+
+.xp-context-menu-arrow {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid currentColor;
+}
+
+.xp-context-menu-separator {
+  height: 1px;
+  margin: 3px 1px 3px 22px;
+  background: #d7d7d7;
+}
+
+@media (max-width: 768px) {
+  .xp-context-menu {
+    font-size: 12px;
+    min-width: 168px;
+  }
+
+  .xp-context-menu-item {
+    height: 28px;
+  }
+}

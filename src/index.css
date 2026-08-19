@@ -13,12 +13,60 @@
 @import "./styles/desktop/taskbar/tray.css";
 @import "./styles/welcome/welcome.css";
 @import "./styles/overlay.css";
+@import "./styles/desktop/context-menu.css";
+
+/*
+ * Pixelated MS Sans Serif — the bitmap-style recreation of the classic Windows
+ * UI face, self-hosted so it renders identically off Windows. Sourced from
+ * XP.css (MIT, https://github.com/botoxparty/XP.css).
+ */
+@font-face {
+  font-family: "Pixelated MS Sans Serif";
+  src: url("./assets/fonts/ms_sans_serif.woff2") format("woff2"),
+       url("./assets/fonts/ms_sans_serif.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelated MS Sans Serif";
+  src: url("./assets/fonts/ms_sans_serif_bold.woff2") format("woff2"),
+       url("./assets/fonts/ms_sans_serif_bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /*
+   * XP's UI face is Tahoma, which ships with Windows but is not redistributable
+   * and is absent from a stock macOS/Linux install. Verdana (same designer,
+   * closest metrics) and DejaVu Sans carry the look on those platforms far
+   * better than falling all the way back to Arial.
+   */
+  --xp-font-ui: Tahoma, Verdana, "DejaVu Sans", Geneva, sans-serif;
+  --xp-font-pixel: "Pixelated MS Sans Serif", var(--xp-font-ui);
+}
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  
+
+}
+
+/*
+ * Browsers apply their own font to form controls instead of inheriting, so
+ * every <button> and <input> in the shell — desktop icon labels, Start menu
+ * entries, dialog fields — would otherwise fall back to Arial no matter what
+ * font its container sets.
+ */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 html,
 body,

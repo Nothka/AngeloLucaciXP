@@ -59,7 +59,7 @@
   background: transparent;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -109,14 +109,14 @@
   margin: 0;
   color: #111;
   font-size: 13px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-label {
   margin-top: 4px;
   color: #222;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-input,
@@ -125,7 +125,7 @@
   background: #fff;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-input {
@@ -152,7 +152,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #e9eef9 100%);
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -191,7 +191,7 @@
   background: transparent;
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -233,7 +233,7 @@
   align-self: flex-end;
   color: #4d4d4d;
   font-size: 11px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-actions {
@@ -249,7 +249,7 @@
   background: linear-gradient(180deg, #fefefe 0%, #dbd7c8 100%);
   color: #111;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-button:hover:enabled {
@@ -268,7 +268,7 @@
 .feedback-error {
   margin: 4px 0 0;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-message {
@@ -294,7 +294,7 @@
   justify-content: space-between;
   color: #333;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-list {
@@ -311,7 +311,7 @@
   padding-bottom: 8px;
   margin-bottom: 8px;
   color: #111;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-item:last-child {
@@ -345,7 +345,7 @@
   margin: 0;
   color: #666;
   font-size: 12px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
 }
 
 .feedback-statusbar {
@@ -361,7 +361,7 @@
   border-bottom: 1px solid #9f9f9f;
   background: #ece9d8;
   color: #222;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   font-size: 12px;
 }
 

@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasOnly(['name', 'rating', 'comment', 'approved', 'createdAt']) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() >= 2 &&
+        request.resource.data.name.size() <= 40 &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() >= 3 &&
+        request.resource.data.comment.size() <= 500 &&
+        request.resource.data.approved == true;
+      allow update, delete: if false;
+    }
+
+    match /projectLikes/{projectId} {
+      allow read: if projectId in ['portfolio', 'applewebsite'];
+      allow create: if
+        projectId in ['portfolio', 'applewebsite'] &&
+        request.resource.data.keys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.count == 1 &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if
+        projectId in ['portfolio', 'applewebsite'] &&
+        request.resource.data.keys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'updatedAt']) &&
+        request.resource.data.count is int &&
+        request.resource.data.count >= 0 &&
+        (
+          request.resource.data.count == resource.data.count + 1 ||
+          request.resource.data.count == resource.data.count - 1
+        ) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+  }
+}

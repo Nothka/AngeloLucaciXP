@@ -50,7 +50,7 @@
 .restart-text {
   font-size: 16px;
   font-weight: 500;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
   user-select: none;
 
@@ -86,7 +86,7 @@
 .right-bottom span {
   font-size: 14px;
   margin-top: 1px;
-  font-family: "Tahoma", Arial, sans-serif;
+  font-family: var(--xp-font-ui);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 

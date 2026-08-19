@@ -9,6 +9,7 @@ const DesktopIcons = ({
   onOpenItem,
   onMoveToRecycleBin,
   onMoveItem,
+  onIconContextMenu,
   selectionRect,
   isSelecting,
 }) => {
@@ -32,6 +33,22 @@ const DesktopIcons = ({
   const handleDoubleClick = (item) => {
     onOpenItem?.(item);
     setActiveIconId(null);
+  };
+
+  /*
+   * Explorer keeps an existing multi-selection when you right-click inside it
+   * and collapses to a single item only when you right-click outside it, so
+   * the menu can act on everything that is selected.
+   */
+  const handleContextMenu = (event, item) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const keepSelection =
+      visibleSelectedIcons.length > 1 && visibleSelectedIcons.includes(item.id);
+    const nextSelection = keepSelection ? visibleSelectedIcons : [item.id];
+    setActiveIconId(item.id);
+    setSelectedIconIds(nextSelection);
+    onIconContextMenu?.(item, { x: event.clientX, y: event.clientY }, nextSelection);
   };
 
   const handleDragStart = (event, item) => {
@@ -179,6 +196,7 @@ const DesktopIcons = ({
           }}
           onClick={() => handleClick(item)}
           onDoubleClick={() => handleDoubleClick(item)}
+          onContextMenu={(event) => handleContextMenu(event, item)}
           onDragStart={(event) => handleDragStart(event, item)}
           onDragEnd={handleDragEnd}
           onDragOver={(event) => handleRecycleDragOver(event, item)}

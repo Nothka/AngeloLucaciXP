@@ -520,7 +520,7 @@ const AboutMeWindow = ({
           <section className="about-content">
             <h1>Angelo Lucaci</h1>
             <div className="about-meta">
-              <div><span>Role:</span> Frontend Developer</div>
+              <div><span>Role:</span> Senior Frontend Developer</div>
               <div><span>Location:</span> Arad, Romania</div>
               <div><span>Current:</span> Aumovio, Timisoara</div>
               <div><span>Focus:</span> Vue.js, React, API integration, responsive UI</div>
