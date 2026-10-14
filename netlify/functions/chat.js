@@ -19,7 +19,7 @@ const AI_CONTACTS = ["ChatGPT", "Gemini"];
 
 const ALLOWED_ORIGINS = (
   process.env.ALLOWED_ORIGINS ||
-  "https://monumental-croissant-e8ec10.netlify.app,http://localhost:5173"
+  "https://angelolucaci.com,https://www.angelolucaci.com,https://monumental-croissant-e8ec10.netlify.app,http://localhost:5173"
 )
   .split(",")
   .map((origin) => origin.trim())
