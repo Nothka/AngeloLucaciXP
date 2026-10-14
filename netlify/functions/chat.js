@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import process from "node:process";
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getStore } from "@netlify/blobs";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -42,11 +42,11 @@ const corsHeaders = (origin) => ({
   Vary: "Origin",
 });
 
-const jsonResponse = (statusCode, body, origin) => ({
-  statusCode,
-  headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
-  body: JSON.stringify(body),
-});
+const jsonResponse = (status, body, origin) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders(origin) },
+  });
 
 const burstBuckets = new Map();
 
@@ -68,10 +68,6 @@ const allowBurst = (ip) => {
   return bucket.count <= BURST_LIMIT;
 };
 
-const getClientIp = (headers) =>
-  headers["x-nf-client-connection-ip"] ||
-  headers["x-forwarded-for"]?.split(",")[0].trim() ||
-  "unknown";
 
 // Persistent daily counters in Netlify Blobs, shared by all function instances.
 const consumeDailyQuota = async (ip) => {
@@ -119,15 +115,14 @@ const sanitizeName = (value, fallback) =>
     .replace(/[^\p{L}\p{N} _.-]/gu, "")
     .slice(0, 32) || fallback;
 
-export const handler = async (event) => {
-  const headers = event.headers || {};
-  const origin = headers.origin;
+export default async (request, context) => {
+  const origin = request.headers.get("origin");
 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: corsHeaders(origin), body: "" };
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders(origin) });
   }
 
-  if (event.httpMethod !== "POST") {
+  if (request.method !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." }, origin);
   }
 
@@ -135,7 +130,7 @@ export const handler = async (event) => {
     return jsonResponse(403, { error: "Forbidden." }, origin);
   }
 
-  const ip = getClientIp(headers);
+  const ip = context.ip || "unknown";
   if (!allowBurst(ip)) {
     return jsonResponse(429, { error: "Slow down a bit and try again in a moment." }, origin);
   }
@@ -144,13 +139,14 @@ export const handler = async (event) => {
     return jsonResponse(500, { error: "Missing OPENAI_API_KEY." }, origin);
   }
 
-  if ((event.body?.length || 0) > 20_000) {
+  const rawBody = await request.text();
+  if (rawBody.length > 20_000) {
     return jsonResponse(413, { error: "Message too long." }, origin);
   }
 
   let body;
   try {
-    body = event.body ? JSON.parse(event.body) : {};
+    body = rawBody ? JSON.parse(rawBody) : {};
   } catch {
     return jsonResponse(400, { error: "Invalid JSON body." }, origin);
   }
@@ -165,12 +161,12 @@ export const handler = async (event) => {
   const systemPrompt = `You are ${contactName} chatting with ${username} in Yahoo Messenger. Keep replies concise.`;
 
   try {
-    connectLambda(event);
     const limitMessage = await consumeDailyQuota(ip);
     if (limitMessage) {
       return jsonResponse(429, { error: limitMessage }, origin);
     }
-  } catch {
+  } catch (error) {
+    console.error("Usage tracking error", error);
     // Fail closed: without usage tracking we can't bound spend.
     return jsonResponse(503, { error: "Chat is unavailable right now." }, origin);
   }
