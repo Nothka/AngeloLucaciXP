@@ -9,15 +9,24 @@ export enum Biome {
   FOREST,
   DESERT,
   MOUNTAINS,
+  TAIGA,
+  JUNGLE,
 }
 
-export const BIOME_NAMES = ["Ocean", "Beach", "Plains", "Forest", "Desert", "Mountains"];
+export const BIOME_NAMES = ["Ocean", "Beach", "Plains", "Forest", "Desert", "Mountains", "Snowy Taiga", "Jungle"];
 
 export interface Column {
   height: number;
   biome: Biome;
   mountain: number;
+  /** -1 (frozen) .. 1 (scorching). */
+  temperature?: number;
 }
+
+/** Cold enough for snow instead of rain, and ice on still water. */
+export const isCold = (col: Column) => (col.temperature ?? 0) < -0.28 || (col.biome === Biome.MOUNTAINS && col.height > 92);
+
+type TreeKind = "oak" | "birch" | "spruce" | "jungle";
 
 const MAX_SURFACE = CHUNK_HEIGHT - 16;
 
@@ -67,7 +76,8 @@ export class TerrainGenerator {
     const mountain = smoothstep(0.12, 0.48, e) * land;
     const r = 1 - Math.abs(this.ridge.fbm2(wx / 230, wz / 230, 4));
     const ridged = r * r;
-    const desert = smoothstep(0.22, 0.38, t) * (1 - mountain);
+    // Hot and dry is desert; hot and wet is jungle.
+    const desert = smoothstep(0.22, 0.38, t) * (1 - mountain) * (1 - smoothstep(0.12, 0.22, hum));
 
     let h = base + detail * lerp(6, 2.5, desert) + mountain * (ridged * 50 + detail * 10 + 4);
     h = Math.max(3, Math.min(MAX_SURFACE, Math.floor(h)));
@@ -77,12 +87,15 @@ export class TerrainGenerator {
     else if (h < SEA_LEVEL - 1) biome = Biome.OCEAN;
     else if (desert > 0.5) biome = Biome.DESERT;
     else if (h <= SEA_LEVEL + 1) biome = Biome.BEACH;
+    else if (t < -0.28) biome = Biome.TAIGA;
+    else if (t > 0.26 && hum > 0.18) biome = Biome.JUNGLE;
     else if (hum > 0.04) biome = Biome.FOREST;
     else biome = Biome.PLAINS;
 
     out.height = h;
     out.biome = biome;
     out.mountain = mountain;
+    out.temperature = t;
     return out;
   }
 
@@ -101,16 +114,26 @@ export class TerrainGenerator {
     return false;
   }
 
-  private treeHeight(wx: number, wz: number, col: Column): number {
+  /** The tree rooted at this column, if any: trunk height and species, by biome. */
+  private treeAt(wx: number, wz: number, col: Column): { trunk: number; kind: TreeKind } | null {
     let chance = 0;
-    if (col.biome === Biome.FOREST) chance = 0.028;
-    else if (col.biome === Biome.PLAINS) chance = 0.004;
-    else if (col.biome === Biome.MOUNTAINS && col.height < SEA_LEVEL + 30) chance = 0.012;
-    if (chance === 0 || col.height < SEA_LEVEL) return 0;
-    if (hash2(this.seed ^ 0x5eed, wx, wz) >= chance) return 0;
-    if (this.surfaceBlock(col, wx, wz) !== B.GRASS) return 0;
-    if (this.carved(wx, col.height, wz, col.height) || this.carved(wx, col.height - 1, wz, col.height)) return 0;
-    return 4 + Math.floor(hash2(this.seed ^ 0x7777, wx, wz) * 3);
+    let kind: TreeKind = "oak";
+    const pickR = hash2(this.seed ^ 0x8821, wx, wz);
+    switch (col.biome) {
+      case Biome.FOREST: chance = 0.028; kind = pickR < 0.28 ? "birch" : "oak"; break;
+      case Biome.PLAINS: chance = 0.004; break;
+      case Biome.TAIGA: chance = 0.035; kind = "spruce"; break;
+      case Biome.JUNGLE: chance = 0.05; kind = pickR < 0.55 ? "jungle" : "oak"; break;
+      case Biome.MOUNTAINS: if (col.height < SEA_LEVEL + 30) { chance = 0.014; kind = "spruce"; } break;
+    }
+    if (chance === 0 || col.height < SEA_LEVEL) return null;
+    if (hash2(this.seed ^ 0x5eed, wx, wz) >= chance) return null;
+    const ground = this.surfaceBlock(col, wx, wz);
+    if (ground !== B.GRASS && ground !== B.SNOWY_GRASS) return null;
+    if (this.carved(wx, col.height, wz, col.height) || this.carved(wx, col.height - 1, wz, col.height)) return null;
+    const r = hash2(this.seed ^ 0x7777, wx, wz);
+    const trunk = kind === "jungle" ? 9 + Math.floor(r * 5) : kind === "spruce" ? 6 + Math.floor(r * 4) : kind === "birch" ? 5 + Math.floor(r * 3) : 4 + Math.floor(r * 3);
+    return { trunk, kind };
   }
 
   private surfaceBlock(col: Column, wx: number, wz: number): number {
@@ -128,9 +151,43 @@ export class TerrainGenerator {
         if (h > 84 + jitter) return B.STONE;
         return B.GRASS;
       }
+      case Biome.TAIGA:
+        return h < SEA_LEVEL ? B.DIRT : (col.temperature ?? 0) < -0.4 ? B.SNOWY_GRASS : B.GRASS;
       default:
         return h < SEA_LEVEL ? B.DIRT : B.GRASS;
     }
+  }
+
+  /**
+   * Ore and pocket choice for a stone voxel. One noise sample decides whether
+   * this is a vein; a hash of the surrounding 5-block cell decides which ore,
+   * weighted by depth, so each vein is a single ore.
+   */
+  private stoneAt(wx: number, y: number, wz: number, h: number): number {
+    if (y >= h - 3) return B.STONE;
+    const n = this.ore.noise3(wx / 4.5, y / 4.5, wz / 4.5);
+    if (n > 0.68) {
+      const r = hash3(this.seed ^ 0x0e5, Math.floor(wx / 5), Math.floor(y / 5), Math.floor(wz / 5));
+      if (y < 16) {
+        if (r < 0.06) return n > 0.73 ? B.DIAMOND_ORE : B.IRON_ORE;
+        if (r < 0.26) return B.REDSTONE_ORE;
+        if (r < 0.36) return B.GOLD_ORE;
+        if (r < 0.43) return B.LAPIS_ORE;
+        if (r < 0.66) return B.IRON_ORE;
+      } else if (y < 32) {
+        if (r < 0.07) return B.GOLD_ORE;
+        if (r < 0.15) return B.LAPIS_ORE;
+        if (r < 0.45) return B.IRON_ORE;
+      } else if (y < 64) {
+        if (r < 0.35) return B.IRON_ORE;
+      }
+      return B.COAL_ORE;
+    }
+    const pocket = this.patch.noise3(wx / 9, y / 7, wz / 9);
+    if (pocket > 0.7) return B.GRAVEL;
+    // Rare obsidian pockets just above the bedrock.
+    if (y < 10 && pocket < -0.9) return B.OBSIDIAN;
+    return B.STONE;
   }
 
   generate(cx: number, cz: number): Uint8Array {
@@ -146,7 +203,14 @@ export class TerrainGenerator {
         const wz = oz + z;
         this.column(wx, wz, col);
         const h = col.height;
-        const top = this.surfaceBlock(col, wx, wz);
+        let top = this.surfaceBlock(col, wx, wz);
+        // Shallow sea floors get patches of clay and gravel.
+        if (h < SEA_LEVEL && h > SEA_LEVEL - 9) {
+          const pn = this.patch.noise2(wx / 12 + 100, wz / 12);
+          if (pn > 0.45) top = B.CLAY;
+          else if (pn < -0.5) top = B.GRAVEL;
+        }
+        const cold = isCold(col);
         const sandy = top === B.SAND;
         const fillerDepth = col.biome === Biome.DESERT ? 4 : 3;
         const filler = sandy ? B.SAND : top === B.STONE || top === B.SNOW ? B.STONE : B.DIRT;
@@ -164,17 +228,17 @@ export class TerrainGenerator {
             if (depth === 0) blocks[i] = top;
             else if (depth <= fillerDepth) blocks[i] = filler;
             else if (sandy && col.biome === Biome.DESERT && depth <= fillerDepth + 3) blocks[i] = B.SANDSTONE;
-            else if (y < h - 3 && this.ore.noise3(wx / 4.5, y / 4.5, wz / 4.5) > 0.7) blocks[i] = B.COAL_ORE;
-            else blocks[i] = B.STONE;
+            else blocks[i] = this.stoneAt(wx, y, wz, h);
           } else if (y <= SEA_LEVEL) {
-            blocks[i] = B.WATER;
+            // Cold water freezes over at the surface.
+            blocks[i] = cold && y === SEA_LEVEL ? B.ICE : B.WATER;
           }
         }
 
         // Ground cover on untouched grass.
         if (top === B.GRASS && h >= SEA_LEVEL && h + 1 < CHUNK_HEIGHT && blocks[blockIndex(x, h, z)] === B.GRASS) {
           const r = hash2(seed ^ 0xabc, wx, wz);
-          const grassChance = col.biome === Biome.PLAINS ? 0.12 : col.biome === Biome.FOREST ? 0.06 : 0.04;
+          const grassChance = col.biome === Biome.PLAINS ? 0.12 : col.biome === Biome.JUNGLE ? 0.22 : col.biome === Biome.FOREST ? 0.06 : 0.04;
           if (r < 0.012) {
             blocks[blockIndex(x, h + 1, z)] = hash2(seed ^ 0xf10, wx, wz) < 0.5 ? B.FLOWER_YELLOW : B.FLOWER_RED;
           } else if (r < 0.012 + grassChance) {
@@ -184,43 +248,74 @@ export class TerrainGenerator {
       }
     }
 
-    // Trees rooted up to 2 blocks outside the chunk can still drop leaves into it.
-    for (let tz = -2; tz < CHUNK_SIZE + 2; tz++) {
-      for (let tx = -2; tx < CHUNK_SIZE + 2; tx++) {
+    // Trees rooted up to 3 blocks outside the chunk can still drop leaves into it.
+    for (let tz = -3; tz < CHUNK_SIZE + 3; tz++) {
+      for (let tx = -3; tx < CHUNK_SIZE + 3; tx++) {
         const wx = ox + tx;
         const wz = oz + tz;
         this.column(wx, wz, col);
-        const trunk = this.treeHeight(wx, wz, col);
-        if (trunk > 0) this.placeTree(blocks, tx, col.height + 1, tz, trunk, wx, wz);
+        const tree = this.treeAt(wx, wz, col);
+        if (tree) this.placeTree(blocks, tx, col.height + 1, tz, tree.trunk, wx, wz, tree.kind);
       }
     }
     return blocks;
   }
 
-  private placeTree(blocks: Uint8Array, x: number, y: number, z: number, trunk: number, wx: number, wz: number) {
+  private placeTree(blocks: Uint8Array, x: number, y: number, z: number, trunk: number, wx: number, wz: number, kind: TreeKind) {
+    const LOGS: Record<TreeKind, number> = { oak: B.LOG, birch: B.BIRCH_LOG, spruce: B.SPRUCE_LOG, jungle: B.JUNGLE_LOG };
+    const LEAVES: Record<TreeKind, number> = { oak: B.LEAVES, birch: B.BIRCH_LEAVES, spruce: B.SPRUCE_LEAVES, jungle: B.JUNGLE_LEAVES };
+    const leaf = LEAVES[kind];
     const topY = y + trunk - 1;
     const setLeaf = (lx: number, ly: number, lz: number) => {
-      if (lx < 0 || lx >= CHUNK_SIZE || lz < 0 || lz >= CHUNK_SIZE || ly >= CHUNK_HEIGHT) return;
+      if (lx < 0 || lx >= CHUNK_SIZE || lz < 0 || lz >= CHUNK_SIZE || ly >= CHUNK_HEIGHT || ly < 0) return;
       const i = blockIndex(lx, ly, lz);
       const cur = blocks[i];
-      if (cur === B.AIR || cur === B.TALL_GRASS || cur === B.FLOWER_RED || cur === B.FLOWER_YELLOW) blocks[i] = B.LEAVES;
+      if (cur === B.AIR || cur === B.TALL_GRASS || cur === B.FLOWER_RED || cur === B.FLOWER_YELLOW) blocks[i] = leaf;
     };
-    for (let ly = topY - 2; ly <= topY + 1; ly++) {
-      const radius = ly >= topY ? 1 : 2;
+    const disc = (ly: number, radius: number, roundness = 0.5) => {
       for (let dz = -radius; dz <= radius; dz++) {
         for (let dx = -radius; dx <= radius; dx++) {
           const corner = Math.abs(dx) === radius && Math.abs(dz) === radius;
-          if (corner) {
-            if (ly === topY + 1) continue;
-            if (hash3(this.seed ^ 0xbeef, wx + dx, ly, wz + dz) < 0.5) continue;
-          }
-          if (ly === topY + 1 && Math.abs(dx) + Math.abs(dz) > 1) continue;
+          if (corner && radius > 0 && hash3(this.seed ^ 0xbeef, wx + dx, ly, wz + dz) < roundness) continue;
           setLeaf(x + dx, ly, z + dz);
+        }
+      }
+    };
+    if (kind === "spruce") {
+      // A cone: wide skirts low down, narrowing to a single tip.
+      setLeaf(x, topY + 1, z);
+      setLeaf(x, topY + 2, z);
+      let radius = 0;
+      for (let ly = topY; ly >= y + 2; ly--) {
+        disc(ly, radius, 1);
+        radius = radius >= 2 || (topY - ly) % 3 === 2 ? Math.max(0, radius - 1) : radius + 1;
+        if (topY - ly > 5 && radius < 2) radius = 2;
+      }
+    } else if (kind === "jungle") {
+      disc(topY - 1, 3, 0.6);
+      disc(topY, 3, 0.8);
+      disc(topY + 1, 2, 0.5);
+      disc(topY + 2, 1, 0.5);
+      // Bushy clumps part way up the trunk.
+      if (trunk > 10) disc(y + 5, 1, 0.3);
+    } else {
+      for (let ly = topY - 2; ly <= topY + 1; ly++) {
+        const radius = ly >= topY ? 1 : 2;
+        for (let dz = -radius; dz <= radius; dz++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const corner = Math.abs(dx) === radius && Math.abs(dz) === radius;
+            if (corner) {
+              if (ly === topY + 1) continue;
+              if (hash3(this.seed ^ 0xbeef, wx + dx, ly, wz + dz) < 0.5) continue;
+            }
+            if (ly === topY + 1 && Math.abs(dx) + Math.abs(dz) > 1) continue;
+            setLeaf(x + dx, ly, z + dz);
+          }
         }
       }
     }
     if (x >= 0 && x < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE) {
-      for (let ly = y; ly <= topY && ly < CHUNK_HEIGHT; ly++) blocks[blockIndex(x, ly, z)] = B.LOG;
+      for (let ly = y; ly <= topY && ly < CHUNK_HEIGHT; ly++) blocks[blockIndex(x, ly, z)] = LOGS[kind];
       if (y - 1 >= 0) blocks[blockIndex(x, y - 1, z)] = B.DIRT;
     }
   }

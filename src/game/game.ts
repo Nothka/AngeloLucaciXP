@@ -16,14 +16,17 @@ import { installUiTextures, setClickSound, updateGuiScale, h } from "./ui/dom";
 import { Hud } from "./ui/hud";
 import { InventoryScreen, type ContainerMode } from "./ui/inventoryScreen";
 import { Menus } from "./ui/menus";
-import { BLOCKS, B, getItem } from "./world/blocks";
+import { BLOCKS, B, IS_SOLID, getItem, isWater } from "./world/blocks";
+import { Chat } from "./ui/chat";
+import { WeatherRenderer } from "./render/weather";
+import type { FurnaceState } from "./world/furnaces";
 import { itemIcon } from "./render/items";
 import { internalSkyLight } from "./entities/spawnRules";
 import { bowPower } from "./items/combat";
-import { BIOME_NAMES } from "./world/terrain";
+import { BIOME_NAMES, isCold } from "./world/terrain";
 import { World } from "./world/world";
 
-type State = "title" | "loading" | "playing" | "paused" | "container" | "saving" | "dead";
+type State = "title" | "loading" | "playing" | "paused" | "container" | "chat" | "saving" | "dead";
 
 const DEATH_MESSAGES: Record<string, string> = {
   fall: "You hit the ground too hard",
@@ -32,6 +35,7 @@ const DEATH_MESSAGES: Record<string, string> = {
   void: "You fell out of the world",
   mob: "You were overwhelmed in the dark",
   arrow: "You were shot by a Rattler",
+  kill: "You were struck down by a command",
 };
 
 const PANORAMA_SEED = 20240611;
@@ -53,6 +57,8 @@ export class Game {
   readonly containers: InventoryScreen;
   readonly sky = new Sky();
   readonly viewModel: ViewModel;
+  readonly chat = new Chat();
+  private weatherFx: WeatherRenderer | null = null;
   readonly embedded = window.parent !== window;
   session: Session | null = null;
   state: State = "title";
@@ -105,7 +111,7 @@ export class Game {
       embedded: this.embedded,
       applySettings: () => this.applySettings(),
       listWorlds,
-      createWorld: (name, seedText, mode) => void this.createWorld(name, seedText, mode),
+      createWorld: (name, seedText, mode, cheats) => void this.createWorld(name, seedText, mode, cheats),
       playWorld: (meta) => void this.startSession(meta),
       deleteWorld,
       quitGame: () => this.quit(),
@@ -131,8 +137,11 @@ export class Game {
         this.session?.crafted(result.id, result.count);
       },
       onSlotClick: () => {},
+      onSmeltTake: (furnace, taken) => this.session?.takeSmelted(furnace, taken),
     });
-    this.root.append(this.hud.el, this.containers.el, this.menus.el);
+    this.chat.onSubmit = (text) => this.submitChat(text);
+    this.chat.onClose = () => this.closeChat();
+    this.root.append(this.hud.el, this.chat.el, this.containers.el, this.menus.el);
     this.hud.visible = false;
 
     this.input = new Input(this.canvas);
@@ -197,8 +206,14 @@ export class Game {
 
   private onMessage(e: MessageEvent) {
     if (e.origin !== window.location.origin || typeof e.data !== "object" || !e.data) return;
-    if (e.data.type === "blockvale:pause" && (this.state === "playing" || this.state === "container")) {
+    if (e.data.type === "blockvale:pause" && (this.state === "playing" || this.state === "container" || this.state === "chat")) {
       if (this.state === "container") this.closeContainer(false);
+      if (this.state === "chat") {
+        this.chat.onClose = null;
+        this.chat.close();
+        this.chat.onClose = () => this.closeChat();
+        this.state = "playing";
+      }
       this.pause();
     } else if (e.data.type === "blockvale:request-save") {
       const reply = () => this.post({ type: "blockvale:saved" });
@@ -241,7 +256,7 @@ export class Game {
 
   /* ---------------------------------------------------------------- worlds */
 
-  private async createWorld(name: string, seedText: string, mode: GameMode) {
+  private async createWorld(name: string, seedText: string, mode: GameMode, cheats: boolean) {
     const seed = seedText.trim() ? seedFromString(seedText) : (Math.random() * 2 ** 31) | 0;
     const now = Date.now();
     const meta: WorldMeta = {
@@ -254,6 +269,7 @@ export class Game {
       lastPlayed: now,
       time: 1000,
       player: null,
+      cheats,
     };
     await putWorld(meta).catch(() => {});
     await this.startSession(meta);
@@ -264,6 +280,7 @@ export class Game {
     this.menus.showLoading("Loading world", 0);
     const session = await Session.open(meta, this.pool, this.materials, this.audio, {
       openCrafting: () => this.openContainer("crafting"),
+      openFurnace: (furnace) => this.openContainer("furnace", furnace),
     });
     this.disposePanorama();
     this.session = session;
@@ -275,7 +292,25 @@ export class Game {
       this.hud.showAchievement(def.title, "item" in def.icon ? itemIcon(def.icon.item) : itemIcon(B.WATER_FLOW_3), !!def.challenge);
       this.audio.achievement(!!def.challenge);
     };
+    session.onLightning = () => {
+      // Thunder follows the flash after a moment, like a strike some way off.
+      const distance = Math.random();
+      setTimeout(() => this.audio.thunder(distance), 150 + distance * 1800);
+    };
     this.scene.add(session.group);
+    this.weatherFx = new WeatherRenderer({
+      topAt: (x, z) => {
+        for (let y = 127; y > 0; y--) {
+          const id = session.world.getBlock(x, y, z);
+          // Leaves and glass keep the rain off too; plants and torches do not.
+          if (id !== B.AIR && (IS_SOLID[id] || isWater(id) || (BLOCKS[id]?.pass === "cutout" && BLOCKS[id]?.shape === "cube"))) return y + 1;
+        }
+        return 0;
+      },
+      coldAt: (x, z) => isCold(session.world.generator.column(x, z)),
+    });
+    this.scene.add(this.weatherFx.group);
+    this.chat.clear();
     this.loadingStarted = performance.now();
     this.menus.showLoading("Building terrain", 0);
   }
@@ -322,6 +357,9 @@ export class Game {
     await session.save(thumb).catch(() => {});
     this.scene.remove(session.group);
     session.dispose();
+    if (this.weatherFx) this.scene.remove(this.weatherFx.group);
+    this.weatherFx = null;
+    this.audio.setRain(0);
     this.session = null;
     this.showTitle();
   }
@@ -360,7 +398,7 @@ export class Game {
     this.input.requestLock();
   }
 
-  private openContainer(mode: ContainerMode) {
+  private openContainer(mode: ContainerMode, furnace?: FurnaceState) {
     if (this.state !== "playing" || !this.session) return;
     if (mode === "inventory" && this.session.player.mode === "creative") mode = "creative";
     this.state = "container";
@@ -368,7 +406,7 @@ export class Game {
     this.expectUnlock = true;
     this.input.exitLock();
     this.hud.showClickToPlay = false;
-    this.containers.open(mode);
+    this.containers.open(mode, furnace);
   }
 
   private closeContainer(relock = true) {
@@ -379,6 +417,37 @@ export class Game {
       this.hud.showClickToPlay = true;
       this.input.requestLock();
     }
+  }
+
+  /* ---------------------------------------------------------------- chat */
+
+  private openChat(prefix: string) {
+    if (this.state !== "playing" || !this.session) return;
+    this.state = "chat";
+    this.input.captureKeys = false;
+    this.expectUnlock = true;
+    this.input.exitLock();
+    this.hud.showClickToPlay = false;
+    this.chat.open(prefix);
+  }
+
+  private closeChat() {
+    if (this.state !== "chat") return;
+    this.state = "playing";
+    this.input.captureKeys = true;
+    this.hud.showClickToPlay = true;
+    this.input.requestLock();
+  }
+
+  private submitChat(text: string) {
+    const session = this.session;
+    if (!session) return;
+    if (!text.startsWith("/")) {
+      this.chat.print(`<Player> ${text}`);
+      return;
+    }
+    const result = session.command(text);
+    this.chat.print(result.message, result.ok ? "info" : "error");
   }
 
   private onLockChange(locked: boolean) {
@@ -434,6 +503,10 @@ export class Game {
     }
     if (e.repeat) return;
     if (e.code === "KeyE") this.openContainer("inventory");
+    else if (e.code === "KeyT" || e.code === "Slash" || e.code === "NumpadDivide") {
+      e.preventDefault();
+      this.openChat(e.code === "KeyT" ? "" : "/");
+    }
     else if (e.code === "F3") this.showDebug = !this.showDebug;
     else if (e.code === "F7" && this.session) {
       e.preventDefault();
@@ -475,7 +548,14 @@ export class Game {
         session.update(dt, this.input, controls, s.renderDistance);
         if (controls) session.player.applyLook(this.input, s.sensitivity / 100);
       }
-      if ((this.state === "playing" || this.state === "container") && session.vitals.dead) this.onDeath();
+      if ((this.state === "playing" || this.state === "container" || this.state === "chat") && session.vitals.dead) {
+        if (this.state === "chat") {
+          this.chat.onClose = null;
+          this.chat.close();
+          this.chat.onClose = () => this.closeChat();
+        }
+        this.onDeath();
+      }
       if (this.state === "loading") {
         const progress = session.loadingProgress();
         this.menus.showLoading("Building terrain", progress);
@@ -491,12 +571,16 @@ export class Game {
     }
 
     // Sky, light and fog.
-    const sky = this.sky.update(time, this.camera, s.clouds, this.elapsed);
+    const weather = session && this.state !== "loading" ? session.weather : null;
+    const sky = this.sky.update(time, this.camera, s.clouds, this.elapsed, weather?.gloom ?? 0, weather?.flash ?? 0);
     const u = this.uniforms;
     u.u_daylight.value = sky.daylight;
     u.u_skyTint.value.copy(sky.skyTint);
     u.u_time.value = this.elapsed;
     if (session) session.daylightFactor = sky.daylight;
+    if (this.weatherFx && session) {
+      this.weatherFx.update(dt, this.camera.position, this.state === "loading" ? 0 : session.weather.rain, sky.daylight, this.elapsed);
+    }
     const underwater = !!session && this.state !== "loading" && session.player.headInWater;
     const rd = this.state === "title" ? this.panorama?.renderDistance ?? 6 : s.renderDistance;
     if (underwater) {
@@ -550,6 +634,8 @@ export class Game {
     }
     this.hud.setFps(s.showFps && !this.showDebug ? `${Math.round(this.fps)} FPS` : null);
     this.hud.tick(dt);
+    this.containers.tick();
+    this.chat.tick(dt);
     this.input.endFrame();
   }
 
@@ -638,6 +724,9 @@ export class Game {
       `Monsters ${sp.monsters}/${sp.monsterCap} · Animals ${sp.creatures}/${sp.creatureCap} (+${sp.persistent} persistent)`,
       `Internal sky light: ${internalSkyLight(light >> 4, session.time)} · Spawn attempts/s: ${sp.attemptsPerSecond}`,
       `Spawn cycle: ${sp.avgMs.toFixed(3)} ms avg, ${sp.maxMs.toFixed(2)} ms max`,
+      `Weather: ${session.weather.kind} (${Math.round(session.weather.left)} s left) · ${isCold(col) ? "snowy" : "rainy"} biome · temp ${(col.temperature ?? 0).toFixed(2)}`,
+      `Fluid queue: ${session.fluid.pending} · Redstone queue: ${session.redstone.pending} · Falling: ${session.falling.count}`,
+      `Cheats: ${session.cheats ? "on" : "off"}${session.meta.spawnPoint ? ` · Spawn point: ${session.meta.spawnPoint.join(" ")}` : ""}`,
     ];
   }
 

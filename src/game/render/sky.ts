@@ -204,7 +204,8 @@ export class Sky {
   }
 
   /** Updates colours and positions; returns the sky state used for lighting and fog. */
-  update(timeTicks: number, camera: THREE.Camera, cloudsVisible: boolean, worldTime: number): SkyState {
+  /** `gloom` (0..1) greys and darkens the sky for rain and storms; `flash` is a lightning flash. */
+  update(timeTicks: number, camera: THREE.Camera, cloudsVisible: boolean, worldTime: number, gloom = 0, flash = 0): SkyState {
     const t = (((timeTicks % DAY_TICKS) + DAY_TICKS) % DAY_TICKS) / DAY_TICKS;
     const angle = t * Math.PI * 2;
     const sunH = Math.sin(angle);
@@ -214,6 +215,16 @@ export class Sky {
     const sunset = (1 - smoothstep(0.0, 0.4, Math.abs(sunH))) * smoothstep(-0.35, 0.0, sunH) * 0.95;
     const top = this.tmp.copy(NIGHT_TOP).lerp(DAY_TOP, day);
     const horizon = new THREE.Vector3().copy(NIGHT_HORIZON).lerp(DAY_HORIZON, day);
+    if (gloom > 0 || flash > 0) {
+      const grey = (v: THREE.Vector3, k: number) => {
+        const l = (v.x * 0.3 + v.y * 0.59 + v.z * 0.11) * k;
+        return new THREE.Vector3(l, l, l * 1.04);
+      };
+      top.lerp(grey(top, 0.55), gloom);
+      horizon.lerp(grey(horizon, 0.62), gloom);
+      top.lerp(new THREE.Vector3(0.85, 0.88, 1), flash * 0.7);
+      horizon.lerp(new THREE.Vector3(0.85, 0.88, 1), flash * 0.7);
+    }
     const u = this.domeMat.uniforms;
     u.u_top.value.copy(top);
     u.u_horizon.value.copy(horizon);
@@ -226,13 +237,14 @@ export class Sky {
     // Planes face the camera at the orbit centre.
     this.sun.lookAt(camera.position);
     this.moon.lookAt(camera.position);
-    (this.stars.material as THREE.PointsMaterial).opacity = (1 - day) * 0.9;
+    (this.stars.material as THREE.PointsMaterial).opacity = (1 - day) * 0.9 * (1 - gloom);
+    this.sun.visible = this.moon.visible = gloom < 0.6;
 
     // Fog takes the horizon colour, warmed when looking toward a setting sun.
     const forward = camera.getWorldDirection(new THREE.Vector3());
     const towardSun = Math.max(0, forward.x * this.sunDir.x + forward.z * this.sunDir.z);
-    this.state.fogColor.copy(horizon).lerp(SUNSET, sunset * towardSun * 0.6);
-    this.state.daylight = 0.22 + 0.78 * day;
+    this.state.fogColor.copy(horizon).lerp(SUNSET, sunset * towardSun * 0.6 * (1 - gloom));
+    this.state.daylight = Math.min(1, (0.22 + 0.78 * day) * (1 - 0.38 * gloom) + flash * 0.45);
     this.state.skyTint.set(1, 1, 1).lerp(new THREE.Vector3(0.62, 0.72, 1.0), 1 - day).lerp(new THREE.Vector3(1.0, 0.82, 0.68), sunset * 0.6);
     this.state.sunHeight = sunH;
 
@@ -240,7 +252,7 @@ export class Sky {
     if (cloudsVisible) {
       this.clouds.position.set(camera.position.x, 112, camera.position.z);
       this.cloudTex.offset.set((camera.position.x + worldTime * 1.2) / 1536, -camera.position.z / 1536);
-      const c = 0.1 + 0.9 * day;
+      const c = (0.1 + 0.9 * day) * (1 - 0.45 * gloom) + flash * 0.3;
       this.cloudMat.color.setRGB(c, c, c * (0.95 + 0.05 * day), THREE.SRGBColorSpace);
       this.cloudMat.color.lerp(new THREE.Color().setRGB(1, 0.72, 0.55, THREE.SRGBColorSpace), sunset * 0.5);
     }

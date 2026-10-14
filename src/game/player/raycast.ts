@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { B, SHAPE_CODE, isWater } from "../world/blocks";
+import { B, SHAPE_CODE, doorState, isWater, switchFace } from "../world/blocks";
 import type { World } from "../world/world";
 
 export interface RayHit {
@@ -17,8 +17,34 @@ export interface RayHit {
 /** Local bounding box (in blocks) used for picking and the selection outline. */
 export function blockBounds(id: number): [number, number, number, number, number, number] {
   const shape = SHAPE_CODE[id];
-  if (shape === 2) return [0.12, 0, 0.12, 0.88, 0.82, 0.88];
-  if (shape === 3) return [0.375, 0, 0.375, 0.625, 0.625, 0.625];
+  const box = (a: number[], c: number[]): [number, number, number, number, number, number] => [a[0] / 16, a[1] / 16, a[2] / 16, c[0] / 16, c[1] / 16, c[2] / 16];
+  switch (shape) {
+    case 2: return [0.12, 0, 0.12, 0.88, 0.82, 0.88];
+    case 3: return [0.375, 0, 0.375, 0.625, 0.625, 0.625];
+    case 5: return [0, 0, 0, 1, 1 / 16, 1];
+    case 6: case 7: {
+      const face = switchFace(id);
+      const lever = shape === 6;
+      const u = lever ? [4, 12] : [5, 11], v = lever ? [3, 13] : [6, 10], w = lever ? [0, 10] : [0, 2];
+      const m = (f: number): [number[], number[]] => {
+        switch (f) {
+          case 1: return [[u[0], v[0], w[0]], [u[1], v[1], w[1]]];
+          case 2: return [[16 - u[1], v[0], 16 - w[1]], [16 - u[0], v[1], 16 - w[0]]];
+          case 3: return [[w[0], v[0], u[0]], [w[1], v[1], u[1]]];
+          case 4: return [[16 - w[1], v[0], u[0]], [16 - w[0], v[1], u[1]]];
+          default: return [[u[0], w[0], v[0]], [u[1], w[1], v[1]]];
+        }
+      };
+      const [a, c] = m(face);
+      return box(a, c);
+    }
+    case 8: return [1 / 16, 0, 1 / 16, 15 / 16, 2 / 16, 15 / 16];
+    case 9: {
+      const st = doorState(id);
+      const side = st.open ? (st.facing + 1) % 4 : st.facing;
+      return [[0, 0, 0, 1, 1, 3 / 16], [13 / 16, 0, 0, 1, 1, 1], [0, 0, 13 / 16, 1, 1, 1], [0, 0, 0, 3 / 16, 1, 1]][side] as [number, number, number, number, number, number];
+    }
+  }
   return [0, 0, 0, 1, 1, 1];
 }
 
@@ -53,7 +79,7 @@ export function rayAABB(o: THREE.Vector3, d: THREE.Vector3, minX: number, minY: 
 }
 
 /** Amanatides–Woo voxel traversal. Water and air are transparent to the ray. */
-export function raycast(world: World, origin: THREE.Vector3, dir: THREE.Vector3, maxDist: number): RayHit | null {
+export function raycast(world: World, origin: THREE.Vector3, dir: THREE.Vector3, maxDist: number, hitWater = false): RayHit | null {
   let x = Math.floor(origin.x);
   let y = Math.floor(origin.y);
   let z = Math.floor(origin.z);
@@ -70,6 +96,7 @@ export function raycast(world: World, origin: THREE.Vector3, dir: THREE.Vector3,
   let t = 0;
   for (let i = 0; i < 64 && t <= maxDist; i++) {
     const id = world.getBlock(x, y, z);
+    if (hitWater && isWater(id)) return { x, y, z, nx, ny, nz, id, dist: t };
     if (id !== B.AIR && !isWater(id)) {
       const shape = SHAPE_CODE[id];
       if (shape === 1) return { x, y, z, nx, ny, nz, id, dist: t };

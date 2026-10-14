@@ -968,6 +968,53 @@ body {
   background-size: 100% 100%;
 }
 
+.bv-arrow-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  background-image: var(--bv-arrow-full-texture);
+  background-size: calc(var(--s) * 22) 100%;
+  background-repeat: no-repeat;
+}
+
+.bv-flame {
+  position: absolute;
+  width: calc(var(--s) * 14);
+  height: calc(var(--s) * 14);
+  background-image: var(--bv-flame-texture);
+  background-size: 100% 100%;
+}
+
+.bv-flame-fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  background-image: var(--bv-flame-full-texture);
+  background-size: 100% calc(var(--s) * 14);
+  background-position: bottom;
+  background-repeat: no-repeat;
+}
+
+.bv-scrollbar {
+  position: absolute;
+  width: calc(var(--s) * 12);
+  background: var(--bv-slot-dark);
+  box-shadow:
+    inset var(--s) var(--s) 0 #1f1d1a,
+    inset calc(var(--s) * -1) calc(var(--s) * -1) 0 var(--bv-slot-light);
+  cursor: pointer;
+}
+
+.bv-scrollbar-thumb {
+  position: absolute;
+  left: calc(var(--s) * 1);
+  width: calc(var(--s) * 10);
+  height: calc(var(--s) * 15);
+  background: #c6c3bc;
+  box-shadow:
+    inset var(--s) var(--s) 0 #fff,
+    inset calc(var(--s) * -1) calc(var(--s) * -1) 0 #6e6b65;
+}
+
 .bv-portrait {
   position: absolute;
   background: #000;
@@ -1013,4 +1060,54 @@ body {
 .bv-scroll-hint {
   position: absolute;
   color: #3f3c37;
+}
+
+/* ---------------------------------------------------------------- chat */
+
+.bv-chat {
+  position: absolute;
+  left: calc(var(--s) * 2);
+  bottom: calc(var(--s) * 40);
+  width: min(calc(var(--s) * 320), calc(100% - var(--s) * 4));
+  pointer-events: none;
+  z-index: 4;
+}
+
+.bv-chat.is-open {
+  bottom: calc(var(--s) * 2);
+  pointer-events: auto;
+}
+
+.bv-chat-log {
+  display: flex;
+  flex-direction: column;
+}
+
+.bv-chat-line {
+  padding: calc(var(--s) * 0.5) calc(var(--s) * 2);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bv-chat-line.is-error {
+  color: #ff6b6b;
+}
+
+.bv-chat-line.is-info {
+  color: #c9c5bd;
+}
+
+.bv-chat-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: calc(var(--s) * 2);
+  padding: calc(var(--s) * 2);
+  border: 0;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-family: inherit;
 }

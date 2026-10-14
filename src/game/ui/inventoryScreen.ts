@@ -1,18 +1,26 @@
 import { CREATIVE_ITEMS, I, getItem } from "../world/blocks";
 import { itemIcon } from "../render/items";
 import { matchRecipe } from "../items/crafting";
+import { SMELT_SECONDS, fuelSeconds, smeltResult } from "../items/smelting";
+import type { FurnaceState } from "../world/furnaces";
 import { INVENTORY_SIZE, maxStack, type Inventory, type ItemStack } from "../items/inventory";
 import { playerPortrait } from "./playerPortrait";
 import { h, px } from "./dom";
 import { renderStack } from "./hud";
 
-export type ContainerMode = "inventory" | "crafting" | "creative";
+export type ContainerMode = "inventory" | "crafting" | "creative" | "furnace";
+
+/** Visible rows of the creative palette; the wheel or scrollbar moves through the rest. */
+const PALETTE_ROWS = 5;
+const PALETTE_ROWS_TOTAL = Math.ceil(CREATIVE_ITEMS.length / 9);
 
 export interface ContainerHost {
   inventory: Inventory;
   dropStack(stack: ItemStack): void;
   onCraft(result: ItemStack): void;
   onSlotClick(): void;
+  /** Output taken from a furnace (pays out its experience). */
+  onSmeltTake?(furnace: FurnaceState, taken: ItemStack): void;
 }
 
 type SlotRef =
@@ -20,7 +28,9 @@ type SlotRef =
   | { kind: "grid"; index: number }
   | { kind: "out" }
   | { kind: "pal"; index: number }
-  | { kind: "armor"; index: number };
+  | { kind: "armor"; index: number }
+  /** 0 input, 1 fuel, 2 output. */
+  | { kind: "furnace"; index: number };
 
 const ARMOR_OUTLINES = [I.IRON_HELMET, I.IRON_CHESTPLATE, I.IRON_LEGGINGS, I.IRON_BOOTS];
 const armorSlotOf = (id: number) => getItem(id)?.armor?.slot;
@@ -43,6 +53,11 @@ export class InventoryScreen {
   private hovered: SlotRef | null = null;
   private mouse = { x: 0, y: 0 };
   private unsub: (() => void) | null = null;
+  private furnace: FurnaceState | null = null;
+  private flameFill: HTMLDivElement | null = null;
+  private arrowFill: HTMLDivElement | null = null;
+  private scroll = 0;
+  private thumb: HTMLDivElement | null = null;
 
   constructor(private host: ContainerHost) {
     this.cursorEl = h("div.bv-cursor-item");
@@ -57,10 +72,28 @@ export class InventoryScreen {
       this.positionTooltip();
     });
     this.el.addEventListener("contextmenu", (e) => e.preventDefault());
+    this.el.addEventListener("wheel", (e) => {
+      if (this.mode !== "creative") return;
+      e.preventDefault();
+      this.scrollTo(this.scroll + Math.sign(e.deltaY));
+    }, { passive: false });
   }
 
-  open(mode: ContainerMode) {
+  private scrollTo(row: number) {
+    const max = Math.max(0, PALETTE_ROWS_TOTAL - PALETTE_ROWS);
+    this.scroll = Math.max(0, Math.min(max, row));
+    if (this.thumb) this.thumb.style.top = px(1 + (max ? (this.scroll / max) * (PALETTE_ROWS * 18 - 17) : 0));
+    this.render();
+  }
+
+  private palItem(index: number): number | null {
+    return CREATIVE_ITEMS[this.scroll * 9 + index] ?? null;
+  }
+
+  /** Opens a screen; the furnace screen works on that furnace's own slots. */
+  open(mode: ContainerMode, furnace?: FurnaceState) {
     this.mode = mode;
+    this.furnace = furnace ?? null;
     this.gridSize = mode === "crafting" ? 3 : 2;
     this.grid = new Array(this.gridSize * this.gridSize).fill(null);
     this.result = null;
@@ -83,6 +116,8 @@ export class InventoryScreen {
     }
     this.grid = [];
     this.cursor = null;
+    this.furnace = null;
+    this.flameFill = this.arrowFill = this.thumb = null;
     this.isOpen = false;
     this.unsub?.();
     this.unsub = null;
@@ -136,8 +171,9 @@ export class InventoryScreen {
       this.render();
     });
     let height = 166;
-    if (this.mode === "creative") height = 170;
-    this.panel = h("div.bv-panel", { style: `width:${px(176)};height:${px(height)}` });
+    if (this.mode === "creative") height = 16 + PALETTE_ROWS * 18 + 95;
+    const width = this.mode === "creative" ? 190 : 176;
+    this.panel = h("div.bv-panel", { style: `width:${px(width)};height:${px(height)}` });
     this.panel.addEventListener("mousedown", (e) => e.stopPropagation());
 
     if (this.mode === "inventory") {
@@ -166,11 +202,48 @@ export class InventoryScreen {
       this.addSlot({ kind: "out" }, 119, 30, true);
       this.label("Inventory", 8, 73);
       this.addInventoryRows(83);
+    } else if (this.mode === "furnace") {
+      this.label("Furnace", 8, 6);
+      this.addSlot({ kind: "furnace", index: 0 }, 55, 16);
+      this.addSlot({ kind: "furnace", index: 1 }, 55, 52);
+      const flame = h("div.bv-flame", { style: `left:${px(57)};top:${px(36)}` });
+      this.flameFill = h("div.bv-flame-fill");
+      flame.append(this.flameFill);
+      const arrow = h("div.bv-arrow", { style: `left:${px(79)};top:${px(34)}` });
+      this.arrowFill = h("div.bv-arrow-fill");
+      arrow.append(this.arrowFill);
+      this.panel.append(flame, arrow);
+      this.addSlot({ kind: "furnace", index: 2 }, 111, 30, true);
+      this.label("Inventory", 8, 73);
+      this.addInventoryRows(83);
     } else {
       this.label("Creative Inventory", 8, 6);
-      CREATIVE_ITEMS.forEach((_, i) => this.addSlot({ kind: "pal", index: i }, 7 + (i % 9) * 18, 16 + Math.floor(i / 9) * 18));
-      this.label("Inventory", 8, 77);
-      this.addInventoryRows(87);
+      for (let i = 0; i < PALETTE_ROWS * 9; i++) this.addSlot({ kind: "pal", index: i }, 7 + (i % 9) * 18, 16 + Math.floor(i / 9) * 18);
+      const bar = h("div.bv-scrollbar", { style: `left:${px(172)};top:${px(16)};height:${px(PALETTE_ROWS * 18)}` });
+      this.thumb = h("div.bv-scrollbar-thumb");
+      bar.append(this.thumb);
+      const drag = (e: MouseEvent) => {
+        const r = bar.getBoundingClientRect();
+        const f = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+        this.scrollTo(Math.round(f * Math.max(0, PALETTE_ROWS_TOTAL - PALETTE_ROWS)));
+      };
+      bar.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        drag(e);
+        const move = (ev: MouseEvent) => drag(ev);
+        const up = () => {
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+        };
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+      });
+      this.panel.append(bar);
+      const invTop = 16 + PALETTE_ROWS * 18 + 15;
+      this.label("Inventory", 8, invTop - 10);
+      this.addInventoryRows(invTop);
+      queueMicrotask(() => this.scrollTo(this.scroll));
     }
     this.el.replaceChildren(backdrop, this.panel, this.cursorEl, this.tooltip);
   }
@@ -180,8 +253,16 @@ export class InventoryScreen {
       case "inv": return this.host.inventory.slots[ref.index];
       case "grid": return this.grid[ref.index];
       case "out": return this.result;
-      case "pal": return { id: CREATIVE_ITEMS[ref.index], count: 1 };
+      case "pal": {
+        const id = this.palItem(ref.index);
+        return id === null ? null : { id, count: 1 };
+      }
       case "armor": return this.host.inventory.armor[ref.index];
+      case "furnace": {
+        const f = this.furnace;
+        if (!f) return null;
+        return ref.index === 0 ? f.input : ref.index === 1 ? f.fuel : f.output;
+      }
     }
   }
 
@@ -190,6 +271,32 @@ export class InventoryScreen {
     if (ref.kind === "inv") this.host.inventory.slots[ref.index] = stack;
     else if (ref.kind === "grid") this.grid[ref.index] = stack;
     else if (ref.kind === "armor") this.host.inventory.armor[ref.index] = stack;
+    else if (ref.kind === "furnace" && this.furnace) {
+      if (ref.index === 0) this.furnace.input = stack;
+      else if (ref.index === 1) this.furnace.fuel = stack;
+      else this.furnace.output = stack;
+    }
+  }
+
+  /** Can this stack go in this slot? (Furnace fuel only takes fuel; nothing goes into outputs.) */
+  private accepts(ref: SlotRef, stack: ItemStack) {
+    if (ref.kind === "furnace") return ref.index === 0 || (ref.index === 1 && fuelSeconds(stack.id) > 0);
+    return true;
+  }
+
+  /** Merges `stack` into one furnace slot; returns what is left over. */
+  private mergeInto(ref: SlotRef, stack: ItemStack): number {
+    const cur = this.get(ref);
+    const max = maxStack(stack.id);
+    if (!cur) {
+      const n = Math.min(stack.count, max);
+      this.set(ref, { id: stack.id, count: n });
+      return stack.count - n;
+    }
+    if (cur.id !== stack.id) return stack.count;
+    const n = Math.min(stack.count, max - cur.count);
+    cur.count += n;
+    return stack.count - n;
   }
 
   /** Moves a stack into the given inventory slots: merge first, then empty slots. */
@@ -222,6 +329,21 @@ export class InventoryScreen {
   private quickMove(ref: SlotRef) {
     const s = this.get(ref);
     if (!s) return;
+    if (ref.kind === "furnace") {
+      const left = this.moveInto({ ...s }, [...this.range(9, INVENTORY_SIZE), ...this.range(0, 9)]);
+      if (ref.index === 2 && left < s.count) this.host.onSmeltTake?.(this.furnace!, { id: s.id, count: s.count - left });
+      this.set(ref, left > 0 ? { id: s.id, count: left } : null);
+      return;
+    }
+    if (ref.kind === "inv" && this.mode === "furnace") {
+      // Shift-click sends smeltables to the input and fuel to the fuel slot.
+      const target: SlotRef | null = smeltResult(s.id) !== null ? { kind: "furnace", index: 0 } : fuelSeconds(s.id) > 0 ? { kind: "furnace", index: 1 } : null;
+      if (target) {
+        const left = this.mergeInto(target, s);
+        this.set(ref, left > 0 ? { ...s, count: left } : null);
+        return;
+      }
+    }
     if (ref.kind === "inv" && this.mode === "inventory") {
       // Shift-clicking armor puts it on, if that slot is free.
       const slot = armorSlotOf(s.id);
@@ -285,9 +407,22 @@ export class InventoryScreen {
     this.host.onSlotClick();
     if (ref.kind === "out") {
       this.takeResult(shift);
+    } else if (ref.kind === "furnace" && ref.index === 2 && !shift) {
+      // The output can only be taken from.
+      const out = this.furnace?.output;
+      const c = this.cursor;
+      if (out && (!c || (c.id === out.id && c.count + out.count <= maxStack(out.id)))) {
+        if (c) c.count += out.count;
+        else this.cursor = { ...out };
+        this.set(ref, null);
+        this.host.onSmeltTake?.(this.furnace!, out);
+      }
+    } else if (ref.kind === "furnace" && this.cursor && !shift && !this.accepts(ref, this.cursor)) {
+      // Not fuel: leave the slot alone.
     } else if (ref.kind === "pal") {
-      const id = CREATIVE_ITEMS[ref.index];
-      if (this.cursor) this.cursor = null;
+      const id = this.palItem(ref.index);
+      if (id === null) this.cursor = null;
+      else if (this.cursor) this.cursor = null;
       else if (shift) this.moveInto({ id, count: maxStack(id) }, [...this.range(0, 9), ...this.range(9, INVENTORY_SIZE)]);
       else this.cursor = { id, count: button === 2 ? 1 : maxStack(id) };
     } else {
@@ -355,8 +490,8 @@ export class InventoryScreen {
         this.host.inventory.slots[n] = a;
         this.set(ref, b);
       } else if (ref.kind === "pal") {
-        const id = CREATIVE_ITEMS[ref.index];
-        this.host.inventory.slots[n] = { id, count: maxStack(id) };
+        const id = this.palItem(ref.index);
+        if (id !== null) this.host.inventory.slots[n] = { id, count: maxStack(id) };
       }
       this.recompute();
       this.host.inventory.changed();
@@ -369,6 +504,15 @@ export class InventoryScreen {
       this.recompute();
       this.host.inventory.changed();
     }
+  }
+
+  /** Called every frame: the furnace keeps cooking while its screen is open. */
+  tick() {
+    if (!this.isOpen || this.mode !== "furnace" || !this.furnace) return;
+    const f = this.furnace;
+    if (this.flameFill) this.flameFill.style.height = `${f.burnTotal > 0 ? Math.ceil((f.burnLeft / f.burnTotal) * 14) / 14 * 100 : 0}%`;
+    if (this.arrowFill) this.arrowFill.style.width = `${Math.floor((f.cook / SMELT_SECONDS) * 22) / 22 * 100}%`;
+    for (const { el, ref } of this.slotEls.values()) if (ref.kind === "furnace") renderStack(el, this.get(ref));
   }
 
   private render() {

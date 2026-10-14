@@ -146,6 +146,34 @@ export function installUiTextures(root: HTMLElement) {
     }
   }
   root.style.setProperty("--bv-arrow-texture", `url(${arrow.toCanvas().toDataURL()})`);
+  const arrowFull = new Pixels(22, 15);
+  for (let y = 0; y < 15; y++) {
+    for (let x = 0; x < 22; x++) {
+      const shaft = x < 14 && y >= 5 && y <= 9;
+      const head = x >= 14 && Math.abs(y - 7) <= 21 - x;
+      if (shaft || head) arrowFull.set(x, y, y < 7 ? "#ffffff" : "#e8e8e8");
+    }
+  }
+  root.style.setProperty("--bv-arrow-full-texture", `url(${arrowFull.toCanvas().toDataURL()})`);
+
+  // Furnace flame (14x14): a grey outline when cold, orange-to-yellow when burning.
+  const FLAME = [
+    "......o.......", ".....oo.......", ".....ooo......", "....oooo...o..", "....ooooo.oo..", "...oooooooooo.",
+    "...oooooooooo.", "..ooooooooooo.", "..oooooooooooo", ".ooooooooooooo", ".ooooooooooooo", "oooooooooooooo",
+    ".oooooooooooo.", "..oooooooooo..",
+  ];
+  const flame = new Pixels(14, 14);
+  const flameFull = new Pixels(14, 14);
+  for (let y = 0; y < 14; y++) {
+    for (let x = 0; x < 14; x++) {
+      if (FLAME[y][x] !== "o") continue;
+      flame.set(x, y, "#7d7a74");
+      const inner = FLAME[y][x - 1] === "o" && FLAME[y][x + 1] === "o" && FLAME[y - 1]?.[x] === "o";
+      flameFull.set(x, y, !inner ? "#d24b12" : y > 9 ? "#fff3a0" : y > 6 ? "#ffc23a" : "#ff8a1e");
+    }
+  }
+  root.style.setProperty("--bv-flame-texture", `url(${flame.toCanvas().toDataURL()})`);
+  root.style.setProperty("--bv-flame-full-texture", `url(${flameFull.toCanvas().toDataURL()})`);
 
   // Status icons (9x9): hearts, food and air bubbles, each full / half / empty.
   const icon = (mask: string[], fill: (x: number, y: number) => string | null, outline: string) => {

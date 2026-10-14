@@ -1,5 +1,9 @@
 import { CHUNK_HEIGHT, CHUNK_SIZE } from "../config";
-import { B, FLUID_LEVEL, IS_OPAQUE, PASS_CODE, SHAPE_CODE, TILE_BOTTOM, TILE_FRONT, TILE_SIDE, TILE_TOP, waterHeight16 } from "../world/blocks";
+import {
+  B, FLUID_LEVEL, IS_OPAQUE, PASS_CODE, SHAPE_CODE, TILE, TILE_BOTTOM, TILE_FRONT, TILE_SIDE, TILE_TOP,
+  doorState, switchFace, switchOn, waterHeight16, wirePower,
+} from "../world/blocks";
+import { wireShape } from "../world/redstone";
 import { R, RA, rIndex } from "../world/lighting";
 
 /**
@@ -302,7 +306,8 @@ export function meshChunk(rb: Uint8Array, sky: Uint8Array, blk: Uint8Array): Chu
         const id = rb[ri];
         const shape = SHAPE_CODE[id];
         if (shape === 2) emitCross(solid, x, y, z, TILE_SIDE[id], sky[ri], blk[ri]);
-        else if (shape === 3) emitTorch(solid, x, y, z, TILE_SIDE[id], sky[ri]);
+        else if (shape === 3) emitTorch(solid, x, y, z, TILE_SIDE[id], sky[ri], id === B.REDSTONE_TORCH_OFF ? blk[ri] : 15);
+        else if (shape >= 5) emitSpecial(solid, rb, x, y, z, id, sky[ri], blk[ri]);
       }
     }
   }
@@ -364,6 +369,82 @@ export function emitBox(
   }
 }
 
-function emitTorch(b: MeshBuilder, x: number, y: number, z: number, layer: number, sl: number) {
-  emitBox(b, x, y, z, [7, 0, 7], [9, 10, 9], layer, sl, 15, [7, 8, 9, 10]);
+function emitTorch(b: MeshBuilder, x: number, y: number, z: number, layer: number, sl: number, bl = 15) {
+  emitBox(b, x, y, z, [7, 0, 7], [9, 10, 9], layer, sl, bl, [7, 8, 9, 10]);
+}
+
+/**
+ * Box in "attachment space" for things stuck on a floor or wall: u runs
+ * along the surface, v up it (or along the floor), w away from it.
+ */
+function attachedBox(face: number, u0: number, u1: number, v0: number, v1: number, w0: number, w1: number): [number[], number[]] {
+  let a: number[], c: number[];
+  switch (face) {
+    case 1: a = [u0, v0, w0]; c = [u1, v1, w1]; break; // wall at -Z
+    case 2: a = [16 - u1, v0, 16 - w1]; c = [16 - u0, v1, 16 - w0]; break; // wall at +Z
+    case 3: a = [w0, v0, u0]; c = [w1, v1, u1]; break; // wall at -X
+    case 4: a = [16 - w1, v0, u0]; c = [16 - w0, v1, u1]; break; // wall at +X
+    default: a = [u0, w0, v0]; c = [u1, w1, v1]; // floor
+  }
+  return [a, c];
+}
+
+/** Redstone dust, switches, plates and doors. */
+function emitSpecial(b: MeshBuilder, rb: Uint8Array, x: number, y: number, z: number, id: number, sl: number, bl: number) {
+  const shape = SHAPE_CODE[id];
+  const at = (dx: number, dy: number, dz: number) => {
+    const yy = y + dy;
+    if (yy < 0) return B.STONE;
+    if (yy >= CHUNK_HEIGHT) return B.AIR;
+    return rb[rIndex(x + dx + OFF, yy, z + dz + OFF)];
+  };
+  if (shape === 5) {
+    // Flat dust a pixel above the floor, shaped by what it connects to and brighter with power.
+    const power = wirePower(id);
+    const level = power === 0 ? 0 : power <= 5 ? 1 : power <= 10 ? 2 : 3;
+    const getter = { getBlock: (wx: number, wy: number, wz: number) => at(wx - x, wy - y, wz - z) };
+    const form = wireShape(getter, x, y, z);
+    const layer = (form === "cross" ? TILE.wire_cross_0 : TILE.wire_line_0) + level;
+    const px = x * 16, pz = z * 16, py = y * 16 + 1;
+    const glow = Math.max(bl, Math.round(power / 3));
+    // Lines run along X in the texture; turn the UVs for dust running along Z.
+    const uv = form === "z" ? [[0, 0], [0, 16], [16, 16], [16, 0]] : [[0, 0], [16, 0], [16, 16], [0, 16]];
+    b.vertex(px, py, pz, 2, uv[0][0], uv[0][1], layer, sl, glow, 0);
+    b.vertex(px, py, pz + 16, 2, uv[1][0], uv[1][1], layer, sl, glow, 0);
+    b.vertex(px + 16, py, pz + 16, 2, uv[2][0], uv[2][1], layer, sl, glow, 0);
+    b.vertex(px + 16, py, pz, 2, uv[3][0], uv[3][1], layer, sl, glow, 0);
+    b.endQuad(0);
+    return;
+  }
+  if (shape === 6 || shape === 7) {
+    const face = switchFace(id);
+    const on = switchOn(id);
+    if (shape === 6) {
+      const [a, c] = attachedBox(face, 5, 11, 4, 12, 0, 3);
+      emitBox(b, x, y, z, a, c, TILE.cobblestone, sl, bl);
+      const [ha, hc] = on ? attachedBox(face, 7, 9, 9, 11, 3, 11) : attachedBox(face, 7, 9, 5, 7, 3, 11);
+      emitBox(b, x, y, z, ha, hc, TILE.lever, sl, bl);
+    } else {
+      const [a, c] = attachedBox(face, 5, 11, 6, 10, 0, on ? 1 : 2);
+      emitBox(b, x, y, z, a, c, TILE.stone, sl, bl);
+    }
+    return;
+  }
+  if (shape === 8) {
+    emitBox(b, x, y, z, [1, 0, 1], [15, id === B.PRESSURE_PLATE_ON ? 1 : 2, 15], TILE.stone, sl, bl);
+    return;
+  }
+  if (shape === 9) {
+    const s = doorState(id);
+    // The slab hugs side `facing` when closed and swings to the next side when open.
+    const side = s.open ? (s.facing + 1) % 4 : s.facing;
+    const boxes: [number[], number[]][] = [
+      [[0, 0, 0], [16, 16, 3]],
+      [[13, 0, 0], [16, 16, 16]],
+      [[0, 0, 13], [16, 16, 16]],
+      [[0, 0, 0], [3, 16, 16]],
+    ];
+    const [a, c] = boxes[side];
+    emitBox(b, x, y, z, a, c, TILE_SIDE[id], sl, bl);
+  }
 }

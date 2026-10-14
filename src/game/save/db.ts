@@ -3,6 +3,7 @@ import type { GameMode } from "../player/player";
 import type { VitalsData } from "../player/vitals";
 import type { SavedStack } from "../items/inventory";
 import type { AchievementState } from "../achievements/tracker";
+import type { FurnaceState } from "../world/furnaces";
 
 /** Everything about a world except its chunks. */
 export interface WorldMeta {
@@ -26,6 +27,13 @@ export interface WorldMeta {
     xp?: number;
   } | null;
   achievements?: AchievementState;
+  /** Furnace contents and fire, by "x,y,z". */
+  furnaces?: Record<string, FurnaceState>;
+  /** Where the player respawns (set with /spawnpoint). */
+  spawnPoint?: [number, number, number];
+  /** Commands allowed in this world. */
+  cheats?: boolean;
+  weather?: { kind: "clear" | "rain" | "thunder"; left: number };
   /** Small top-down preview shown in the world list. */
   thumbnail?: string;
 }

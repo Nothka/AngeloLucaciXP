@@ -16,6 +16,8 @@ export interface GameEvents {
   mobKilled: { type: string; hostile: boolean; weapon: number; byPlayer: boolean };
   /** Three or more sheep within 16 blocks. */
   flockSeen: { count: number };
+  animalFed: { type: string };
+  animalBred: { type: string };
   /** Sunrise reached in Survival without dying since the last one. */
   nightSurvived: { day: number };
   died: { cause: DamageCause | null };

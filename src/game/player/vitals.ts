@@ -7,7 +7,7 @@ export const MAX_HEALTH = 20;
 export const MAX_FOOD = 20;
 export const MAX_AIR = 300;
 
-export type DamageCause = "fall" | "drown" | "starve" | "void" | "mob" | "arrow";
+export type DamageCause = "fall" | "drown" | "starve" | "void" | "mob" | "arrow" | "kill";
 
 export interface VitalsData {
   health: number;
@@ -42,7 +42,7 @@ export class Vitals {
 
   damage(amount: number, cause: DamageCause) {
     if (this.dead || amount <= 0) return;
-    if (this.invulnerable > 0 && cause !== "void") return;
+    if (this.invulnerable > 0 && cause !== "void" && cause !== "kill") return;
     this.health = Math.max(0, this.health - amount);
     this.invulnerable = 0.5;
     this.hurtTime = 0;
