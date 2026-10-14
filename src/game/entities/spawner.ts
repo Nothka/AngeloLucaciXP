@@ -13,6 +13,8 @@ export interface SpawnerEnv {
   timeTicks: number;
   passiveEnabled: boolean;
   hostileEnabled: boolean;
+  /** Extra sky darkening from rain and storms (light levels). */
+  skyDim?: number;
 }
 
 export interface SpawnStats {
@@ -165,7 +167,7 @@ export class Spawner {
         if (!w.chunkAt(Math.floor(mx / 16), Math.floor(mz / 16))?.light) continue;
         const light = w.getLight(mx, y, mz);
         if (category === "monster") {
-          if (!isHostileSpot(blockAt, mx, y, mz) || !canSpawnHostile(light & 15, light >> 4, env.timeTicks)) continue;
+          if (!isHostileSpot(blockAt, mx, y, mz) || !canSpawnHostile(light & 15, Math.max(0, (light >> 4) - (env.skyDim ?? 0)), env.timeTicks)) continue;
         } else {
           if (w.getBlock(mx, y - 1, mz) !== B.GRASS || !isFree(w.getBlock(mx, y, mz)) || !isFree(w.getBlock(mx, y + 1, mz))) continue;
           if (!canSpawnPassive(light & 15, light >> 4)) continue;

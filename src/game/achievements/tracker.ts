@@ -47,6 +47,7 @@ export class AchievementTracker {
       this.advance((t) => t.type === "kill" && e.byPlayer && (t.hostile === undefined || t.hostile === e.hostile) && (!t.weaponTool || getItem(e.weapon)?.tool?.type === t.weaponTool)),
     );
     on("flockSeen", () => this.advance((t) => t.type === "flock"));
+    on("animalBred", () => this.advance((t) => t.type === "breed"));
     on("nightSurvived", () => this.advance((t) => t.type === "nightSurvived"));
     on("position", (e) =>
       this.advance((t) => (t.type === "above" && e.y >= t.y) || (t.type === "below" && e.y < t.y)),

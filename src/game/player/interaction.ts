@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { BLOCKS, B, IS_SOLID, getItem } from "../world/blocks";
+import { BLOCKS, B, getItem, supportDir, supports } from "../world/blocks";
+import { placementFor } from "../world/placement";
 import type { World } from "../world/world";
 import type { Input } from "../input/input";
 import type { Player } from "./player";
@@ -10,6 +11,8 @@ export interface InteractionHost {
   /** Nearest attackable entity along the view ray, if any. */
   pickEntity?(eye: THREE.Vector3, dir: THREE.Vector3, reach: number): { target: Attackable; dist: number } | null;
   attackEntity?(target: Attackable): void;
+  /** Right-click on an entity (feeding animals); return true if it was used. */
+  useEntity?(target: Attackable): boolean;
   /** True if a mob stands in the cell, so blocks are not placed inside it. */
   blockedByEntity?(x: number, y: number, z: number): boolean;
   heldItem(): number;
@@ -20,6 +23,11 @@ export interface InteractionHost {
   onUseBlock(x: number, y: number, z: number, id: number): boolean;
   onSwing(): void;
   onDigTick(id: number): void;
+  /**
+   * Items with their own right-click action (hoes, buckets, rods). Called
+   * even when no block is targeted; return true if the click was used.
+   */
+  useItem?(hit: RayHit | null): boolean;
 }
 
 /** Seconds to break `id` holding `held`, following the classic hardness rules. */
@@ -28,7 +36,8 @@ export function breakTime(id: number, held: number): { time: number; harvest: bo
   if (!def || def.hardness < 0) return { time: Infinity, harvest: false };
   const tool = getItem(held)?.tool;
   const correct = !!tool && def.tool === tool.type;
-  const harvest = !def.needsTool || correct;
+  // The right kind of tool, and a good enough material for ores like iron and diamond.
+  const harvest = !def.needsTool || (correct && tool!.tier >= def.minTier);
   if (def.hardness === 0) return { time: 0, harvest };
   const speed = correct ? tool!.speed : 1;
   return { time: (def.hardness * (harvest ? 1.5 : 5)) / speed, harvest };
@@ -78,6 +87,7 @@ export class Interaction {
         this.host.attackEntity?.(this.entityTarget);
         this.host.onSwing();
       }
+      if (input.clicked.has(2) && this.host.useEntity?.(this.entityTarget)) input.buttons.delete(2);
       return;
     }
 
@@ -121,12 +131,17 @@ export class Interaction {
     }
 
     // ---- using / placing (right click, repeats while held)
-    if (rightDown && hit && (input.clicked.has(2) || this.placeCooldown <= 0)) {
+    if (rightDown && (input.clicked.has(2) || this.placeCooldown <= 0)) {
       this.placeCooldown = 0.25;
-      if (!this.player.sneaking && this.host.onUseBlock(hit.x, hit.y, hit.z, hit.id)) {
+      if (hit && !this.player.sneaking && this.host.onUseBlock(hit.x, hit.y, hit.z, hit.id)) {
         input.buttons.delete(2);
         return;
       }
+      if (this.host.useItem?.(hit)) {
+        input.buttons.delete(2);
+        return;
+      }
+      if (!hit) return;
       const result = this.tryPlace(hit);
       if (result === "blocked-by-player") {
         // Jumping to place a block underneath: try again every frame until the body clears the cell.
@@ -143,36 +158,27 @@ export class Interaction {
   private breakBlock(hit: RayHit, harvest: boolean) {
     const { x, y, z, id } = hit;
     if (!this.world.setBlock(x, y, z, B.AIR)) return;
+    // Anything that was hanging on this block pops off via the world's support rules.
     this.host.onBlockBroken(x, y, z, id, harvest && this.player.mode === "survival");
-    // Plants and torches resting on the block pop off with it.
-    const above = this.world.getBlock(x, y + 1, z);
-    if (above && BLOCKS[above]?.needsSupport) {
-      this.world.setBlock(x, y + 1, z, B.AIR);
-      this.host.onBlockBroken(x, y + 1, z, above, this.player.mode === "survival");
-    }
   }
 
   private tryPlace(hit: RayHit): "placed" | "blocked-by-player" | "invalid" {
-    const held = this.host.heldItem();
-    const item = getItem(held);
-    if (!item?.block) return "invalid";
-    const block = item.block;
-    let { x, y, z } = hit;
-    if (!BLOCKS[hit.id].replaceable) {
-      x += hit.nx;
-      y += hit.ny;
-      z += hit.nz;
+    const plan = placementFor(this.host.heldItem(), hit, this.player.yaw);
+    if (!plan) return "invalid";
+    for (let i = 0; i < plan.length; i++) {
+      const { x, y, z, id } = plan[i];
+      if (y < 0 || y >= 128) return "invalid";
+      if (!BLOCKS[this.world.getBlock(x, y, z)]?.replaceable) return "invalid";
+      const def = BLOCKS[id];
+      if (def.solid && this.player.intersectsBlock(x, y, z)) return "blocked-by-player";
+      if (def.solid && this.host.blockedByEntity?.(x, y, z)) return "invalid";
+      // Every block must hang on something real (later cells may rest on earlier ones).
+      const dir = supportDir(id);
+      if (dir && i === 0 && !supports(id, this.world.getBlock(x + dir[0], y + dir[1], z + dir[2]))) return "invalid";
     }
-    if (y < 0 || y >= 128) return "invalid";
-    const current = this.world.getBlock(x, y, z);
-    if (!BLOCKS[current]?.replaceable) return "invalid";
-    const def = BLOCKS[block];
-    if (def.solid && this.player.intersectsBlock(x, y, z)) return "blocked-by-player";
-    if (def.solid && this.host.blockedByEntity?.(x, y, z)) return "invalid";
-    if (def.needsSupport && !IS_SOLID[this.world.getBlock(x, y - 1, z)]) return "invalid";
-    if (!this.world.setBlock(x, y, z, block)) return "invalid";
+    for (const { x, y, z, id } of plan) this.world.setBlock(x, y, z, id);
     this.host.onSwing();
-    this.host.onBlockPlaced(x, y, z, block);
+    this.host.onBlockPlaced(plan[0].x, plan[0].y, plan[0].z, plan[0].id);
     if (this.player.mode === "survival") this.host.consumeHeld();
     return "placed";
   }

@@ -15,6 +15,7 @@ export type Trigger =
   | { type: "respawn" }
   | { type: "kill"; hostile?: boolean; weaponTool?: "sword" }
   | { type: "flock" }
+  | { type: "breed" }
   | { type: "nightSurvived" };
 
 /** Node icon: an item's inventory icon, or a raw texture tile. */
@@ -54,10 +55,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "torches", title: "Night Shift", description: "Place 25 torches", icon: { item: B.TORCH }, parentId: "torch", trigger: { type: "place", ids: [B.TORCH], count: 25 }, challenge: true },
 
   // Building
+  { id: "furnace", title: "Hot Topic", description: "Build a furnace out of eight cobblestone", icon: { item: B.FURNACE }, parentId: "upgrade", trigger: { type: "craft", ids: [B.FURNACE] } },
+  { id: "iron", title: "Acquire Hardware", description: "Smelt an iron ingot", icon: { item: I.IRON_INGOT }, parentId: "furnace", trigger: { type: "craft", ids: [I.IRON_INGOT] } },
+  { id: "bucket", title: "Pail Rider", description: "Fill a bucket with water", icon: { item: I.WATER_BUCKET }, parentId: "iron", trigger: { type: "pickup", ids: [I.WATER_BUCKET] } },
+  { id: "diamond", title: "Diamonds!", description: "Mine a diamond with an iron pickaxe", icon: { item: I.DIAMOND }, parentId: "iron", trigger: { type: "pickup", ids: [I.DIAMOND] }, challenge: true },
+  { id: "redstone", title: "Red Alert", description: "Mine redstone dust", icon: { item: I.REDSTONE }, parentId: "iron", trigger: { type: "pickup", ids: [I.REDSTONE] } },
+  { id: "seeds", title: "Green Thumb", description: "Gather wheat seeds from the grass", icon: { item: I.SEEDS }, parentId: "start", trigger: { type: "pickup", ids: [I.SEEDS] } },
+  { id: "bread", title: "Bake Bread", description: "Turn wheat into bread", icon: { item: I.BREAD }, parentId: "seeds", trigger: { type: "craft", ids: [I.BREAD] } },
   { id: "builder", title: "Foundations", description: "Place 10 blocks", icon: { item: B.COBBLESTONE }, parentId: "start", trigger: { type: "place", count: 10 } },
   { id: "master_builder", title: "Master Builder", description: "Place 500 blocks", icon: { item: B.PLANKS }, parentId: "builder", trigger: { type: "place", count: 500 }, challenge: true },
   { id: "sand", title: "Beach Comber", description: "Collect sand", icon: { item: B.SAND }, parentId: "builder", trigger: { type: "pickup", ids: [B.SAND] } },
-  { id: "glass", title: "Clear Thinking", description: "Craft glass from sand and coal", icon: { item: B.GLASS }, parentId: "sand", trigger: { type: "craft", ids: [B.GLASS] } },
+  { id: "glass", title: "Clear Thinking", description: "Smelt sand into glass", icon: { item: B.GLASS }, parentId: "sand", trigger: { type: "craft", ids: [B.GLASS] } },
 
   // Exploring
   { id: "swim", title: "Making a Splash", description: "Go for your first swim", icon: { tile: TILE.water }, parentId: "start", trigger: { type: "water" } },
@@ -66,7 +74,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "peak", title: "Peak Performance", description: "Stand above height 100", icon: { item: B.SNOW }, parentId: "day", trigger: { type: "above", y: 100 }, challenge: true },
   // Creatures
   { id: "slayer", title: "Monster Slayer", description: "Defeat a hostile mob with a sword", icon: { item: I.STONE_SWORD }, parentId: "wood_sword", trigger: { type: "kill", hostile: true, weaponTool: "sword" } },
-  { id: "flock", title: "Flock Finder", description: "Find a flock of three or more sheep", icon: { item: I.WOOL }, parentId: "start", trigger: { type: "flock" } },
+  { id: "flock", title: "Flock Finder", description: "Find a flock of three or more sheep", icon: { item: B.WOOL_WHITE }, parentId: "start", trigger: { type: "flock" } },
+  { id: "breed", title: "Repopulation", description: "Breed two animals with wheat or seeds", icon: { item: I.WHEAT }, parentId: "flock", trigger: { type: "breed" } },
   { id: "first_night", title: "First Light", description: "Survive your first night", icon: { item: B.TORCH }, parentId: "start", trigger: { type: "nightSurvived" } },
   { id: "respawn", title: "Back on Your Feet", description: "Respawn after a fall from grace", icon: { item: I.APPLE }, parentId: "start", trigger: { type: "respawn" }, hidden: true },
 ];

@@ -13,7 +13,20 @@ import { seededChunkAnimals } from "./entities/spawnRules";
 import type { Audio } from "./audio/audio";
 import type { GameMode } from "./player/player";
 import { Vitals } from "./player/vitals";
-import { BLOCKS, B, I, IS_SOLID, getItem } from "./world/blocks";
+import {
+  BLOCKS, B, I, IS_SOLID, doorState, getItem, isButton, isDoor, isLever, isPlate, isWater, isWheat, leverBlock,
+  buttonBlock, switchFace, switchOn,
+} from "./world/blocks";
+import { BlockUpdates, blockDrops, blockXp } from "./world/blockUpdates";
+import { FallingBlocks } from "./world/gravity";
+import { FurnaceRegistry, type FurnaceState } from "./world/furnaces";
+import { RedstoneSim, setDoorOpen } from "./world/redstone";
+import { Weather, type WeatherKind } from "./world/weather";
+import { FishingBobber } from "./entities/fishing";
+import { raycast, type RayHit } from "./player/raycast";
+import { SMELT_XP } from "./items/smelting";
+import { runCommand, type CommandResult } from "./commands";
+import { blockIndex, CHUNK_SIZE } from "./config";
 import type { Chunk } from "./world/chunk";
 import { World, type ChunkStore } from "./world/world";
 import { EventBus, type GameEvents } from "./events";
@@ -26,10 +39,12 @@ import { EntityManager } from "./entities/entityManager";
 import { ProjectileManager } from "./entities/projectiles";
 import { XpOrbManager } from "./entities/xpOrbs";
 import { Experience } from "./player/experience";
+import { isCold } from "./world/terrain";
 import { SPAWN_CONFIG } from "./entities/spawnConfig";
 import { Spawner } from "./entities/spawner";
 import type { Mob } from "./entities/mob";
 import { MOB_LIST, MOB_TYPES, type MobType } from "./entities/mobTypes";
+import { feed } from "./entities/animalLife";
 
 class DbChunkStore implements ChunkStore {
   constructor(private worldId: string, private keys: Set<string>) {}
@@ -52,7 +67,13 @@ class DbChunkStore implements ChunkStore {
 
 export interface SessionEvents {
   openCrafting(): void;
+  openFurnace(furnace: FurnaceState): void;
 }
+
+const isFurnace = (id: number) => id === B.FURNACE || id === B.FURNACE_LIT;
+/** Items with a right-click action of their own (no "can't be placed" hint for these). */
+const USABLE_ITEMS = new Set<number>([I.BUCKET, I.WATER_BUCKET, I.MILK_BUCKET, I.FISHING_ROD, I.SEEDS, I.REDSTONE, I.WOODEN_DOOR, I.IRON_DOOR, I.BOW]);
+const usableBlock = (id: number) => id === B.CRAFTING_TABLE || isFurnace(id) || isLever(id) || isButton(id) || (isDoor(id) && !doorState(id).iron);
 
 const CREATIVE_HOTBAR = [B.GRASS, B.DIRT, B.STONE, B.COBBLESTONE, B.PLANKS, B.LOG, B.GLASS, B.TORCH, B.CRAFTING_TABLE];
 
@@ -72,6 +93,18 @@ export class Session {
   readonly events = new EventBus<GameEvents>();
   readonly achievements: AchievementTracker;
   readonly fluid: FluidSimulator;
+  readonly redstone: RedstoneSim;
+  readonly falling: FallingBlocks;
+  readonly furnaces: FurnaceRegistry;
+  readonly weather: Weather;
+  private blockUpdates: BlockUpdates;
+  /** Pressure plates held down, with seconds until they spring back once nothing stands on them. */
+  private plates = new Map<string, number>();
+  /** Wheat crops in loaded chunks, by chunk key. */
+  private crops = new Map<string, Set<string>>();
+  private cropTimer = 0;
+  private ambientTimer = 0;
+  bobber: FishingBobber | null = null;
   readonly entities: EntityManager;
   readonly projectiles = new ProjectileManager();
   readonly xpOrbs = new XpOrbManager();
@@ -137,18 +170,62 @@ export class Session {
       onMobKilled: (mob) => this.onMobKilled(mob),
       spawnXp: (points, x, y, z) => this.xpOrbs.spawn(points, x, y, z),
       shootArrow: (mob, target) => this.mobShoots(mob, target),
+      bred: (baby) => this.events.emit("animalBred", { type: baby.type }),
+      sound: (mob, sound) => {
+        if (sound === "step") {
+          const under = this.world.getBlock(Math.floor(mob.pos.x), Math.floor(mob.pos.y - 0.2), Math.floor(mob.pos.z));
+          this.audio.blockAt(BLOCKS[under]?.sound ?? "none", "step", mob.pos.x, mob.pos.y, mob.pos.z);
+        } else if (sound === "graze") {
+          // Grazing is the grass block's own break sound, a little lower.
+          this.audio.blockAt("grass", "break", mob.pos.x, mob.pos.y, mob.pos.z, 0.8);
+          return;
+        }
+        this.audio.mobSound(mob.type, sound, mob.pos.x, mob.pos.y + mob.height * 0.8, mob.pos.z, mob.baby);
+      },
     });
     this.group.add(this.entities.group, this.projectiles.group, this.xpOrbs.group);
     this.spawner = new Spawner(this.world, this.entities);
-    this.world.onChunkLoaded = (chunk) => this.chunkEntitiesIn(chunk.cx, chunk.cz, (x, y, z) => chunk.get(x, y, z));
-    this.world.onChunkUnloaded = (chunk) => this.chunkEntitiesOut(chunk.cx, chunk.cz);
+    this.world.onChunkLoaded = (chunk) => {
+      this.chunkEntitiesIn(chunk.cx, chunk.cz, (x, y, z) => chunk.get(x, y, z));
+      this.scanCrops(chunk);
+    };
+    this.world.onChunkUnloaded = (chunk) => {
+      this.chunkEntitiesOut(chunk.cx, chunk.cz);
+      this.crops.delete(`${chunk.cx},${chunk.cz}`);
+    };
     this.fluid = new FluidSimulator(this.world);
-    this.world.onBlockChange = (x, y, z) => this.fluid.notify(x, y, z);
+    this.redstone = new RedstoneSim(this.world);
+    this.weather = new Weather(meta.weather);
+    this.falling = new FallingBlocks(this.world, materials.entity, (id, x, y, z) => {
+      if (this.player.mode === "survival") this.drops.spawn(id, 1, x, y, z);
+    });
+    this.furnaces = new FurnaceRegistry(meta.furnaces, (x, y, z, lit) => {
+      if (isFurnace(this.world.getBlock(x, y, z))) this.world.setBlock(x, y, z, lit ? B.FURNACE_LIT : B.FURNACE);
+    });
+    // Every block change runs through here: things hanging on the block pop
+    // off, then water, redstone and falling sand get their wake-up call.
+    this.blockUpdates = new BlockUpdates(this.world, {
+      popped: (x, y, z, id) => {
+        if (this.player.mode !== "survival") return;
+        for (const d of blockDrops(id)) this.drops.spawn(d.id, d.count, x + 0.5, y + 0.3, z + 0.5);
+      },
+      changed: (x, y, z, before, after) => {
+        this.fluid.notify(x, y, z);
+        this.redstone.notify(x, y, z);
+        this.falling.check(x, y + 1, z);
+        this.falling.check(x, y, z);
+        if (isFurnace(before) && !isFurnace(after)) {
+          for (const st of this.furnaces.remove(x, y, z)) this.drops.spawn(st.id, st.count, x + 0.5, y + 0.5, z + 0.5);
+        }
+        if (isWheat(after)) this.cropSet(x, z).add(`${x},${y},${z}`);
+      },
+    });
+    this.world.onBlockChange = (x, y, z, before, after) => this.blockUpdates.onChange(x, y, z, before, after);
     this.fluid.onWashedAway = (x, y, z, id) => {
       const drop = BLOCKS[id]?.drop;
       if (drop !== null && drop !== undefined && this.player.mode === "survival") this.drops.spawn(drop, 1, x + 0.5, y + 0.3, z + 0.5);
     };
-    this.group.add(this.world.group, this.drops.group, this.selection.group);
+    this.group.add(this.world.group, this.drops.group, this.selection.group, this.falling.group);
 
     if (meta.player) {
       const p = meta.player;
@@ -186,6 +263,7 @@ export class Session {
       attackEntity: (target) => {
         this.attack(target);
       },
+      useEntity: (target) => this.feedAnimal(target as Mob),
       heldItem: () => this.inventory.held?.id ?? 0,
       consumeHeld: () => this.inventory.removeFromSlot(this.inventory.selected, 1),
       onBlockBroken: (x, y, z, id, harvested) => {
@@ -194,22 +272,21 @@ export class Session {
         this.events.emit("blockBroken", { id, x, y, z, harvested, tool });
         if (this.player.mode === "survival") {
           this.vitals.exhaust(0.005);
-          if (harvested && id === B.COAL_ORE) this.xpOrbs.spawn(Math.floor(Math.random() * 3), x + 0.5, y + 0.5, z + 0.5);
+          const xp = harvested ? blockXp(id) : 0;
+          if (xp > 0) this.xpOrbs.spawn(xp, x + 0.5, y + 0.5, z + 0.5);
           if (BLOCKS[id].hardness > 0) this.wearHeld(wearFor(tool, "block"));
+          // Ice over anything but air melts into water when broken.
+          if (id === B.ICE && this.world.getBlock(x, y - 1, z) !== B.AIR) this.world.setBlock(x, y, z, B.WATER);
         }
         if (!harvested) return;
-        const drop = this.dropFor(id);
-        if (drop) this.drops.spawn(drop.id, drop.count, x + 0.5, y + 0.4, z + 0.5);
+        for (const d of blockDrops(id)) this.drops.spawn(d.id, d.count, x + 0.5, y + 0.4, z + 0.5);
       },
       onBlockPlaced: (x, y, z, id) => {
         this.playAt(BLOCKS[id].sound, "place", x, y, z);
         this.events.emit("blockPlaced", { id, x, y, z });
       },
-      onUseBlock: (_x, _y, _z, id) => {
-        if (id !== B.CRAFTING_TABLE) return false;
-        this.hooks.openCrafting();
-        return true;
-      },
+      onUseBlock: (x, y, z, id) => this.useBlock(x, y, z, id),
+      useItem: (hit) => this.useItem(hit),
       onSwing: () => this.onSwing?.(),
       onDigTick: (id) => {
         const t = this.interaction.target;
@@ -264,8 +341,6 @@ export class Session {
     const weapon = this.inventory.held?.id ?? 0;
     const damage = attackDamage(weapon);
     target.hurt(damage, { weapon, from: { x: this.player.pos.x, z: this.player.pos.z } });
-    const mob = target as Partial<Mob>;
-    if (mob.def) this.audio.mobHurt(mob.def.voice, !!mob.dead);
     this.wearHeld(wearFor(weapon, "attack"));
     this.events.emit("attack", { weapon, damage, target: target.name });
     this.onAttack?.(target, damage);
@@ -377,7 +452,7 @@ export class Session {
     from.addScaledVector(dir, 0.6);
     const [lo, hi] = SPAWN_CONFIG.archerArrowDamage;
     this.projectiles.shoot(from, dir.multiplyScalar(speed), { fromPlayer: false, shooter: mob, damage: lo + Math.floor(Math.random() * (hi - lo + 1)), pickup: true });
-    this.audio.bowShot();
+    this.audio.bowShot(from, 5 / 6 + Math.random() * (1.25 - 5 / 6));
   }
 
   /** Hold right click with a bow to draw, release to shoot. Needs an arrow unless in Creative. */
@@ -413,25 +488,9 @@ export class Session {
     this.events.emit("itemCrafted", { id, count });
   }
 
-  private dropFor(id: number): ItemStack | null {
-    if (id === B.LEAVES) {
-      const r = Math.random();
-      if (r < 0.05) return { id: I.APPLE, count: 1 };
-      return r < 0.13 ? { id: I.STICK, count: 1 } : null;
-    }
-    const drop = BLOCKS[id]?.drop;
-    return drop === null || drop === undefined ? null : { id: drop, count: 1 };
-  }
-
+  /** A block sound from the middle of block (x, y, z), placed by the 16-block hearing rules. */
   private playAt(kind: Parameters<Audio["block"]>[0], action: Parameters<Audio["block"]>[1], x: number, y: number, z: number) {
-    const eye = this.player.eye();
-    const dx = x + 0.5 - eye.x;
-    const dz = z + 0.5 - eye.z;
-    const dist = Math.hypot(dx, y + 0.5 - eye.y, dz);
-    const right = new THREE.Vector2(Math.cos(this.player.yaw), -Math.sin(this.player.yaw));
-    const len = Math.hypot(dx, dz) || 1;
-    const pan = ((dx / len) * right.x + (dz / len) * right.y) * 0.7;
-    this.audio.block(kind, action, pan, dist);
+    this.audio.blockAt(kind, action, x + 0.5, y + 0.5, z + 0.5);
   }
 
   get daylightFactor() {
@@ -513,7 +572,8 @@ export class Session {
         if (p.mode === "survival") {
           const held = this.inventory.held;
           const heldItem = held ? getItem(held.id) : undefined;
-          if (input.clicked.has(2) && this.interaction.target && this.interaction.target.id !== B.CRAFTING_TABLE && !heldItem?.block && !heldItem?.food) {
+          const usable = !!held && (USABLE_ITEMS.has(held.id) || heldItem?.tool?.type === "hoe");
+          if (input.clicked.has(2) && this.interaction.target && !usableBlock(this.interaction.target.id) && !heldItem?.block && !heldItem?.food && !usable) {
             this.hint(
               held ? "place-item" : "place-empty",
               held ? "That item can't be placed - pick a block in your hotbar" : "Nothing to place - mine blocks to collect them, or use Creative",
@@ -523,6 +583,8 @@ export class Session {
       }
       const alive = !this.vitals.dead;
       p.update(dt, input, controls && alive);
+      const ears = p.eye();
+      this.audio.setListener(ears.x, ears.y, ears.z, p.yaw);
       this.interaction.update(dt, input, controls && alive);
       this.updateSurvival(dt, input, controls && alive);
       this.drops.update(dt, p, this.daylight, (id, count, wear) => {
@@ -541,9 +603,11 @@ export class Session {
       if (this.mobRules.mobs) this.entities.update(dt, {
         time: this.playTime,
         daylight: this.daylight,
-        isDay: this.daylight > 0.75,
         target: targetable ? { x: p.pos.x, y: p.pos.y, z: p.pos.z } : null,
         hurtTarget: (mob, amount) => this.hurtPlayer(amount, "mob", mob.pos.x, mob.pos.z),
+        holder: alive && this.inventory.held ? { x: p.pos.x, y: p.pos.y, z: p.pos.z, item: this.inventory.held.id } : null,
+        // Overcast skies keep the undead from burning.
+        isDay: this.daylight > 0.75 && !this.weather.raining,
       });
       if (this.mobRules.mobs) this.projectiles.update(dt, this.entities.solidAt, {
         player: () => (alive ? { x: p.pos.x, y: p.pos.y, z: p.pos.z, half: p.half, height: p.height } : null),
@@ -551,7 +615,6 @@ export class Session {
         mobs: () => this.entities.mobs.values(),
         hitMob: (mob, damage, from) => {
           mob.hurt(damage, { weapon: I.BOW, from: { x: from.x, z: from.z } });
-          this.audio.mobHurt(mob.def.voice, mob.dead);
         },
         pickup: () => {
           if (p.mode === "creative") return true;
@@ -572,7 +635,24 @@ export class Session {
         timeTicks: this.time,
         passiveEnabled: this.mobRules.mobs,
         hostileEnabled: this.mobRules.mobs && !this.mobRules.peaceful,
+        skyDim: Math.round(this.weather.rain * 3 + this.weather.thunder * 5),
       });
+
+      this.redstone.tick(dt);
+      this.falling.update(dt);
+      this.furnaces.tick(dt, (x, y, z) => (this.world.isLoaded(x, z) ? this.world.getBlock(x, y, z) : null), (out) => SMELT_XP[out] ?? 0);
+      this.updatePlates(dt, alive);
+      this.updateCrops(dt);
+      this.updateFishing(dt);
+      if (this.weather.update(dt)) this.onLightning?.();
+      this.ambientTimer -= dt;
+      if (this.ambientTimer <= 0) {
+        this.ambientTimer = 0.25;
+        const eye = p.eye();
+        const sky = this.world.getLight(Math.floor(eye.x), Math.floor(eye.y), Math.floor(eye.z)) >> 4;
+        const cold = isColdAt(this, Math.floor(p.pos.x), Math.floor(p.pos.z));
+        this.audio.setRain(cold ? 0 : this.weather.rain, sky < 14 ? 1 : 0);
+      }
 
       // Water flows on its own clock, a quarter second per step.
       this.fluidTimer += dt;
@@ -631,8 +711,10 @@ export class Session {
 
     // Eating: hold right click with food for 1.6 s.
     const held = this.inventory.held;
-    const food = held ? getItem(held.id)?.food : undefined;
-    if (controls && food && this.vitals.food < 20 && input.buttons.has(2)) {
+    const heldDef = held ? getItem(held.id) : undefined;
+    const food = heldDef?.food;
+    const drink = heldDef?.drink;
+    if (controls && ((food && this.vitals.food < 20) || drink) && input.buttons.has(2)) {
       this.eating += dt / 1.6;
       this.eatSoundTimer -= dt;
       if (this.eatSoundTimer <= 0) {
@@ -640,9 +722,10 @@ export class Session {
         this.eatSoundTimer = 0.22;
       }
       if (this.eating >= 1) {
-        this.vitals.eat(food.hunger, food.saturation);
+        if (food) this.vitals.eat(food.hunger, food.saturation);
         this.events.emit("itemEaten", { id: held!.id });
-        this.inventory.removeFromSlot(this.inventory.selected, 1);
+        if (drink) this.swapHeld(drink.leaves);
+        else this.inventory.removeFromSlot(this.inventory.selected, 1);
         this.audio.burp();
         this.eating = 0;
         input.buttons.delete(2);
@@ -671,16 +754,329 @@ export class Session {
     }
   }
 
+  /* ------------------------------------------------------------ using blocks and items */
+
+  /** Right-click on a block that does something. */
+  private useBlock(x: number, y: number, z: number, id: number): boolean {
+    const w = this.world;
+    if (id === B.CRAFTING_TABLE) {
+      this.hooks.openCrafting();
+      return true;
+    }
+    if (isFurnace(id)) {
+      this.hooks.openFurnace(this.furnaces.get(x, y, z));
+      return true;
+    }
+    if (isLever(id)) {
+      const on = !switchOn(id);
+      w.setBlock(x, y, z, leverBlock(switchFace(id), on));
+      this.audio.switchClick(on, x + 0.5, y + 0.5, z + 0.5);
+      this.onSwing?.();
+      return true;
+    }
+    if (isButton(id)) {
+      if (switchOn(id)) return true;
+      const face = switchFace(id);
+      w.setBlock(x, y, z, buttonBlock(face, true));
+      this.audio.switchClick(true, x + 0.5, y + 0.5, z + 0.5);
+      this.onSwing?.();
+      // Stone buttons spring back after a second.
+      this.redstone.schedule(`button:${x},${y},${z}`, 1, () => {
+        if (w.getBlock(x, y, z) === buttonBlock(face, true)) {
+          w.setBlock(x, y, z, buttonBlock(face, false));
+          this.audio.switchClick(false, x + 0.5, y + 0.5, z + 0.5);
+        }
+      });
+      return true;
+    }
+    if (isDoor(id)) {
+      const s = doorState(id);
+      // Iron doors only open with redstone.
+      if (s.iron) return true;
+      setDoorOpen(w, x, s.upper ? y - 1 : y, z, !s.open);
+      this.playAt("wood", "place", x, y, z);
+      this.onSwing?.();
+      return true;
+    }
+    return false;
+  }
+
+  /** Right-click an animal with the food it breeds with: love (or growing up faster for babies). */
+  private feedAnimal(mob: Mob): boolean {
+    const held = this.inventory.held;
+    if (held?.id === I.BUCKET && mob.type === "cow" && !mob.baby && !mob.dead) {
+      this.audio.mobSound("cow", "milk", mob.pos.x, mob.pos.y + mob.height * 0.5, mob.pos.z);
+      if (this.player.mode === "survival") this.swapHeld(I.MILK_BUCKET);
+      else this.inventory.add(I.MILK_BUCKET, 1);
+      this.onSwing?.();
+      return true;
+    }
+    if (!held || !mob.def?.breedFood?.includes(held.id) || mob.dead) return false;
+    if (feed(mob, SPAWN_CONFIG.growUpSeconds) === "refused") return false;
+    if (mob.baby && mob.age >= SPAWN_CONFIG.growUpSeconds) mob.growUp();
+    this.audio.mobSound(mob.type, "eat", mob.pos.x, mob.pos.y + mob.height * 0.7, mob.pos.z, mob.baby);
+    if (this.player.mode === "survival") this.inventory.removeFromSlot(this.inventory.selected, 1);
+    this.events.emit("animalFed", { type: mob.type });
+    this.onSwing?.();
+    return true;
+  }
+
+  /** Hoes, buckets and fishing rods; returns true if the click was used. */
+  private useItem(hit: RayHit | null): boolean {
+    const held = this.inventory.held;
+    if (!held) return false;
+    const survival = this.player.mode === "survival";
+    const w = this.world;
+    if (getItem(held.id)?.tool?.type === "hoe") {
+      if (!hit || (hit.id !== B.GRASS && hit.id !== B.DIRT && hit.id !== B.SNOWY_GRASS) || hit.ny === -1) return false;
+      if (w.getBlock(hit.x, hit.y + 1, hit.z) !== B.AIR) return false;
+      w.setBlock(hit.x, hit.y, hit.z, B.FARMLAND);
+      this.playAt("grass", "place", hit.x, hit.y, hit.z);
+      this.wearHeld(1);
+      this.onSwing?.();
+      return true;
+    }
+    if (held.id === I.BUCKET) {
+      const water = raycast(w, this.player.eye(), this.player.look(), this.interaction.reach, true);
+      if (!water || water.id !== B.WATER) return false;
+      w.setBlock(water.x, water.y, water.z, B.AIR);
+      this.audio.splash({ x: water.x + 0.5, y: water.y + 0.5, z: water.z + 0.5 });
+      if (survival) this.swapHeld(I.WATER_BUCKET);
+      this.events.emit("itemPickedUp", { id: I.WATER_BUCKET, count: 1 });
+      this.onSwing?.();
+      return true;
+    }
+    if (held.id === I.WATER_BUCKET) {
+      if (!hit) return false;
+      const into = BLOCKS[hit.id]?.replaceable && !isWater(hit.id);
+      const x = into ? hit.x : hit.x + hit.nx;
+      const y = into ? hit.y : hit.y + hit.ny;
+      const z = into ? hit.z : hit.z + hit.nz;
+      const cur = w.getBlock(x, y, z);
+      if (cur === B.WATER || (!BLOCKS[cur]?.replaceable && !isWater(cur))) return false;
+      if (cur !== B.AIR && !isWater(cur) && survival) for (const d of blockDrops(cur)) this.drops.spawn(d.id, d.count, x + 0.5, y + 0.3, z + 0.5);
+      if (!w.setBlock(x, y, z, B.WATER)) return false;
+      this.audio.splash({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
+      if (survival) this.swapHeld(I.BUCKET);
+      this.onSwing?.();
+      return true;
+    }
+    if (held.id === I.FISHING_ROD) {
+      this.useRod();
+      return true;
+    }
+    return false;
+  }
+
+  /** Turns one of the held items into `id` (filling or emptying a bucket). */
+  private swapHeld(id: number) {
+    const slot = this.inventory.selected;
+    const held = this.inventory.slots[slot];
+    if (!held) return;
+    if (held.count <= 1) {
+      this.inventory.slots[slot] = { id, count: 1 };
+    } else {
+      held.count--;
+      const left = this.inventory.add(id, 1);
+      if (left > 0) this.throwStack({ id, count: left });
+    }
+    this.inventory.changed();
+  }
+
+  private rodTip() {
+    const eye = this.player.eye();
+    const look = this.player.look();
+    const right = new THREE.Vector3(Math.cos(this.player.yaw), 0, -Math.sin(this.player.yaw));
+    return eye.addScaledVector(look, 0.7).addScaledVector(right, 0.35).add(new THREE.Vector3(0, -0.15, 0));
+  }
+
+  /** Cast the line, or reel it in (catching a fish if one is biting). */
+  private useRod() {
+    this.onSwing?.();
+    if (!this.bobber) {
+      const b = new FishingBobber(this.rodTip(), this.player.look(), this.weather.raining);
+      b.onBite = () => this.audio.bobber(true, b.pos.x, b.pos.y, b.pos.z);
+      b.onSplash = () => this.audio.bobber(false, b.pos.x, b.pos.y, b.pos.z);
+      this.bobber = b;
+      this.group.add(b.group);
+      this.audio.bowShot();
+      return;
+    }
+    const result = this.bobber.reel();
+    const p = this.player;
+    if (result === "fish") {
+      this.drops.spawn(I.RAW_FISH, 1, p.pos.x, p.pos.y + 1, p.pos.z, new THREE.Vector3(0, 1, 0), 0);
+      if (p.mode === "survival") this.xpOrbs.spawn(1 + Math.floor(Math.random() * 6), p.pos.x, p.pos.y + 0.5, p.pos.z);
+      this.audio.splash();
+      this.wearHeld(1);
+    } else if (result === "snagged") {
+      this.wearHeld(2);
+    }
+    this.removeBobber();
+  }
+
+  private removeBobber() {
+    if (!this.bobber) return;
+    this.group.remove(this.bobber.group);
+    this.bobber.dispose();
+    this.bobber = null;
+  }
+
+  private updateFishing(dt: number) {
+    if (!this.bobber) return;
+    if (this.inventory.held?.id !== I.FISHING_ROD || this.vitals.dead) return this.removeBobber();
+    if (!this.bobber.update(dt, this.world, this.rodTip())) this.removeBobber();
+  }
+
+  /* ------------------------------------------------------------ redstone, crops, furnaces */
+
+  /** Stone pressure plates go down under a player or mob and spring back a second after they leave. */
+  private updatePlates(dt: number, playerAlive: boolean) {
+    const w = this.world;
+    const pressed = new Set<string>();
+    const feet = (x: number, y: number, z: number) => {
+      const bx = Math.floor(x), by = Math.floor(y + 0.05), bz = Math.floor(z);
+      if (isPlate(w.getBlock(bx, by, bz))) pressed.add(`${bx},${by},${bz}`);
+    };
+    if (playerAlive) feet(this.player.pos.x, this.player.pos.y, this.player.pos.z);
+    if (this.mobRules.mobs) for (const m of this.entities.mobs.values()) if (!m.dead) feet(m.pos.x, m.pos.y, m.pos.z);
+    for (const k of pressed) {
+      const [x, y, z] = k.split(",").map(Number);
+      if (w.getBlock(x, y, z) === B.PRESSURE_PLATE) {
+        w.setBlock(x, y, z, B.PRESSURE_PLATE_ON);
+        this.audio.switchClick(true, x + 0.5, y + 0.1, z + 0.5);
+      }
+      this.plates.set(k, 1);
+    }
+    for (const [k, t] of this.plates) {
+      if (pressed.has(k)) continue;
+      if (t - dt > 0) {
+        this.plates.set(k, t - dt);
+        continue;
+      }
+      this.plates.delete(k);
+      const [x, y, z] = k.split(",").map(Number);
+      if (w.getBlock(x, y, z) === B.PRESSURE_PLATE_ON) {
+        w.setBlock(x, y, z, B.PRESSURE_PLATE);
+        this.audio.switchClick(false, x + 0.5, y + 0.1, z + 0.5);
+      }
+    }
+  }
+
+  private cropSet(x: number, z: number) {
+    const key = `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
+    let set = this.crops.get(key);
+    if (!set) this.crops.set(key, (set = new Set()));
+    return set;
+  }
+
+  private scanCrops(chunk: Chunk) {
+    const b = chunk.blocks;
+    for (let i = 0; i < b.length; i++) {
+      if (b[i] < B.WHEAT_0 || b[i] > B.WHEAT_7) continue;
+      const x = i % CHUNK_SIZE;
+      const z = Math.floor(i / CHUNK_SIZE) % CHUNK_SIZE;
+      const y = Math.floor(i / (CHUNK_SIZE * CHUNK_SIZE));
+      if (blockIndex(x, y, z) !== i) continue;
+      const wx = chunk.cx * CHUNK_SIZE + x, wz = chunk.cz * CHUNK_SIZE + z;
+      this.cropSet(wx, wz).add(`${wx},${y},${wz}`);
+    }
+  }
+
+  /** Wheat grows a stage every half minute or so, faster with water nearby. */
+  private updateCrops(dt: number) {
+    this.cropTimer += dt;
+    if (this.cropTimer < 1) return;
+    this.cropTimer -= 1;
+    const w = this.world;
+    for (const set of this.crops.values()) {
+      for (const k of set) {
+        const [x, y, z] = k.split(",").map(Number);
+        const id = w.getBlock(x, y, z);
+        if (!isWheat(id) || id === B.WHEAT_7) {
+          set.delete(k);
+          continue;
+        }
+        // Needs some light to grow.
+        const light = w.getLight(x, y, z);
+        if (Math.max(light >> 4, light & 15) < 9) continue;
+        const chance = this.nearWater(x, y - 1, z) ? 1 / 25 : 1 / 50;
+        if (Math.random() < chance) w.setBlock(x, y, z, id + 1);
+      }
+    }
+  }
+
+  private nearWater(x: number, y: number, z: number) {
+    for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) if (isWater(this.world.getBlock(x + dx, y, z + dz))) return true;
+    return false;
+  }
+
+  /** The furnace screen hands over its output: bank the smelting XP and count it toward achievements. */
+  takeSmelted(furnace: FurnaceState, stack: ItemStack) {
+    const whole = Math.floor(furnace.xp);
+    const xp = whole + (Math.random() < furnace.xp - whole ? 1 : 0);
+    furnace.xp = 0;
+    const p = this.player;
+    if (xp > 0 && p.mode === "survival") this.xpOrbs.spawn(xp, p.pos.x, p.pos.y + 0.5, p.pos.z);
+    this.events.emit("itemCrafted", { id: stack.id, count: stack.count });
+  }
+
+  /* ------------------------------------------------------------ console */
+
+  get cheats() {
+    return this.meta.cheats ?? true;
+  }
+
+  /** Runs a chat command such as "/time set night". */
+  command(text: string): CommandResult {
+    const session = this;
+    const p = this.player;
+    return runCommand(text, {
+      cheats: this.cheats,
+      playerPos: () => ({ x: p.pos.x, y: p.pos.y, z: p.pos.z }),
+      setMode: (mode) => this.setMode(mode),
+      get time() {
+        return session.time;
+      },
+      set time(v: number) {
+        session.time = v;
+      },
+      setWeather: (kind: WeatherKind, seconds?: number) => this.weather.set(kind, seconds),
+      give: (id, count) => {
+        const left = this.inventory.add(id, count);
+        if (left > 0) this.throwStack({ id, count: left });
+        if (left < count) {
+          this.audio.pickup();
+          this.events.emit("itemPickedUp", { id, count: count - left });
+        }
+        return left;
+      },
+      teleport: (x, y, z) => {
+        p.vel.set(0, 0, 0);
+        p.teleport(x, y, z);
+        this.spawnPending = { x, z, y };
+      },
+      setSpawn: (x, y, z) => {
+        this.meta.spawnPoint = [x, y, z];
+      },
+      kill: () => this.vitals.damage(1e9, "kill"),
+    });
+  }
+
+  /** Called when lightning strikes (for the flash and thunder). */
+  onLightning: (() => void) | null = null;
+
   /** Back to the world spawn with full health and an empty inventory. */
   respawn() {
     this.vitals.reset();
     this.deathHandled = false;
     this.eating = 0;
-    const spawn = this.world.generator.findSpawn();
+    const sp = this.meta.spawnPoint;
+    const spawn = sp ? { x: sp[0] + 0.5, y: sp[1], z: sp[2] + 0.5 } : this.world.generator.findSpawn();
     this.player.vel.set(0, 0, 0);
     this.player.flying = false;
-    this.spawnPending = { x: spawn.x, z: spawn.z, y: null };
-    this.player.teleport(spawn.x, spawn.y + 1, spawn.z);
+    this.spawnPending = { x: spawn.x, z: spawn.z, y: sp ? sp[1] : null };
+    this.player.teleport(spawn.x, spawn.y + (sp ? 0 : 1), spawn.z);
     this.ready = false;
     this.events.emit("respawned", {});
   }
@@ -698,6 +1094,8 @@ export class Session {
       ...this.meta,
       lastPlayed: Date.now(),
       time: Math.floor(this.time),
+      furnaces: this.furnaces.serialize(),
+      weather: this.weather.serialize(),
       player: {
         pos: [p.pos.x, p.pos.y, p.pos.z],
         yaw: p.yaw,
@@ -748,10 +1146,18 @@ export class Session {
     this.achievements.dispose();
     this.events.clear();
     this.fluid.clear();
+    this.redstone.clear();
+    this.falling.clear();
+    this.removeBobber();
     this.entities.clear();
     this.projectiles.clear();
     this.xpOrbs.clear();
     this.drops.clear();
     this.world.dispose();
   }
+}
+
+/** Snow instead of rain at this column? */
+export function isColdAt(session: Session, x: number, z: number) {
+  return isCold(session.world.generator.column(x, z));
 }

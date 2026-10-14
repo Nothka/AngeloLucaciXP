@@ -13,7 +13,7 @@ export interface MenuHost {
   embedded: boolean;
   applySettings(): void;
   listWorlds(): Promise<WorldMeta[]>;
-  createWorld(name: string, seedText: string, mode: GameMode): void;
+  createWorld(name: string, seedText: string, mode: GameMode, cheats: boolean): void;
   playWorld(meta: WorldMeta): void;
   deleteWorld(id: string): Promise<void>;
   quitGame(): void;
@@ -179,11 +179,20 @@ export class Menus {
 
   showCreate() {
     let mode: GameMode = "survival";
+    let cheats = false;
+    const cheatsBtn = button("", () => {
+      cheats = !cheats;
+      cheatsBtn.textContent = `Allow Cheats: ${cheats ? "ON" : "OFF"}`;
+    });
+    cheatsBtn.textContent = "Allow Cheats: OFF";
     const name = h("input.bv-input", { maxlength: 32, value: "New World", spellcheck: "false" });
     const seed = h("input.bv-input", { maxlength: 32, placeholder: "Leave blank for a random seed", spellcheck: "false" });
     const modeHint = h("div.bv-hint.bv-text");
     const modeBtn = button("", () => {
       mode = mode === "survival" ? "creative" : "survival";
+      // Like the classic menu, Creative turns cheats on (and Survival back off).
+      cheats = mode === "creative";
+      cheatsBtn.textContent = `Allow Cheats: ${cheats ? "ON" : "OFF"}`;
       renderMode();
     });
     const renderMode = () => {
@@ -194,7 +203,7 @@ export class Menus {
           : "Unlimited blocks, instant breaking. Double-tap Space to fly.";
     };
     renderMode();
-    const create = () => this.host.createWorld(name.value.trim() || "New World", seed.value, mode);
+    const create = () => this.host.createWorld(name.value.trim() || "New World", seed.value, mode, cheats);
     for (const input of [name, seed]) input.addEventListener("keydown", (e) => e.key === "Enter" && create());
     const screen = h("div.bv-screen.is-dim", {},
       h("div.bv-screen-title.bv-text", {}, "Create New World"),
@@ -207,6 +216,9 @@ export class Menus {
         h("div", { style: `height:${px(6)}` }),
         modeBtn,
         modeHint,
+        h("div", { style: `height:${px(4)}` }),
+        cheatsBtn,
+        h("div.bv-hint.bv-text", {}, "Commands like /gamemode, /time and /give (open the chat with T or /)"),
       ),
       h("div.bv-footer", {},
         h("div.bv-row", {},
@@ -278,6 +290,7 @@ export class Menus {
       ["Inventory", "E"],
       ["Drop item", "Q"],
       ["Hotbar", "1-9, mouse wheel"],
+      ["Chat / Commands", "T or /"],
       ["Hide HUD / Debug", "F1 / F3"],
       ["Pause", "Esc"],
     ];

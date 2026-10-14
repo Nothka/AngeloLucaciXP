@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Attackable } from "../items/combat";
 import { MOB_TYPES, type MobDef, type MobType } from "./mobTypes";
+import { AMBIENT_QUIET_TICKS, freshAmbientCounter, nextEggDelay } from "./animalLife";
 import { sweepAxis, type Body, type SolidAt } from "./physics";
 
 const GRAVITY = 32;
@@ -57,6 +58,10 @@ export class Mob implements Body, Attackable {
   /** Smoothed horizontal speed and walk cycle for the leg animation. */
   moveAmount = 0;
   walkPhase = 0;
+  /** Blocks walked on the ground since the last footstep sound. */
+  stepDist = 0;
+  /** Seconds left with its head down eating grass (sheep). */
+  grazing = 0;
   /** 0..1 arm swing after a melee hit. */
   attackAnim = 1;
 
@@ -76,6 +81,24 @@ export class Mob implements Body, Attackable {
   knockTime = 0;
   burnTimer = 0;
   private invulnerable = 0;
+
+  // Sounds and animal life.
+  /** Idle-sound dice counter (ticks) and the time not yet stepped in whole ticks. */
+  ambientCounter = freshAmbientCounter(Math.random);
+  soundClock = 0;
+  /** A hurt or death sound waiting to be played this frame. */
+  pendingSound: "hurt" | "death" | null = null;
+  /** Seconds left in love after being fed, and before it can breed again. */
+  love = 0;
+  breedCooldown = 0;
+  /** The animal it is courting, and how long they have been close together. */
+  partner: Mob | null = null;
+  together = 0;
+  heartTimer = 0;
+  /** Chickens: seconds until the next egg. */
+  eggTimer = nextEggDelay(Math.random);
+  /** Walk toward this point (a player holding food), set by the entity manager each frame. */
+  tempter: { x: number; z: number } | null = null;
 
   constructor(readonly type: MobType, x: number, y: number, z: number, opts: MobSpawnOptions = {}) {
     this.def = MOB_TYPES[type];
@@ -135,6 +158,11 @@ export class Mob implements Body, Attackable {
     if (!this.hostile) this.panicTime = 4;
     else if (source.weapon >= 0) this.angry = 30;
     if (this.health <= 0) this.deathTime = 0;
+    // Pain interrupts the idle chatter: a hurt sound now, then the quiet period again.
+    this.pendingSound = this.health <= 0 ? "death" : "hurt";
+    this.ambientCounter = -AMBIENT_QUIET_TICKS;
+    this.love = 0;
+    this.partner = null;
   }
 
   /** Gravity, buoyancy, steering toward the AI's wish and the shared AABB sweep. */
@@ -175,5 +203,6 @@ export class Mob implements Body, Attackable {
     const moved = Math.hypot(this.pos.x - bx, this.pos.z - bz);
     this.moveAmount += (Math.min(1, moved / dt / 2.5) - this.moveAmount) * Math.min(1, dt * 10);
     this.walkPhase += moved * 2.2;
+    if (this.onGround && !this.inWater) this.stepDist += moved;
   }
 }

@@ -1,4 +1,4 @@
-import { B, I } from "../world/blocks";
+import { B, I, TOOL_IDS, type ToolKind, type ToolMaterial } from "../world/blocks";
 import type { ItemStack } from "./inventory";
 
 interface ShapedRecipe {
@@ -12,30 +12,59 @@ interface ShapelessRecipe {
   result: ItemStack;
 }
 
+const TOOL_PATTERNS: Record<ToolKind, string[]> = {
+  pickaxe: ["MMM", " S ", " S "],
+  axe: ["MM", "MS", " S"],
+  shovel: ["M", "S", "S"],
+  sword: ["M", "M", "S"],
+  hoe: ["MM", " S", " S"],
+};
+/** Head material for each tool tier (stone tools also take smooth stone). */
+const TOOL_HEADS: [ToolMaterial, number][] = [
+  ["wooden", B.PLANKS], ["stone", B.COBBLESTONE], ["stone", B.STONE], ["iron", I.IRON_INGOT], ["golden", I.GOLD_INGOT], ["diamond", I.DIAMOND],
+];
+
 const shaped: ShapedRecipe[] = [
   { pattern: ["P", "P"], key: { P: B.PLANKS }, result: { id: I.STICK, count: 4 } },
   { pattern: ["PP", "PP"], key: { P: B.PLANKS }, result: { id: B.CRAFTING_TABLE, count: 1 } },
+  { pattern: ["CCC", "C C", "CCC"], key: { C: B.COBBLESTONE }, result: { id: B.FURNACE, count: 1 } },
   { pattern: ["C", "S"], key: { C: I.COAL, S: I.STICK }, result: { id: B.TORCH, count: 4 } },
-  { pattern: ["PPP", " S ", " S "], key: { P: B.PLANKS, S: I.STICK }, result: { id: I.WOODEN_PICKAXE, count: 1 } },
-  { pattern: ["CCC", " S ", " S "], key: { C: B.COBBLESTONE, S: I.STICK }, result: { id: I.STONE_PICKAXE, count: 1 } },
-  { pattern: ["PP", "PS", " S"], key: { P: B.PLANKS, S: I.STICK }, result: { id: I.WOODEN_AXE, count: 1 } },
-  { pattern: ["CC", "CS", " S"], key: { C: B.COBBLESTONE, S: I.STICK }, result: { id: I.STONE_AXE, count: 1 } },
-  { pattern: ["P", "S", "S"], key: { P: B.PLANKS, S: I.STICK }, result: { id: I.WOODEN_SHOVEL, count: 1 } },
-  { pattern: ["C", "S", "S"], key: { C: B.COBBLESTONE, S: I.STICK }, result: { id: I.STONE_SHOVEL, count: 1 } },
-  // Swords: blade of two material blocks over a stick, in any column of the grid.
-  { pattern: ["P", "P", "S"], key: { P: B.PLANKS, S: I.STICK }, result: { id: I.WOODEN_SWORD, count: 1 } },
-  { pattern: ["C", "C", "S"], key: { C: B.COBBLESTONE, S: I.STICK }, result: { id: I.STONE_SWORD, count: 1 } },
-  { pattern: ["C", "C", "S"], key: { C: B.STONE, S: I.STICK }, result: { id: I.STONE_SWORD, count: 1 } },
-  { pattern: [" S ", "SCS", " S "], key: { S: B.SAND, C: I.COAL }, result: { id: B.GLASS, count: 4 } },
+  ...TOOL_HEADS.flatMap(([material, head]) =>
+    (Object.keys(TOOL_PATTERNS) as ToolKind[]).map((kind) => ({
+      pattern: TOOL_PATTERNS[kind], key: { M: head, S: I.STICK }, result: { id: TOOL_IDS[material][kind], count: 1 },
+    })),
+  ),
   // Bow: three sticks curved around three strings (mirrored also works).
   { pattern: [" SX", "S X", " SX"], key: { S: I.STICK, X: I.STRING }, result: { id: I.BOW, count: 1 } },
-  // Arrows: a stone tip, a stick shaft and feather fletching.
+  // Arrows: flint (or a stone tip), a stick shaft and feather fletching.
+  { pattern: ["C", "S", "F"], key: { C: I.FLINT, S: I.STICK, F: I.FEATHER }, result: { id: I.ARROW, count: 4 } },
   { pattern: ["C", "S", "F"], key: { C: B.COBBLESTONE, S: I.STICK, F: I.FEATHER }, result: { id: I.ARROW, count: 4 } },
+  { pattern: ["  S", " SX", "S X"], key: { S: I.STICK, X: I.STRING }, result: { id: I.FISHING_ROD, count: 1 } },
   { pattern: ["SS", "SS"], key: { S: B.SAND }, result: { id: B.SANDSTONE, count: 1 } },
+  { pattern: ["BB", "BB"], key: { B: I.BRICK }, result: { id: B.BRICKS, count: 1 } },
+  { pattern: ["CC", "CC"], key: { C: I.CLAY_BALL }, result: { id: B.CLAY, count: 1 } },
+  { pattern: ["WWW"], key: { W: I.WHEAT }, result: { id: I.BREAD, count: 1 } },
+  { pattern: ["I I", " I "], key: { I: I.IRON_INGOT }, result: { id: I.BUCKET, count: 1 } },
+  { pattern: ["PP", "PP", "PP"], key: { P: B.PLANKS }, result: { id: I.WOODEN_DOOR, count: 3 } },
+  { pattern: ["II", "II", "II"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_DOOR, count: 3 } },
+  { pattern: ["III", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_HELMET, count: 1 } },
+  { pattern: ["I I", "III", "III"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_CHESTPLATE, count: 1 } },
+  { pattern: ["III", "I I", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_LEGGINGS, count: 1 } },
+  { pattern: ["I I", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_BOOTS, count: 1 } },
+  // Redstone components.
+  { pattern: ["R", "S"], key: { R: I.REDSTONE, S: I.STICK }, result: { id: B.REDSTONE_TORCH, count: 1 } },
+  { pattern: ["S", "C"], key: { S: I.STICK, C: B.COBBLESTONE }, result: { id: B.LEVER, count: 1 } },
+  { pattern: ["SS"], key: { S: B.STONE }, result: { id: B.PRESSURE_PLATE, count: 1 } },
 ];
 
 const shapeless: ShapelessRecipe[] = [
   { ingredients: [B.LOG], result: { id: B.PLANKS, count: 4 } },
+  { ingredients: [B.BIRCH_LOG], result: { id: B.PLANKS, count: 4 } },
+  { ingredients: [B.SPRUCE_LOG], result: { id: B.PLANKS, count: 4 } },
+  { ingredients: [B.JUNGLE_LOG], result: { id: B.PLANKS, count: 4 } },
+  { ingredients: [B.STONE], result: { id: B.BUTTON, count: 1 } },
+  // Old saves: loose wool becomes a block.
+  { ingredients: [I.WOOL], result: { id: B.WOOL_WHITE, count: 1 } },
 ];
 
 type Grid = (number | null)[][];

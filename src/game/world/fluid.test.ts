@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { B, FLUID_LEVEL, waterHeight16 } from "./blocks";
-import { FluidSimulator, nextFluidState, type FluidWorld } from "./fluid";
+import { FluidSimulator, flowDirections, nextFluidState, type FluidWorld } from "./fluid";
 
 /** Tiny in-memory world: everything at y <= 0 is dirt, everything else air unless set. */
 class GridWorld implements FluidWorld {
@@ -19,170 +19,183 @@ class GridWorld implements FluidWorld {
   }
 }
 
-/** Runs fluid ticks until nothing is queued (with a safety cap). */
-function settle(sim: FluidSimulator, max = 100) {
+function settle(sim: FluidSimulator, max = 300) {
   let ticks = 0;
   while (sim.pending && ticks++ < max) sim.tick();
   return ticks;
 }
 
-const height = (w: GridWorld, x: number, y: number, z: number) => waterHeight16(w.getBlock(x, y, z), w.getBlock(x, y + 1, z)) / 16;
+const level = (w: GridWorld, x: number, y: number, z: number) => FLUID_LEVEL[w.getBlock(x, y, z)];
 
-/**
- * A one-wide channel along +X at y = 1: a source at x = 0, a dirt dam at
- * x = 1, open channel beyond, stone walls at z = ±1.
- */
-function channel() {
+/** One-wide channel along +X at y = 1 with a source at x = 0 and a dirt dam at x = 1. */
+function channel(length = 12) {
   const w = new GridWorld();
-  for (let x = -1; x <= 8; x++) {
+  for (let x = -1; x <= length; x++) {
     w.setBlock(x, 1, 1, B.STONE);
     w.setBlock(x, 1, -1, B.STONE);
   }
   w.setBlock(-1, 1, 0, B.STONE);
+  w.setBlock(length, 1, 0, B.STONE);
   w.setBlock(0, 1, 0, B.WATER);
   w.setBlock(1, 1, 0, B.DIRT);
-  const sim = new FluidSimulator(w);
-  return { w, sim };
+  return { w, sim: new FluidSimulator(w) };
 }
 
-describe("nextFluidState (pure rule)", () => {
-  const base: { above: number; below: number; sidesBelow: number[] } = { above: B.AIR, below: B.DIRT, sidesBelow: [B.DIRT, B.DIRT, B.DIRT, B.DIRT] };
-  const n = (self: number, sides: number[], over: Partial<typeof base> = {}) => ({
-    ...base,
-    ...over,
-    self,
-    sides: sides as [number, number, number, number],
-    sidesBelow: [...base.sidesBelow] as [number, number, number, number],
-  });
+function breakDam(w: GridWorld, sim: FluidSimulator) {
+  w.setBlock(1, 1, 0, B.AIR);
+  sim.notify(1, 1, 0);
+  settle(sim);
+}
 
-  it("a cell beside a source becomes full flowing water", () => {
-    expect(nextFluidState(n(B.AIR, [B.WATER, B.AIR, B.AIR, B.AIR]))).toBe(B.WATER_FLOW_3);
-  });
-  it("each step away loses one level and level 1 feeds nothing", () => {
-    expect(nextFluidState(n(B.AIR, [B.WATER_FLOW_3, B.AIR, B.AIR, B.AIR]))).toBe(B.WATER_FLOW_2);
-    expect(nextFluidState(n(B.AIR, [B.WATER_FLOW_2, B.AIR, B.AIR, B.AIR]))).toBe(B.WATER_FLOW_1);
-    expect(nextFluidState(n(B.AIR, [B.WATER_FLOW_1, B.AIR, B.AIR, B.AIR]))).toBe(B.AIR);
-  });
-  it("water above makes falling water", () => {
-    expect(nextFluidState(n(B.AIR, [B.AIR, B.AIR, B.AIR, B.AIR], { above: B.WATER }))).toBe(B.WATER_FLOW_3);
-  });
-  it("an unfed cell recedes one level at a time", () => {
-    expect(nextFluidState(n(B.WATER_FLOW_3, [B.AIR, B.AIR, B.AIR, B.AIR]))).toBe(B.WATER_FLOW_2);
-    expect(nextFluidState(n(B.WATER_FLOW_1, [B.AIR, B.AIR, B.AIR, B.AIR]))).toBe(B.AIR);
-  });
-  it("sources and solid blocks never change", () => {
-    expect(nextFluidState(n(B.WATER, []))).toBe(B.WATER);
-    expect(nextFluidState(n(B.STONE, [B.WATER, B.WATER, B.WATER, B.WATER]))).toBe(B.STONE);
-  });
-  it("a neighbour over a drop does not spread sideways", () => {
-    const state = n(B.AIR, [B.WATER_FLOW_3, B.AIR, B.AIR, B.AIR]);
-    state.sidesBelow[0] = B.AIR;
-    expect(nextFluidState(state)).toBe(B.AIR);
-  });
-});
-
-describe("FluidSimulator", () => {
-  it("breaking the dam beside a source fills exactly three cells: 1.0, 0.5, 0.2", () => {
+describe("water rules", () => {
+  it("spreads 7 blocks from a source, one level lower each block", () => {
     const { w, sim } = channel();
-    w.setBlock(1, 1, 0, B.AIR);
-    sim.notify(1, 1, 0);
-    settle(sim);
-    expect(w.getBlock(1, 1, 0)).toBe(B.WATER_FLOW_3);
-    expect(w.getBlock(2, 1, 0)).toBe(B.WATER_FLOW_2);
-    expect(w.getBlock(3, 1, 0)).toBe(B.WATER_FLOW_1);
-    expect(w.getBlock(4, 1, 0)).toBe(B.AIR);
-    expect(height(w, 1, 1, 0)).toBe(1);
-    expect(height(w, 2, 1, 0)).toBe(0.5);
-    expect(height(w, 3, 1, 0)).toBeCloseTo(0.2, 1);
+    breakDam(w, sim);
+    for (let x = 1; x <= 7; x++) expect(level(w, x, 1, 0)).toBe(8 - x);
+    expect(level(w, 8, 1, 0)).toBe(0);
+    expect(level(w, 0, 1, 0)).toBe(8);
   });
 
-  it("spreads one cell per tick", () => {
+  it("surfaces get lower with distance", () => {
     const { w, sim } = channel();
-    w.setBlock(1, 1, 0, B.AIR);
-    sim.notify(1, 1, 0);
-    sim.tick();
-    expect(w.getBlock(1, 1, 0)).toBe(B.WATER_FLOW_3);
-    expect(w.getBlock(2, 1, 0)).toBe(B.AIR);
-    sim.tick();
-    expect(w.getBlock(2, 1, 0)).toBe(B.WATER_FLOW_2);
+    breakDam(w, sim);
+    const heights = [1, 2, 3, 4, 5, 6, 7].map((x) => waterHeight16(w.getBlock(x, 1, 0), w.getBlock(x, 2, 0)));
+    for (let i = 1; i < heights.length; i++) expect(heights[i]).toBeLessThanOrEqual(heights[i - 1]);
+    expect(heights[0]).toBeGreaterThan(heights[6]);
   });
 
-  it("on open ground water reaches 3 cells in every direction and no further", () => {
+  it("reaches 7 blocks in every direction on open ground (a diamond)", () => {
     const w = new GridWorld();
     w.setBlock(0, 1, 0, B.WATER);
     const sim = new FluidSimulator(w);
     sim.notify(0, 1, 0);
     settle(sim);
-    for (let x = -5; x <= 5; x++) {
-      for (let z = -5; z <= 5; z++) {
+    for (let x = -9; x <= 9; x++) {
+      for (let z = -9; z <= 9; z++) {
         const d = Math.abs(x) + Math.abs(z);
-        const level = FLUID_LEVEL[w.getBlock(x, 1, z)];
-        expect(level).toBe(d === 0 ? 4 : d <= 3 ? 4 - d : 0);
+        expect(level(w, x, 1, z)).toBe(d === 0 ? 8 : d <= 7 ? 8 - d : 0);
       }
     }
   });
 
-  it("removing the source drains the whole chain", () => {
-    const { w, sim } = channel();
+  it("falls straight down and spreads again where it lands", () => {
+    const w = new GridWorld();
+    // A ledge: stone pillar under a source at y = 10, open air down to the ground at y = 1.
+    for (let y = 1; y <= 9; y++) w.setBlock(0, y, 0, B.STONE);
+    w.setBlock(0, 10, 0, B.WATER);
+    for (let y = 1; y <= 10; y++) for (const [x, z] of [[0, -1], [-1, 0], [0, 1]]) w.setBlock(x, y, z, B.STONE);
+    const sim = new FluidSimulator(w);
+    sim.notify(0, 10, 0);
+    settle(sim);
+    // The source spills onto (1,10,0), which has nothing under it, so it pours down.
+    for (let y = 1; y <= 9; y++) expect(level(w, 1, y, 0)).toBe(9);
+    // On the ground the flow resets: 7 next to the waterfall, fading out after that.
+    expect(level(w, 2, 1, 0)).toBe(7);
+    expect(level(w, 8, 1, 0)).toBe(1);
+    expect(level(w, 9, 1, 0)).toBe(0);
+    // Mid-air falling water does not spread sideways.
+    expect(level(w, 2, 5, 0)).toBe(0);
+  });
+
+  it("heads for the nearest drop within 5 blocks instead of spreading everywhere", () => {
+    const w = new GridWorld();
+    // Flat platform at y = 5 (stone), with a hole 3 blocks east of the source.
+    for (let x = -8; x <= 8; x++) for (let z = -8; z <= 8; z++) w.setBlock(x, 4, z, B.STONE);
+    w.setBlock(3, 4, 0, B.AIR);
+    w.setBlock(0, 5, 0, B.WATER);
+    expect(flowDirections(w, 0, 5, 0)).toEqual([true, false, false, false]);
+    const sim = new FluidSimulator(w);
+    sim.notify(0, 5, 0);
+    settle(sim);
+    expect(level(w, 1, 5, 0)).toBe(7);
+    expect(level(w, 2, 5, 0)).toBe(6);
+    expect(level(w, 3, 5, 0)).toBe(5);
+    // Nothing went the other way.
+    expect(level(w, -1, 5, 0)).toBe(0);
+    expect(level(w, 0, 5, 1)).toBe(0);
+    // And it pours down the hole.
+    expect(level(w, 3, 4, 0)).toBe(9);
+  });
+
+  it("spreads in every direction when no drop is in range", () => {
+    const w = new GridWorld();
+    w.setBlock(0, 1, 0, B.WATER);
+    expect(flowDirections(w, 0, 1, 0)).toEqual([true, true, true, true]);
+  });
+
+  it("makes a new source between two sources (infinite water)", () => {
+    const w = new GridWorld();
+    // 3x1 trench: stone walls around three cells.
+    for (let x = -1; x <= 3; x++) { w.setBlock(x, 1, 1, B.STONE); w.setBlock(x, 1, -1, B.STONE); }
+    w.setBlock(-1, 1, 0, B.STONE);
+    w.setBlock(3, 1, 0, B.STONE);
+    w.setBlock(0, 1, 0, B.WATER);
+    w.setBlock(2, 1, 0, B.WATER);
+    const sim = new FluidSimulator(w);
+    sim.notify(1, 1, 0);
+    settle(sim);
+    expect(w.getBlock(1, 1, 0)).toBe(B.WATER);
+    // Scoop the middle out: it refills.
     w.setBlock(1, 1, 0, B.AIR);
     sim.notify(1, 1, 0);
     settle(sim);
+    expect(w.getBlock(1, 1, 0)).toBe(B.WATER);
+  });
+
+  it("drains when the source is removed", () => {
+    const { w, sim } = channel();
+    breakDam(w, sim);
     w.setBlock(0, 1, 0, B.AIR);
     sim.notify(0, 1, 0);
     settle(sim);
-    for (let x = 0; x <= 4; x++) expect(w.getBlock(x, 1, 0)).toBe(B.AIR);
+    for (let x = 0; x <= 8; x++) expect(level(w, x, 1, 0)).toBe(0);
   });
 
-  it("water falls into air below and spreads where it lands", () => {
-    const w = new GridWorld();
-    // Ground at y = 0, a 4-high drop from a ledge source at y = 5.
-    w.setBlock(0, 4, 0, B.STONE);
-    w.setBlock(0, 5, 0, B.WATER);
-    w.setBlock(1, 4, 0, B.AIR);
-    const sim = new FluidSimulator(w);
-    // Source rests on stone, so it spreads to (1,5,0), which falls down the gap.
-    sim.notify(0, 5, 0);
-    settle(sim);
-    expect(w.getBlock(1, 5, 0)).toBe(B.WATER_FLOW_3);
-    for (let y = 1; y <= 4; y++) expect(w.getBlock(1, y, 0)).toBe(B.WATER_FLOW_3);
-    // Landed on the ground at y = 1 and spread from there.
-    expect(w.getBlock(2, 1, 0)).toBe(B.WATER_FLOW_2);
-    expect(w.getBlock(3, 1, 0)).toBe(B.WATER_FLOW_1);
-    // The falling column itself does not spread sideways in mid-air.
-    expect(w.getBlock(2, 3, 0)).toBe(B.AIR);
-  });
-
-  it("placing a block back into the gap stops the flow", () => {
+  it("stops flowing when a block is put back", () => {
     const { w, sim } = channel();
-    w.setBlock(1, 1, 0, B.AIR);
-    sim.notify(1, 1, 0);
-    settle(sim);
+    breakDam(w, sim);
     w.setBlock(1, 1, 0, B.DIRT);
     sim.notify(1, 1, 0);
     settle(sim);
-    expect(w.getBlock(1, 1, 0)).toBe(B.DIRT);
-    expect(w.getBlock(2, 1, 0)).toBe(B.AIR);
-    expect(w.getBlock(3, 1, 0)).toBe(B.AIR);
+    for (let x = 2; x <= 8; x++) expect(level(w, x, 1, 0)).toBe(0);
     expect(w.getBlock(0, 1, 0)).toBe(B.WATER);
   });
 
-  it("washes away plants it flows over", () => {
+  it("washes away plants", () => {
     const { w, sim } = channel();
     const washed: number[] = [];
     sim.onWashedAway = (_x, _y, _z, id) => washed.push(id);
-    w.setBlock(2, 1, 0, B.TALL_GRASS);
+    w.setBlock(3, 1, 0, B.TALL_GRASS);
+    breakDam(w, sim);
+    expect(level(w, 3, 1, 0)).toBe(5);
+    expect(washed).toEqual([B.TALL_GRASS]);
+  });
+
+  it("advances one block per tick", () => {
+    const { w, sim } = channel();
     w.setBlock(1, 1, 0, B.AIR);
     sim.notify(1, 1, 0);
-    settle(sim);
-    expect(w.getBlock(2, 1, 0)).toBe(B.WATER_FLOW_2);
-    expect(washed).toEqual([B.TALL_GRASS]);
+    sim.tick();
+    expect(level(w, 1, 1, 0)).toBe(7);
+    expect(level(w, 2, 1, 0)).toBe(0);
+    sim.tick();
+    expect(level(w, 2, 1, 0)).toBe(6);
+  });
+
+  it("pure rule leaves solid blocks and sources alone", () => {
+    const w = new GridWorld();
+    w.setBlock(0, 1, 0, B.STONE);
+    w.setBlock(1, 1, 0, B.WATER);
+    expect(nextFluidState(w, 0, 1, 0)).toBe(B.STONE);
+    expect(nextFluidState(w, 1, 1, 0)).toBe(B.WATER);
   });
 
   it("respects the per-tick budget", () => {
     const w = new GridWorld();
     const sim = new FluidSimulator(w, 5);
-    for (let i = 0; i < 20; i++) sim.notify(i * 10, 5, 0);
+    for (let i = 0; i < 10; i++) sim.notify(i * 20, 5, 0);
+    const before = sim.pending;
     sim.tick();
-    expect(sim.pending).toBe(20 * 7 - 5);
+    expect(sim.pending).toBe(before - 5);
   });
 });

@@ -110,6 +110,11 @@ export function updateAI(mob: Mob, dt: number, ctx: AIContext) {
     }
   }
 
+  if (mob.grazing > 0 && mob.panicTime <= 0) {
+    // Head down, eating grass.
+    mob.wishSpeed = 0;
+    return;
+  }
   if (mob.panicTime > 0) {
     mob.panicTime -= dt;
     if (mob.wanderTimer > 1 || mob.wishSpeed === 0) {
@@ -120,6 +125,18 @@ export function updateAI(mob: Mob, dt: number, ctx: AIContext) {
     }
     mob.wanderTimer -= dt;
     mob.wishSpeed = mob.def.speed * 2.2;
+  } else if (mob.partner || mob.tempter) {
+    // Walk to a partner when in love, otherwise to a player holding food.
+    const goal = mob.partner ? mob.partner.pos : mob.tempter!;
+    const dx = goal.x - mob.pos.x;
+    const dz = goal.z - mob.pos.z;
+    const dist = Math.hypot(dx, dz);
+    const stop = mob.partner ? 0.9 : 2;
+    mob.wishX = dist > 0.01 ? dx / dist : 0;
+    mob.wishZ = dist > 0.01 ? dz / dist : 0;
+    mob.wishSpeed = dist > stop ? mob.def.speed * (mob.partner ? 1 : 1.1) : 0;
+    if (mob.wishSpeed === 0) turnToward(mob, dx, dz, dt);
+    if (mob.wishSpeed > 0 && !mob.inWater && unsafeAhead(mob, mob.wishX, mob.wishZ, ctx)) mob.wishSpeed = 0;
   } else {
     wander(mob, dt, ctx, mob.hostile ? 0.5 : 1);
   }

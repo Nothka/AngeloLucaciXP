@@ -345,6 +345,192 @@ function paintSnow(p: Pixels, rand: () => number) {
   p.fill(() => n());
 }
 
+
+/* -------------------------------------------------------------- v2 tiles */
+
+function paintGravel(p: Pixels, rand: () => number) {
+  paintCells(p, rand, 22, ["#8a8480", "#7a7470", "#9a948e", "#6b6560", "#a59f98"], "#5b5550", "#aba59e");
+}
+
+function paintBark(p: Pixels, rand: () => number, cols: string[], dark: string, light: string, knots = 4) {
+  const colorOf: string[] = [];
+  for (let x = 0; x < 16; x++) colorOf.push(pick(rand, cols));
+  p.fill((x) => colorOf[x]);
+  for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) {
+    const r = rand();
+    if (r < 0.12) p.set(x, y, dark);
+    else if (r < 0.2) p.set(x, y, light);
+  }
+  for (let k = 0; k < knots; k++) {
+    const x = Math.floor(rand() * 16);
+    const y = Math.floor(rand() * 13);
+    p.set(x, y, dark); p.set(x, y + 1, dark);
+  }
+}
+
+function paintBirchBark(p: Pixels, rand: () => number) {
+  const n = noisePalette(rand, ["#e8e4da", "#dcd8cc", "#f2efe6", "#cfcabd"]);
+  p.fill(() => n());
+  // Dark horizontal flecks, the birch signature.
+  for (let k = 0; k < 9; k++) {
+    const y = Math.floor(rand() * 16);
+    const x = Math.floor(rand() * 13);
+    const len = 2 + Math.floor(rand() * 3);
+    for (let i = 0; i < len; i++) p.set(x + i, y, i === 0 || i === len - 1 ? "#5a5550" : "#2e2b28");
+  }
+}
+
+function paintRings(p: Pixels, rand: () => number, bark: string[], rings: [string, string]) {
+  p.fill((x, y) => {
+    if (x === 0 || y === 0 || x === 15 || y === 15) return pick(rand, bark);
+    const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
+    return Math.floor(d + rand() * 0.6) % 2 ? rings[0] : rings[1];
+  });
+}
+
+function paintLeafPalette(p: Pixels, rand: () => number, palette: string[], highlight: string, holes = 0.2) {
+  const n = noisePalette(rand, palette);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (rand() >= holes) p.set(x, y, n());
+  for (let k = 0; k < 10; k++) p.set(Math.floor(rand() * 16), Math.floor(rand() * 16), highlight);
+}
+
+function paintSpruceLeaves(p: Pixels, rand: () => number) {
+  // Needle rows rather than blobs.
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    if ((x + y * 3) % 4 === 0 && rand() < 0.8) continue;
+    if (rand() < 0.12) continue;
+    p.set(x, y, pick(rand, ["#2f5a35", "#284d2e", "#376841", "#22432a"]));
+  }
+}
+
+function paintClay(p: Pixels, rand: () => number) {
+  const n = noisePalette(rand, ["#a4a8b8", "#9a9eae", "#adb1c0", "#93979e"]);
+  p.fill(() => n());
+  for (let k = 0; k < 6; k++) p.set(Math.floor(rand() * 16), Math.floor(rand() * 16), "#8e92a2");
+}
+
+function paintObsidian(p: Pixels, rand: () => number) {
+  const n = noisePalette(rand, ["#14101e", "#1c1628", "#0e0b16", "#251d35"]);
+  p.fill(() => n());
+  for (let k = 0; k < 7; k++) {
+    const x = Math.floor(rand() * 15), y = Math.floor(rand() * 15);
+    p.set(x, y, "#4b3a70"); p.set(x + 1, y, "#3a2c58"); p.set(x, y + 1, "#2e2448");
+  }
+}
+
+function paintBricks(p: Pixels, rand: () => number) {
+  p.fill((x, y) => {
+    const row = Math.floor(y / 4);
+    const off = row % 2 ? 4 : 0;
+    if (y % 4 === 3 || (x + off) % 8 === 7) return rand() < 0.5 ? "#a8a29a" : "#b7b1a8";
+    return pick(rand, ["#96503c", "#8a4634", "#a35a44", "#7e3f2e"]);
+  });
+}
+
+function paintIce(p: Pixels, rand: () => number) {
+  const n = noisePalette(rand, ["#9cc4f2", "#a8cdf6", "#90bbee", "#b6d6fa"]);
+  p.fill(() => n());
+  for (let k = 0; k < 4; k++) {
+    const x = Math.floor(rand() * 12), y = Math.floor(rand() * 12);
+    for (let i = 0; i < 4; i++) p.set(x + i, y + i, "#e4f1ff");
+  }
+}
+
+function paintWool(p: Pixels, rand: () => number, base: string) {
+  const [r, g, b] = [parseInt(base.slice(1, 3), 16), parseInt(base.slice(3, 5), 16), parseInt(base.slice(5, 7), 16)];
+  p.fill((x, y) => {
+    const v = 0.88 + rand() * 0.14 - ((x * 3 + y * 5) % 7 === 0 ? 0.08 : 0);
+    return [r * v, g * v, b * v];
+  });
+}
+
+function paintFurnace(p: Pixels, rand: () => number, kind: "front" | "lit" | "side" | "top") {
+  if (kind === "top") {
+    paintStone(p, rand);
+    for (let i = 0; i < 16; i++) { p.set(i, 0, "#5a5a5a"); p.set(i, 15, "#5a5a5a"); p.set(0, i, "#5a5a5a"); p.set(15, i, "#5a5a5a"); }
+    return;
+  }
+  paintCells(p, rand, 9, ["#8a8a8a", "#7a7a7a", "#969696", "#6e6e6e"], "#4b4b4b", "#a6a6a6");
+  if (kind === "side") return;
+  // The firebox: a dark mouth with a grate, glowing when lit.
+  for (let y = 7; y < 14; y++) for (let x = 3; x < 13; x++) {
+    const edge = y === 7 || x === 3 || x === 12;
+    if (edge) p.set(x, y, "#3a3a3a");
+    else if (kind === "lit") p.set(x, y, y > 10 ? (rand() < 0.5 ? "#ffd84a" : "#ff8f1f") : rand() < 0.4 ? "#ff6a14" : "#3a1a0c");
+    else p.set(x, y, "#141414");
+  }
+  for (let x = 4; x < 12; x += 2) p.set(x, 13, "#5a5a5a");
+  for (let x = 4; x < 12; x++) p.set(x, 3, "#2a2a2a");
+}
+
+function paintFarmland(p: Pixels, rand: () => number) {
+  p.fill((x, y) => (y % 4 === 0 ? pick(rand, ["#4b3320", "#553a24"]) : pick(rand, ["#6f4c2f", "#7a5434", "#654429"])));
+}
+
+function paintWheat(p: Pixels, rand: () => number, stage: number) {
+  const height = 3 + Math.round(stage * 1.6);
+  const ripe = stage / 7;
+  const stalk = ripe > 0.85 ? "#b39a3a" : ripe > 0.5 ? "#8aa33a" : "#4f9a2e";
+  for (let col = 1; col < 16; col += 3) {
+    const h = height - Math.floor(rand() * 2);
+    for (let y = 15; y > 15 - h; y--) p.set(col, y, stalk);
+    if (stage >= 4) {
+      const head = ripe > 0.85 ? "#dcbf52" : "#b8b04a";
+      for (let y = 15 - h; y < 15 - h + Math.min(5, stage - 1); y++) { p.set(col - 1, y, head); p.set(col + 1, y, head); }
+    }
+  }
+}
+
+function paintWire(p: Pixels, power: number, line: boolean) {
+  const v = [0.35, 0.6, 0.8, 1][power];
+  const red = (k: number): RGB => [Math.round(255 * v * k), Math.round(30 * v * k), Math.round(20 * v * k)];
+  for (let i = 0; i < 16; i++) {
+    p.set(i, 7, red(1)); p.set(i, 8, red(0.85));
+    if (!line) { p.set(7, i, red(1)); p.set(8, i, red(0.85)); }
+  }
+  for (const [x, y] of [[6, 6], [9, 9], [6, 9], [9, 6]]) if (!line) p.set(x, y, red(0.7));
+}
+
+function paintRedstoneTorch(p: Pixels, lit: boolean) {
+  const at = (x: number, row: number, c: string) => p.set(x, 15 - row, c);
+  for (let row = 0; row < 8; row++) {
+    at(7, row, row % 3 === 0 ? "#5a3e22" : "#7a5531");
+    at(8, row, row % 3 === 1 ? "#5a3e22" : "#8d6639");
+  }
+  at(7, 8, lit ? "#ff3020" : "#5a1a14");
+  at(8, 8, lit ? "#d41c14" : "#4a1410");
+  at(7, 9, lit ? "#ff9a80" : "#6a2a20");
+  at(8, 9, lit ? "#ff5a40" : "#5a1a14");
+}
+
+function paintLever(p: Pixels, rand: () => number) {
+  paintPlanks(p, rand);
+  for (let y = 0; y < 16; y++) for (let x = 6; x < 10; x++) p.set(x, y, x < 8 ? "#8a6339" : "#6b4a2a");
+}
+
+function paintDoor(p: Pixels, rand: () => number, iron: boolean, upper: boolean) {
+  if (iron) {
+    p.fill(() => pick(rand, ["#c8c8c8", "#bcbcbc", "#d2d2d2"]));
+    for (let i = 0; i < 16; i++) { p.set(0, i, "#8a8a8a"); p.set(15, i, "#8a8a8a"); }
+    if (upper) {
+      for (let y = 3; y < 11; y++) for (let x = 3; x < 13; x++) if (x % 3 !== 0) p.set(x, y, "#3a3a3a");
+    } else {
+      for (let x = 2; x < 14; x++) { p.set(x, 4, "#9a9a9a"); p.set(x, 10, "#9a9a9a"); }
+    }
+    if (!upper) { p.set(12, 2, "#5a5a5a"); p.set(12, 3, "#5a5a5a"); }
+    return;
+  }
+  paintPlanks(p, rand, ["#8a6a3e", "#7f6038", "#957346"]);
+  for (let i = 0; i < 16; i++) { p.set(0, i, "#5b4326"); p.set(15, i, "#5b4326"); }
+  if (upper) {
+    // Two small window panes.
+    for (let y = 3; y < 9; y++) for (let x = 3; x < 13; x++) if (x !== 7 && x !== 8) p.set(x, y, y === 3 ? "#e8f4f8" : "#a9c9d4", 0);
+    for (let y = 3; y < 9; y++) for (let x = 3; x < 13; x++) if (x !== 7 && x !== 8) p.set(x, y, "#b8d8e2", 120);
+  } else {
+    p.set(12, 2, "#3a2a18"); p.set(12, 3, "#3a2a18");
+  }
+}
+
 const PAINTERS: Record<TileName, (p: Pixels, rand: () => number) => void> = {
   grass_top: paintGrassTop,
   grass_side: (p, r) => paintGrassSide(p, r),
@@ -375,6 +561,59 @@ const PAINTERS: Record<TileName, (p: Pixels, rand: () => number) => void> = {
   flower_red: (p, r) => paintFlower(p, r, ["#d6232a", "#e8363c", "#b81a20"], "#2b1a10"),
   snow: paintSnow,
   grass_side_snow: (p, r) => paintGrassSide(p, r, ["#f2f7f9", "#e6eff3", "#fbfdfe"], true),
+  gravel: paintGravel,
+  birch_log_side: paintBirchBark,
+  birch_log_top: (p, r) => paintRings(p, r, ["#e8e4da", "#cfcabd"], ["#c8b07a", "#d8c08a"]),
+  birch_leaves: (p, r) => paintLeafPalette(p, r, ["#5f8f3a", "#6a9c43", "#557f33", "#74a84c"], "#8cc062"),
+  spruce_log_side: (p, r) => paintBark(p, r, ["#3d2a18", "#33230f", "#45301c", "#2b1d0e"], "#20160a", "#54391f", 2),
+  spruce_log_top: (p, r) => paintRings(p, r, ["#33230f", "#45301c"], ["#7a5a34", "#8a6a40"]),
+  spruce_leaves: paintSpruceLeaves,
+  jungle_log_side: (p, r) => paintBark(p, r, ["#5a4a22", "#4e3f1c", "#665528", "#433618"], "#2f2610", "#7a6a34", 6),
+  jungle_log_top: (p, r) => paintRings(p, r, ["#4e3f1c", "#5a4a22"], ["#a8844a", "#b8945a"]),
+  jungle_leaves: (p, r) => paintLeafPalette(p, r, ["#2f8a1e", "#38a024", "#287818", "#44b02c"], "#6ad04a", 0.12),
+  clay: paintClay,
+  obsidian: paintObsidian,
+  bricks: paintBricks,
+  ice: paintIce,
+  wool_white: (p, r) => paintWool(p, r, "#f0eeea"),
+  wool_black: (p, r) => paintWool(p, r, "#25232a"),
+  wool_gray: (p, r) => paintWool(p, r, "#5c5c62"),
+  wool_light_gray: (p, r) => paintWool(p, r, "#a8a8ae"),
+  wool_brown: (p, r) => paintWool(p, r, "#7a5234"),
+  wool_pink: (p, r) => paintWool(p, r, "#f0a2b8"),
+  iron_ore: (p, r) => paintOre(p, r, ["#d8b294", "#c4987a", "#e6c8ae"]),
+  gold_ore: (p, r) => paintOre(p, r, ["#f6d43a", "#e2b828", "#fff07a"]),
+  diamond_ore: (p, r) => paintOre(p, r, ["#5ae8e0", "#2fc6c0", "#b4fff8"]),
+  lapis_ore: (p, r) => paintOre(p, r, ["#2246b8", "#1a3696", "#3a62d8"]),
+  redstone_ore: (p, r) => paintOre(p, r, ["#c41a12", "#a01410", "#ff3a2a"]),
+  furnace_front: (p, r) => paintFurnace(p, r, "front"),
+  furnace_front_lit: (p, r) => paintFurnace(p, r, "lit"),
+  furnace_side: (p, r) => paintFurnace(p, r, "side"),
+  furnace_top: (p, r) => paintFurnace(p, r, "top"),
+  farmland: paintFarmland,
+  wheat_0: (p, r) => paintWheat(p, r, 0),
+  wheat_1: (p, r) => paintWheat(p, r, 1),
+  wheat_2: (p, r) => paintWheat(p, r, 2),
+  wheat_3: (p, r) => paintWheat(p, r, 3),
+  wheat_4: (p, r) => paintWheat(p, r, 4),
+  wheat_5: (p, r) => paintWheat(p, r, 5),
+  wheat_6: (p, r) => paintWheat(p, r, 6),
+  wheat_7: (p, r) => paintWheat(p, r, 7),
+  wire_cross_0: (p) => paintWire(p, 0, false),
+  wire_cross_1: (p) => paintWire(p, 1, false),
+  wire_cross_2: (p) => paintWire(p, 2, false),
+  wire_cross_3: (p) => paintWire(p, 3, false),
+  wire_line_0: (p) => paintWire(p, 0, true),
+  wire_line_1: (p) => paintWire(p, 1, true),
+  wire_line_2: (p) => paintWire(p, 2, true),
+  wire_line_3: (p) => paintWire(p, 3, true),
+  redstone_torch_on: (p) => paintRedstoneTorch(p, true),
+  redstone_torch_off: (p) => paintRedstoneTorch(p, false),
+  lever: paintLever,
+  door_wood_lower: (p, r) => paintDoor(p, r, false, false),
+  door_wood_upper: (p, r) => paintDoor(p, r, false, true),
+  door_iron_lower: (p, r) => paintDoor(p, r, true, false),
+  door_iron_upper: (p, r) => paintDoor(p, r, true, true),
 };
 
 export interface TextureSet {
