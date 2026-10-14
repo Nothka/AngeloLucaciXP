@@ -36,6 +36,8 @@ import NotepadWindow from "./apps/NotepadWindow";
 import WordPadWindow from "./apps/WordPadWindow";
 import FeedbackWindow from "./apps/FeedbackWindow";
 import RecycleBinWindow from "./apps/RecycleBinWindow";
+import BlockvaleWindow from "./apps/BlockvaleWindow";
+import blockvaleIcon from "../../assets/icons/apps/blockvale.svg";
 import "../../styles/desktop/desktop-icons.css";
 import { getDesktopPoint } from "./utils/desktopTransform";
 
@@ -69,6 +71,7 @@ const RUN_COMMANDS_TEXT = [
   "wordpad / write                           Open WordPad",
   "feedback / review / guestbook             Open Website Feedback",
   "recycle / recycle bin / bin               Open Recycle Bin",
+  "blockvale / game / play                   Play Blockvale",
   "help / commands                           Open this file in Notepad",
   "readme / read me                          Open desktop ReadMe file",
   "",
@@ -97,6 +100,7 @@ const DESKTOP_README_TEXT = [
   "- Feedback saves ratings and comments in Firebase Firestore.",
   "- Drag desktop icons onto Recycle Bin to move them there.",
   "- Double-click desktop icons to open apps quickly.",
+  "- Blockvale is a voxel sandbox game: build, mine and craft.",
 ].join("\n");
 const RUN_APP_ALIASES = {
   about: { title: "About Me", icon: aboutMeIcon },
@@ -133,6 +137,9 @@ const RUN_APP_ALIASES = {
   recycle: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
   "recycle bin": { title: "Recycle Bin", icon: recycleBinEmptyIcon },
   bin: { title: "Recycle Bin", icon: recycleBinEmptyIcon },
+  blockvale: { title: "Blockvale", icon: blockvaleIcon },
+  game: { title: "Blockvale", icon: blockvaleIcon },
+  play: { title: "Blockvale", icon: blockvaleIcon },
 };
 const RUN_SPECIAL_ALIASES = {
   help: "commands",
@@ -154,6 +161,7 @@ const DESKTOP_ICON_ORDER = [
   "contact",
   "yahoo",
   "feedback",
+  "blockvale",
   "readme",
   "recycle-bin",
 ];
@@ -176,6 +184,7 @@ const createInitialDesktopItems = () =>
     { id: "contact", label: "Contact Me", icon: contactIcon, appTitle: "Contact Me", appIcon: contactIcon },
     { id: "yahoo", label: "Yahoo Messenger", icon: yahooIcon, appTitle: "Yahoo Messenger", appIcon: yahooIcon },
     { id: "feedback", label: "Feedback", icon: feedbackIcon, appTitle: "Feedback", appIcon: feedbackIcon },
+    { id: "blockvale", label: "Blockvale", icon: blockvaleIcon, appTitle: "Blockvale", appIcon: blockvaleIcon },
     { id: "readme", label: "ReadMe", icon: notepadIcon, action: "open-readme" },
     {
       id: "recycle-bin",
@@ -186,13 +195,21 @@ const createInitialDesktopItems = () =>
       action: "open-recycle-bin",
       isRecycleBin: true,
     },
-  ].map((item, index) => ({
-    ...item,
-    position: {
-      x: DESKTOP_ICON_START_X,
-      y: DESKTOP_ICON_START_Y + index * DESKTOP_ICON_VERTICAL_SPACING,
-    },
-  }));
+  ].map((item, index, all) => {
+    // Wrap into a new column when the viewport is too short for one long one.
+    const usableHeight =
+      typeof window === "undefined"
+        ? all.length * DESKTOP_ICON_VERTICAL_SPACING
+        : window.innerHeight - TASKBAR_HEIGHT - DESKTOP_ICON_START_Y;
+    const perColumn = Math.max(1, Math.floor(usableHeight / DESKTOP_ICON_VERTICAL_SPACING));
+    return {
+      ...item,
+      position: {
+        x: DESKTOP_ICON_START_X + Math.floor(index / perColumn) * DESKTOP_ICON_HORIZONTAL_SPACING,
+        y: DESKTOP_ICON_START_Y + (index % perColumn) * DESKTOP_ICON_VERTICAL_SPACING,
+      },
+    };
+  });
 
 const sortDesktopItems = (items) =>
   [...items].sort((a, b) => DESKTOP_ICON_ORDER.indexOf(a.id) - DESKTOP_ICON_ORDER.indexOf(b.id));
@@ -936,7 +953,9 @@ const Desktop = ({ onLogOff, onShutdown }) => {
 
         {windows.map((window) => {
           const isYahoo = window.title === "Yahoo Messenger" || window.title === "Yahoo";
-          if (window.minimized && !isYahoo) {
+          // The game keeps running (paused) while minimised instead of unmounting.
+          const isBlockvale = window.title === "Blockvale";
+          if (window.minimized && !isYahoo && !isBlockvale) {
             return null;
           }
           return window.title === "My Projects" ? (
@@ -997,6 +1016,18 @@ const Desktop = ({ onLogOff, onShutdown }) => {
               windowId={window.id}
               zIndex={window.zIndex}
               isActive={window.id === activeWindowId}
+              onClose={() => closeWindow(window.id)}
+              onMinimize={minimizeWindow}
+              onMaximize={maximizeWindow}
+              onMouseDown={bringToFront}
+            />
+          ) : isBlockvale ? (
+            <BlockvaleWindow
+              key={window.id}
+              windowId={window.id}
+              zIndex={window.zIndex}
+              isActive={window.id === activeWindowId}
+              isMinimized={window.minimized}
               onClose={() => closeWindow(window.id)}
               onMinimize={minimizeWindow}
               onMaximize={maximizeWindow}
