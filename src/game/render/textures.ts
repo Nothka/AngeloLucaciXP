@@ -467,6 +467,11 @@ function paintFarmland(p: Pixels, rand: () => number) {
   p.fill((x, y) => (y % 4 === 0 ? pick(rand, ["#4b3320", "#553a24"]) : pick(rand, ["#6f4c2f", "#7a5434", "#654429"])));
 }
 
+/** Moist farmland: the same furrows, soaked dark. */
+function paintFarmlandWet(p: Pixels, rand: () => number) {
+  p.fill((x, y) => (y % 4 === 0 ? pick(rand, ["#2a1a0e", "#301f12"]) : pick(rand, ["#3f2a18", "#47301c", "#3a2615"])));
+}
+
 function paintWheat(p: Pixels, rand: () => number, stage: number) {
   const height = 3 + Math.round(stage * 1.6);
   const ripe = stage / 7;
@@ -591,6 +596,7 @@ const PAINTERS: Record<TileName, (p: Pixels, rand: () => number) => void> = {
   furnace_side: (p, r) => paintFurnace(p, r, "side"),
   furnace_top: (p, r) => paintFurnace(p, r, "top"),
   farmland: paintFarmland,
+  farmland_wet: paintFarmlandWet,
   wheat_0: (p, r) => paintWheat(p, r, 0),
   wheat_1: (p, r) => paintWheat(p, r, 1),
   wheat_2: (p, r) => paintWheat(p, r, 2),

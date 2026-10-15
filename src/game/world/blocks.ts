@@ -18,7 +18,7 @@ export const TILE_NAMES = [
   "spruce_leaves", "jungle_log_side", "jungle_log_top", "jungle_leaves", "clay", "obsidian",
   "bricks", "ice", "wool_white", "wool_black", "wool_gray", "wool_light_gray",
   "wool_brown", "wool_pink", "iron_ore", "gold_ore", "diamond_ore", "lapis_ore",
-  "redstone_ore", "furnace_front", "furnace_front_lit", "furnace_side", "furnace_top", "farmland",
+  "redstone_ore", "furnace_front", "furnace_front_lit", "furnace_side", "furnace_top", "farmland", "farmland_wet",
   "wheat_0", "wheat_1", "wheat_2", "wheat_3", "wheat_4", "wheat_5", "wheat_6", "wheat_7",
   "wire_cross_0", "wire_cross_1", "wire_cross_2", "wire_cross_3",
   "wire_line_0", "wire_line_1", "wire_line_2", "wire_line_3",
@@ -110,6 +110,8 @@ export enum B {
   REDSTONE_WALL_TORCH_OFF = 142,
   /** A thin layer of snow (2/16 of a block) lying on top of the block below. */
   SNOW_LAYER = 146,
+  /** Farmland with water nearby: darker, and the only soil crops grow on. */
+  FARMLAND_WET = 147,
 }
 
 export enum I {
@@ -329,6 +331,7 @@ define(B.FURNACE_LIT, "Lit Furnace", { top: TILE.furnace_top, bottom: TILE.furna
   hardness: 3.5, tool: "pickaxe", needsTool: true, emit: 13, drop: B.FURNACE, noItem: true,
 });
 define(B.FARMLAND, "Farmland", { top: TILE.farmland, bottom: TILE.dirt, side: TILE.dirt }, { hardness: 0.6, tool: "shovel", sound: "grass", drop: B.DIRT, noItem: true });
+define(B.FARMLAND_WET, "Moist Farmland", { top: TILE.farmland_wet, bottom: TILE.dirt, side: TILE.dirt }, { hardness: 0.6, tool: "shovel", sound: "grass", drop: B.DIRT, noItem: true });
 for (let s = 0; s < 8; s++) {
   define(B.WHEAT_0 + s, `Wheat (stage ${s})`, all(TILE.wheat_0 + s), { ...plant, drop: null, noItem: true });
 }
@@ -495,9 +498,9 @@ export function supportDir(id: number): [number, number, number] | null {
 
 /** Can `supporter` hold up `id`? Crops need farmland, plants need soil, the rest a solid block. */
 export function supports(id: number, supporter: number): boolean {
-  if (isWheat(id)) return supporter === B.FARMLAND;
+  if (isWheat(id)) return supporter === B.FARMLAND || supporter === B.FARMLAND_WET;
   if (id === B.TALL_GRASS || id === B.FLOWER_RED || id === B.FLOWER_YELLOW) {
-    return supporter === B.GRASS || supporter === B.DIRT || supporter === B.FARMLAND || supporter === B.SNOWY_GRASS;
+    return supporter === B.GRASS || supporter === B.DIRT || supporter === B.FARMLAND || supporter === B.FARMLAND_WET || supporter === B.SNOWY_GRASS;
   }
   if (isDoor(id) && doorState(id).upper) return isDoor(supporter) && !doorState(supporter).upper;
   // Snow settles on any full block, leaves included, but slides off ice.
@@ -572,7 +575,7 @@ item(I.REDSTONE, "Redstone Dust");
 item(I.CLAY_BALL, "Clay Ball");
 item(I.BRICK, "Brick");
 item(I.WHEAT, "Wheat");
-item(I.SEEDS, "Wheat Seeds");
+item(I.SEEDS, "Seeds");
 item(I.BUCKET, "Bucket", { maxStack: 16 });
 item(I.WATER_BUCKET, "Water Bucket", { maxStack: 1 });
 item(I.FISHING_ROD, "Fishing Rod", { maxStack: 1, durability: 64 });

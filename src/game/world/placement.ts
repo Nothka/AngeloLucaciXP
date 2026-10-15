@@ -60,7 +60,7 @@ export function placementFor(itemId: number, hit: PlaceHit, yaw: number): Planne
     case I.REDSTONE:
       return [{ x, y, z, id: B.WIRE_0 }];
     case I.SEEDS:
-      return hit.id === B.FARMLAND && hit.ny === 1 ? [{ x, y, z, id: B.WHEAT_0 }] : null;
+      return (hit.id === B.FARMLAND || hit.id === B.FARMLAND_WET) && hit.ny === 1 ? [{ x, y, z, id: B.WHEAT_0 }] : null;
     case I.WOODEN_DOOR:
     case I.IRON_DOOR: {
       if (!onTop) return null;

@@ -60,7 +60,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "bucket", title: "Pail Rider", description: "Fill a bucket with water", icon: { item: I.WATER_BUCKET }, parentId: "iron", trigger: { type: "pickup", ids: [I.WATER_BUCKET] } },
   { id: "diamond", title: "Diamonds!", description: "Mine a diamond with an iron pickaxe", icon: { item: I.DIAMOND }, parentId: "iron", trigger: { type: "pickup", ids: [I.DIAMOND] }, challenge: true },
   { id: "redstone", title: "Red Alert", description: "Mine redstone dust", icon: { item: I.REDSTONE }, parentId: "iron", trigger: { type: "pickup", ids: [I.REDSTONE] } },
-  { id: "seeds", title: "Green Thumb", description: "Gather wheat seeds from the grass", icon: { item: I.SEEDS }, parentId: "start", trigger: { type: "pickup", ids: [I.SEEDS] } },
+  { id: "seeds", title: "Green Thumb", description: "Gather seeds from the grass", icon: { item: I.SEEDS }, parentId: "start", trigger: { type: "pickup", ids: [I.SEEDS] } },
   { id: "bread", title: "Bake Bread", description: "Turn wheat into bread", icon: { item: I.BREAD }, parentId: "seeds", trigger: { type: "craft", ids: [I.BREAD] } },
   { id: "builder", title: "Foundations", description: "Place 10 blocks", icon: { item: B.COBBLESTONE }, parentId: "start", trigger: { type: "place", count: 10 } },
   { id: "master_builder", title: "Master Builder", description: "Place 500 blocks", icon: { item: B.PLANKS }, parentId: "builder", trigger: { type: "place", count: 500 }, challenge: true },
