@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { CHUNK_HEIGHT, CHUNK_SIZE, blockIndex, chunkKey } from "../config";
 import type { WorkerPool } from "../mesher/pool";
 import type { WorkerResponse } from "../mesher/worker";
+import { EMIT, LIGHT_OPACITY } from "./blocks";
 import { Chunk } from "./chunk";
 import { TerrainGenerator } from "./terrain";
 
@@ -85,15 +86,20 @@ export class World {
     chunk.urgent = true;
     // Light can reach 15 blocks, so every neighbour may need a relight; the
     // ones sharing the edited edge also need their border faces fixed now.
+    // When the light cannot change (same opacity and glow, e.g. snow settling,
+    // dust powering up), only the neighbours sharing that edge are redrawn.
+    const lightSame = LIGHT_OPACITY[before] === LIGHT_OPACITY[id] && EMIT[before] === EMIT[id];
     for (let dz = -1; dz <= 1; dz++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (!dx && !dz) continue;
         const n = this.chunks.get(chunkKey(cx + dx, cz + dz));
         if (!n) continue;
+        const touchesX = dx === 0 ? true : dx < 0 ? lx === 0 : lx === CHUNK_SIZE - 1;
+        const touchesZ = dz === 0 ? true : dz < 0 ? lz === 0 : lz === CHUNK_SIZE - 1;
+        const touches = touchesX && touchesZ;
+        if (!touches && lightSame) continue;
         n.needsMesh = true;
-        const touchesX = dx === 0 || (dx < 0 ? lx === 0 : lx === CHUNK_SIZE - 1);
-        const touchesZ = dz === 0 || (dz < 0 ? lz === 0 : lz === CHUNK_SIZE - 1);
-        if (touchesX && touchesZ) n.urgent = true;
+        if (touches) n.urgent = true;
       }
     }
     this.onBlockChange?.(wx, wy, wz, before, id);

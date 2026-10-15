@@ -27,6 +27,30 @@ const RECIPES: Record<Exclude<SoundKind, "none">, Recipe> = {
   sand: { filter: "highpass", freq: 2300, q: 0.7, length: 0.18, gain: 0.35 },
   glass: { filter: "highpass", freq: 3200, q: 0.8, length: 0.12, gain: 0.45 },
   cloth: { filter: "lowpass", freq: 1200, q: 0.6, length: 0.15, gain: 0.45 },
+  snow: { filter: "highpass", freq: 1800, q: 0.6, length: 0.17, gain: 0.4 },
+};
+
+/**
+ * Which recorded sets each block sound kind uses, as in the classic game:
+ * footsteps (and the soft knock while mining) come from the "step" set,
+ * breaking and placing from the "dig" set; glass shatters when broken.
+ */
+const BLOCK_SETS: Record<Exclude<SoundKind, "none">, { step: string; dig: string; break?: string }> = {
+  grass: { step: "grass_step", dig: "grass_step" },
+  stone: { step: "stone_step", dig: "stone_dig" },
+  wood: { step: "wood_step", dig: "wood_dig" },
+  sand: { step: "snow_step", dig: "snow_step" },
+  snow: { step: "snow_step", dig: "snow_step" },
+  cloth: { step: "cloth_step", dig: "cloth_dig" },
+  glass: { step: "stone_step", dig: "stone_dig", break: "glass_break" },
+};
+
+/** Classic volume and pitch per action: footsteps quiet, mining hits at half pitch, break and place at 0.8. */
+const BLOCK_PLAY: Record<Action, { volume: number; pitch: number }> = {
+  step: { volume: 0.3, pitch: 1 },
+  dig: { volume: 0.35, pitch: 0.5 },
+  break: { volume: 1, pitch: 0.8 },
+  place: { volume: 0.9, pitch: 0.8 },
 };
 
 const ACTION_SCALE: Record<Action, { gain: number; length: number }> = {
@@ -144,6 +168,15 @@ export class Audio {
   block(kind: SoundKind, action: Action, pan = 0, distance = 0, pitch = 1) {
     if (!this.ctx || kind === "none") return;
     const ctx = this.ctx;
+    const set = BLOCK_SETS[kind];
+    const recorded = this.samples.pick("block", action === "break" && set.break ? set.break : action === "step" || action === "dig" ? set.step : set.dig);
+    if (recorded) {
+      const play = BLOCK_PLAY[action];
+      const volume = play.volume * Math.max(0, 1 - distance / 16);
+      if (volume <= 0.01) return;
+      this.playBuffer(recorded, volume, pan, play.pitch * pitch * (0.9 + Math.random() * 0.2));
+      return;
+    }
     const r = RECIPES[kind];
     const a = ACTION_SCALE[action];
     const now = ctx.currentTime;
@@ -211,10 +244,13 @@ export class Audio {
   }
 
   pickup() {
+    // The classic item pop: quiet, at a widely random high pitch.
+    if (this.recorded("player", "pop", 0.35, (1 + (Math.random() - Math.random()) * 0.7) * 1.6)) return;
     this.tone(700 + Math.random() * 300, 0.09, 0.18, "triangle", undefined, undefined, 1500 + Math.random() * 400);
   }
 
   click() {
+    if (this.recorded("sfx", "click", 0.45, 1)) return;
     this.tone(1250, 0.045, 0.12, "square");
     this.tone(620, 0.06, 0.08, "triangle");
   }
@@ -229,6 +265,56 @@ export class Audio {
     const t = this.ctx.currentTime;
     const notes = challenge ? [523, 659, 784, 1047, 1319] : [659, 784, 1047];
     notes.forEach((f, i) => this.tone(f, 0.35, 0.09, "triangle", t + i * 0.09));
+  }
+
+  /** Plays a recorded take through its own gain and panner. */
+  private playBuffer(buf: AudioBuffer, volume: number, pan = 0, rate = 1, dest?: AudioNode, at?: number) {
+    const ctx = this.ctx!;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const g = ctx.createGain();
+    g.gain.value = volume;
+    if (dest) {
+      src.connect(g);
+      g.connect(dest);
+    } else {
+      const panner = ctx.createStereoPanner();
+      panner.pan.value = Math.max(-1, Math.min(1, pan));
+      src.connect(g);
+      g.connect(panner);
+      panner.connect(this.sfx);
+    }
+    src.start(at ?? ctx.currentTime);
+  }
+
+  /** A recorded "<folder>/<event>" sound, optionally at a world position; false if none is loaded (or out of earshot). */
+  private recorded(folder: string, event: string, volume: number, rate: number, at?: { x: number; y: number; z: number }): boolean {
+    if (!this.ctx) return false;
+    const buf = this.samples.pick(folder, event);
+    if (!buf) return false;
+    if (at) {
+      const out = this.placed(at.x, at.y, at.z, volume);
+      if (out) this.playBuffer(buf, 1, 0, rate, out);
+    } else {
+      this.playBuffer(buf, volume, 0, rate);
+    }
+    return true;
+  }
+
+  /** Doors swinging open or shut. */
+  door(open: boolean, x: number, y: number, z: number) {
+    if (!this.recorded("sfx", open ? "door_open" : "door_close", 0.9, 0.9 + Math.random() * 0.2, { x, y, z })) this.blockAt("wood", "place", x, y, z);
+  }
+
+  /** An arrow thudding into something. */
+  arrowHit(x: number, y: number, z: number) {
+    if (!this.recorded("sfx", "arrow_hit", 0.7, 1.1 + Math.random() * 0.2, { x, y, z })) this.blockAt("wood", "step", x, y, z);
+  }
+
+  /** Swallowing a drink (milk). */
+  drink() {
+    if (!this.recorded("player", "drink", 0.5, 0.9 + Math.random() * 0.2)) this.eat();
   }
 
   /** A short noise burst through a filter, e.g. a crunch, hiss or click. */
@@ -369,6 +455,7 @@ export class Audio {
   /** A bow twang; at a position for other archers, or right at the player when omitted. */
   bowShot(at?: { x: number; y: number; z: number }, pitch = 1) {
     if (!this.ctx) return;
+    if (this.recorded("sfx", "bow", 0.7, pitch * (0.9 + Math.random() * 0.2), at)) return;
     const out = at ? this.placed(at.x, at.y, at.z) : this.sfx;
     if (!out) return;
     this.tone(520 * pitch, 0.12, 0.1, "triangle", undefined, out, 260 * pitch);
@@ -388,21 +475,25 @@ export class Audio {
 
   hurt() {
     if (!this.ctx) return;
+    if (this.recorded("player", "hurt", 0.8, 0.9 + Math.random() * 0.2)) return;
     this.tone(260, 0.22, 0.22, "square", undefined, undefined, 120);
     this.block("cloth", "break");
   }
 
   eat() {
+    if (this.recorded("player", "eat", 0.45, 0.8 + Math.random() * 0.4)) return;
     this.block("grass", "dig");
     this.block("sand", "step");
   }
 
   burp() {
+    if (this.recorded("player", "burp", 0.5, 0.9 + Math.random() * 0.1)) return;
     this.tone(150, 0.3, 0.16, "sawtooth", undefined, undefined, 80);
   }
 
   /** Water sloshing; at a position when given (buckets, fishing), otherwise around the player. */
   splash(at?: { x: number; y: number; z: number }) {
+    if (this.recorded("sfx", "splash", 0.6, 0.9 + Math.random() * 0.2, at)) return;
     if (at) {
       this.blockAt("sand", "break", at.x, at.y, at.z);
       this.blockAt("grass", "place", at.x, at.y, at.z);
@@ -414,6 +505,8 @@ export class Audio {
 
   /** Lever, button and door clicks. */
   switchClick(on: boolean, x: number, y: number, z: number) {
+    // Same click as the menus, lower: pitch 0.6 switching on, 0.5 off.
+    if (this.recorded("sfx", "click", 0.5, on ? 0.6 : 0.5, { x, y, z })) return;
     const out = this.placed(x, y, z);
     if (!out) return;
     this.tone(on ? 900 : 700, 0.04, 0.14, "square", undefined, out);
@@ -422,12 +515,13 @@ export class Audio {
 
   /** Bobber hitting the water, or a fish taking the bait (louder). */
   bobber(bite: boolean, x: number, y: number, z: number) {
+    if (this.recorded("sfx", "splash", bite ? 0.5 : 0.25, bite ? 1.2 : 1.5, { x, y, z })) return;
     this.blockAt("sand", bite ? "break" : "step", x, y, z);
     const out = bite ? this.placed(x, y, z) : null;
     if (out) this.tone(380, 0.12, 0.08, "sine", undefined, out, 220);
   }
 
-  private rainNodes: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  private rainNodes: { src: AudioBufferSourceNode; gain: GainNode; lp: BiquadFilterNode } | null = null;
 
   /** Steady hiss of rain at `level` 0..1 (0 stops it). Muffled under a roof via `muffle`. */
   setRain(level: number, muffle = 0) {
@@ -459,8 +553,10 @@ export class Audio {
       lp.connect(gain);
       gain.connect(this.sfx);
       src.start();
-      this.rainNodes = { src, gain };
+      this.rainNodes = { src, gain, lp };
     }
+    // Through a roof the patter loses its top end as well as some volume.
+    this.rainNodes.lp.frequency.setTargetAtTime(5200 - muffle * 4000, ctx.currentTime, 0.4);
     this.rainNodes.gain.gain.setTargetAtTime(level * 0.16 * (1 - muffle * 0.7), ctx.currentTime, 0.4);
   }
 

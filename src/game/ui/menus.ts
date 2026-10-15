@@ -16,6 +16,8 @@ export interface MenuHost {
   createWorld(name: string, seedText: string, mode: GameMode, cheats: boolean): void;
   playWorld(meta: WorldMeta): void;
   deleteWorld(id: string): Promise<void>;
+  /** One line about the cloud copy of the player, shown in the pause menu. */
+  cloudStatus?(): string;
   quitGame(): void;
   resume(): void;
   saveAndQuit(): void;
@@ -323,7 +325,19 @@ export class Menus {
         button("Save and Quit to Title", () => this.host.saveAndQuit()),
       ),
     );
+    let status: HTMLDivElement | null = null;
+    if (this.host.cloudStatus) {
+      status = h("div.bv-hint.bv-text", { style: `margin-top:${px(14)};opacity:0.8` }, this.host.cloudStatus());
+      screen.append(status);
+    }
     this.mount("pause", screen);
+    // Kept fresh while the menu is open: the upload finishes a moment after pausing.
+    const refresh = () => {
+      if (!status?.isConnected) return;
+      status.textContent = this.host.cloudStatus!();
+      setTimeout(refresh, 500);
+    };
+    setTimeout(refresh, 500);
   }
 
   showDeath(message: string) {

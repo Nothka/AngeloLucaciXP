@@ -6,14 +6,13 @@ const RADIUS = 16;
 export interface WeatherColumns {
   /** Height of the first block from the top that stops rain (rain lands on it). */
   topAt(x: number, z: number): number;
-  /** True where it snows instead of raining. */
-  coldAt(x: number, z: number): boolean;
 }
 
 /**
  * Rain streaks and snowflakes around the camera. Each particle falls inside
  * one block column and stops at the first block from the top, so roofs and
- * trees keep the rain off. Columns are looked up once per particle respawn.
+ * trees keep the rain off. Whether it is snow or rain is decided once for the
+ * player's spot (`snowMix`), never per column, and changes over gradually.
  */
 export class WeatherRenderer {
   readonly group = new THREE.Group();
@@ -30,7 +29,8 @@ export class WeatherRenderer {
   private speed = new Float32Array(COUNT);
   private snow = new Uint8Array(COUNT);
   private alive = new Uint8Array(COUNT);
-  private cache = new Map<number, { top: number; cold: boolean }>();
+  private cache = new Map<number, { top: number }>();
+  private mix = 0;
   private cacheAge = 0;
 
   constructor(private columns: WeatherColumns) {
@@ -50,7 +50,7 @@ export class WeatherRenderer {
     const key = ((x & 0xffff) << 16) | (z & 0xffff);
     let c = this.cache.get(key);
     if (!c) {
-      c = { top: this.columns.topAt(x, z), cold: this.columns.coldAt(x, z) };
+      c = { top: this.columns.topAt(x, z) };
       this.cache.set(key, c);
     }
     return c;
@@ -65,15 +65,20 @@ export class WeatherRenderer {
     this.px[i] = x;
     this.pz[i] = z;
     this.floor[i] = col.top;
-    this.snow[i] = col.cold ? 1 : 0;
+    const snow = Math.random() < this.mix;
+    this.snow[i] = snow ? 1 : 0;
     const top = cam.y + 14;
     this.py[i] = spread ? cam.y - 8 + Math.random() * 22 : top + Math.random() * 4;
-    this.speed[i] = col.cold ? 1.6 + Math.random() * 0.8 : 17 + Math.random() * 5;
+    this.speed[i] = snow ? 1.6 + Math.random() * 0.8 : 17 + Math.random() * 5;
     this.alive[i] = this.py[i] > col.top ? 1 : 0;
   }
 
-  /** `level` is the eased rain strength (0..1); `light` dims the particles at night. */
-  update(dt: number, cam: THREE.Vector3, level: number, light: number, time: number) {
+  /**
+   * `level` is the eased rain strength (0..1); `snowMix` 0 rain .. 1 snow where
+   * the player is; `light` dims the particles at night.
+   */
+  update(dt: number, cam: THREE.Vector3, level: number, snowMix: number, light: number, time: number) {
+    this.mix = snowMix;
     this.cacheAge += dt;
     if (this.cacheAge > 2) {
       this.cacheAge = 0;
@@ -93,7 +98,10 @@ export class WeatherRenderer {
         continue;
       }
       const far = Math.abs(this.px[i] - cam.x) > RADIUS + 2 || Math.abs(this.pz[i] - cam.z) > RADIUS + 2;
-      if (wasHidden || far || !this.alive[i] || this.py[i] < cam.y - 10) this.respawn(i, cam, wasHidden || far);
+      // Flakes of the kind that is fading out give way to the new kind.
+      const unwanted = this.snow[i] ? 1 - snowMix : snowMix;
+      const swap = unwanted > 0.02 && Math.random() < dt * 2 * unwanted;
+      if (wasHidden || far || swap || !this.alive[i] || this.py[i] < cam.y - 10) this.respawn(i, cam, wasHidden || far);
       this.py[i] -= this.speed[i] * dt;
       if (this.py[i] <= this.floor[i]) this.alive[i] = 0;
       const x = this.snow[i] ? this.px[i] + Math.sin(time * 1.3 + i) * 0.3 : this.px[i];

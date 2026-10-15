@@ -19,6 +19,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Blockvale: each browser signs in anonymously and can only touch its own player saves.
+    match /blockvale/{uid}/worlds/{worldId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if
+        request.auth != null &&
+        request.auth.uid == uid &&
+        worldId.size() <= 64 &&
+        request.resource.data.keys().hasOnly(['name', 'seed', 'mode', 'savedAt', 'player']) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() <= 64 &&
+        request.resource.data.seed is number &&
+        request.resource.data.mode in ['survival', 'creative'] &&
+        request.resource.data.savedAt is number &&
+        request.resource.data.player is map &&
+        request.resource.data.player.keys().hasOnly(['pos', 'yaw', 'pitch', 'flying', 'selected', 'inventory', 'armor', 'xp', 'vitals']) &&
+        request.resource.data.player.inventory is list &&
+        request.resource.data.player.inventory.size() <= 36 &&
+        request.resource.data.player.armor is list &&
+        request.resource.data.player.armor.size() <= 4;
+    }
+
     match /projectLikes/{projectId} {
       allow read: if projectId in ['portfolio', 'applewebsite'];
       allow create: if

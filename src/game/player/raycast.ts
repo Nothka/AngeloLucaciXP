@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { B, SHAPE_CODE, doorState, isWater, switchFace } from "../world/blocks";
+import { B, SHAPE_CODE, doorState, isWater, switchFace, isWallTorch, wallTorchFace } from "../world/blocks";
 import type { World } from "../world/world";
 
 export interface RayHit {
@@ -20,7 +20,11 @@ export function blockBounds(id: number): [number, number, number, number, number
   const box = (a: number[], c: number[]): [number, number, number, number, number, number] => [a[0] / 16, a[1] / 16, a[2] / 16, c[0] / 16, c[1] / 16, c[2] / 16];
   switch (shape) {
     case 2: return [0.12, 0, 0.12, 0.88, 0.82, 0.88];
-    case 3: return [0.375, 0, 0.375, 0.625, 0.625, 0.625];
+    case 3: {
+      if (!isWallTorch(id)) return [0.375, 0, 0.375, 0.625, 0.625, 0.625];
+      // The leaning wall torch: from the wall out to its tip.
+      return ([[0, 0, 0, 0, 0, 0], [0.34, 0.18, 0, 0.66, 0.82, 0.4], [0.34, 0.18, 0.6, 0.66, 0.82, 1], [0, 0.18, 0.34, 0.4, 0.82, 0.66], [0.6, 0.18, 0.34, 1, 0.82, 0.66]] as const)[wallTorchFace(id)].slice() as [number, number, number, number, number, number];
+    }
     case 5: return [0, 0, 0, 1, 1 / 16, 1];
     case 6: case 7: {
       const face = switchFace(id);
@@ -39,6 +43,7 @@ export function blockBounds(id: number): [number, number, number, number, number
       return box(a, c);
     }
     case 8: return [1 / 16, 0, 1 / 16, 15 / 16, 2 / 16, 15 / 16];
+    case 10: return [0, 0, 0, 1, 2 / 16, 1];
     case 9: {
       const st = doorState(id);
       const side = st.open ? (st.facing + 1) % 4 : st.facing;

@@ -56,7 +56,12 @@ export class FallingBlocks {
       const next = f.y + f.vy * dt;
       const cell = Math.floor(next);
       const below = this.world.getBlock(f.x, cell, f.z);
-      if (cell < 0 || !passable(below)) {
+      if (cell < -64) {
+        // Fell out of the world.
+        this.remove(f);
+        continue;
+      }
+      if (cell >= 0 && !passable(below)) {
         // Landed on top of `cell`.
         const ly = Math.max(0, cell + 1);
         const here = this.world.getBlock(f.x, ly, f.z);

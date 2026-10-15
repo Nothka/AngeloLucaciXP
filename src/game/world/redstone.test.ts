@@ -88,6 +88,17 @@ describe("redstone", () => {
     expect(w.getBlock(0, 2, 0)).toBe(B.REDSTONE_TORCH_OFF);
   });
 
+  it("a redstone torch on a wall turns off when that wall block is powered", () => {
+    const { w, sim } = setup();
+    w.setBlock(0, 1, 0, B.STONE);
+    w.setBlock(1, 1, 0, B.REDSTONE_WALL_TORCH + 2); // hangs on the stone at -X
+    expect(torchShouldBeLit(w, 1, 1, 0)).toBe(true);
+    expect(sourcePower(w.getBlock(1, 1, 0))).toBe(15);
+    w.setBlock(-1, 1, 0, leverBlock(4, true)); // lever on the stone's other side
+    settle(sim, 0.4);
+    expect(w.getBlock(1, 1, 0)).toBe(B.REDSTONE_WALL_TORCH_OFF + 2);
+  });
+
   it("iron doors open while powered and close after", () => {
     const w = new Grid();
     w.setBlock(0, 1, 0, doorBlock(true, 0, false, false));

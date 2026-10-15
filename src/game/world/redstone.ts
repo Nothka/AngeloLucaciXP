@@ -1,6 +1,6 @@
 import {
-  ATTACH_DIRS, B, IS_OPAQUE, IS_SOLID, doorBlock, doorState, isButton, isDoor, isLever, isPlate, isRedstoneTorch, isWire,
-  switchFace, switchOn, wireBlock, wirePower,
+  ATTACH_DIRS, B, IS_OPAQUE, IS_SOLID, doorBlock, doorState, isButton, isDoor, isLever, isLitRedstoneTorch, isPlate, isRedstoneTorch, isWire,
+  redstoneTorchLit, supportDir, switchFace, switchOn, wireBlock, wirePower,
 } from "./blocks";
 
 /**
@@ -11,8 +11,8 @@ import {
  *    or a strongly powered block next to it.
  *  - Blocks: strongly powered by a switch hanging on them, a plate on top of
  *    them or a lit torch under them; weakly powered by dust on or beside them.
- *  - A redstone torch is lit unless the block it stands on is powered (that's
- *    the inverter). It reacts one tick late, so torch loops blink rather than hang.
+ *  - A redstone torch is lit unless the block it stands or hangs on is powered
+ *    (that's the inverter). It reacts one tick late, so torch loops blink rather than hang.
  *  - Doors open while powered. Iron doors only respond to redstone; wooden
  *    doors follow redstone when the signal changes and can also be opened by hand.
  */
@@ -26,7 +26,7 @@ const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
 /** Signal a block emits on its own. */
 export function sourcePower(id: number): number {
-  if (id === B.REDSTONE_TORCH || id === B.PRESSURE_PLATE_ON) return 15;
+  if (isLitRedstoneTorch(id) || id === B.PRESSURE_PLATE_ON) return 15;
   if ((isLever(id) || isButton(id)) && switchOn(id)) return 15;
   return 0;
 }
@@ -43,7 +43,7 @@ export function stronglyPowered(w: BlockGetter, x: number, y: number, z: number)
       if (dx + ax === 0 && dy + ay === 0 && dz + az === 0) return true;
     }
     if (dy === 1 && id === B.PRESSURE_PLATE_ON) return true;
-    if (dy === -1 && id === B.REDSTONE_TORCH) return true;
+    if (dy === -1 && isLitRedstoneTorch(id)) return true;
   }
   return false;
 }
@@ -86,8 +86,11 @@ export function cellReceivesPower(w: BlockGetter, x: number, y: number, z: numbe
   return false;
 }
 
-/** A redstone torch stays lit unless the block it stands on is powered. */
-export const torchShouldBeLit = (w: BlockGetter, x: number, y: number, z: number) => !blockPowered(w, x, y - 1, z);
+/** A redstone torch stays lit unless the block it stands or hangs on is powered. */
+export function torchShouldBeLit(w: BlockGetter, x: number, y: number, z: number) {
+  const [dx, dy, dz] = supportDir(w.getBlock(x, y, z)) ?? [0, -1, 0];
+  return !blockPowered(w, x + dx, y + dy, z + dz);
+}
 
 /** Which way dust is drawn: along X, along Z, or a cross. */
 export function wireShape(w: BlockGetter, x: number, y: number, z: number): "x" | "z" | "cross" {
@@ -179,12 +182,12 @@ export class RedstoneSim {
     }
     if (isRedstoneTorch(id)) {
       const lit = torchShouldBeLit(w, x, y, z);
-      if (lit !== (id === B.REDSTONE_TORCH)) {
+      if (lit !== isLitRedstoneTorch(id)) {
         this.schedule(`torch:${x},${y},${z}`, 0.1, () => {
           const now = w.getBlock(x, y, z);
           if (!isRedstoneTorch(now)) return;
           const want = torchShouldBeLit(w, x, y, z);
-          w.setBlock(x, y, z, want ? B.REDSTONE_TORCH : B.REDSTONE_TORCH_OFF);
+          w.setBlock(x, y, z, redstoneTorchLit(now, want));
         });
       }
       return;

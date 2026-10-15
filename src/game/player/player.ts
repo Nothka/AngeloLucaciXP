@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { isWater, waterHeight16 } from "../world/blocks";
+import { B, isWater, waterHeight16 } from "../world/blocks";
 import { solidTester, sweepAxis, type SolidAt } from "../entities/physics";
 import type { World } from "../world/world";
 import { IS_MAC, type Input } from "../input/input";
@@ -197,8 +197,12 @@ export class Player {
     }
   }
 
+  /** What the feet are on: a snow layer in the feet's own cell counts, otherwise the block below. */
   private blockUnderfoot() {
-    return this.world.getBlock(Math.floor(this.pos.x), Math.floor(this.pos.y - 0.1), Math.floor(this.pos.z));
+    const x = Math.floor(this.pos.x), z = Math.floor(this.pos.z);
+    const feet = this.world.getBlock(x, Math.floor(this.pos.y + 0.01), z);
+    if (feet === B.SNOW_LAYER) return feet;
+    return this.world.getBlock(x, Math.floor(this.pos.y - 0.1), z);
   }
 
   private solidAt(x: number, y: number, z: number) {
