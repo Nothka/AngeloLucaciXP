@@ -10,6 +10,8 @@ import {
 
 export interface SpawnerEnv {
   player: { x: number; y: number; z: number };
+  /** Everyone else in a shared world: mobs spawn around them too, and only despawn far from all. */
+  others?: { x: number; y: number; z: number }[];
   timeTicks: number;
   passiveEnabled: boolean;
   hostileEnabled: boolean;
@@ -65,17 +67,27 @@ export class Spawner {
     this.maxWindow = Math.max(this.maxWindow, ms);
   }
 
-  /** Chunks whose centre is within the spawn radius of the player (and that have light computed). */
-  private eligibleChunks(px: number, pz: number): [number, number][] {
+  /** Chunks whose centre is within the spawn radius of any player (and that have light computed). */
+  private eligibleChunks(players: { x: number; z: number }[]): [number, number][] {
     const r = SPAWN_CONFIG.spawnChunkRadius;
     const list: [number, number][] = [];
     for (const chunk of this.world.chunks.values()) {
       if (!chunk.light) continue;
-      const dx = chunk.cx * CHUNK_SIZE + 8 - px;
-      const dz = chunk.cz * CHUNK_SIZE + 8 - pz;
-      if (dx * dx + dz * dz <= r * r) list.push([chunk.cx, chunk.cz]);
+      const near = players.some((p) => {
+        const dx = chunk.cx * CHUNK_SIZE + 8 - p.x;
+        const dz = chunk.cz * CHUNK_SIZE + 8 - p.z;
+        return dx * dx + dz * dz <= r * r;
+      });
+      if (near) list.push([chunk.cx, chunk.cz]);
     }
     return list;
+  }
+
+  /** Distance from a point to the nearest player. */
+  private nearest(players: { x: number; y: number; z: number }[], x: number, y: number, z: number) {
+    let best = Infinity;
+    for (const p of players) best = Math.min(best, Math.hypot(x - p.x, y - p.y, z - p.z));
+    return best;
   }
 
   private countMobs() {
@@ -91,10 +103,10 @@ export class Spawner {
   }
 
   private tick(env: SpawnerEnv) {
-    const p = env.player;
-    this.despawnTick(p, env.hostileEnabled);
+    const players = [env.player, ...(env.others ?? [])];
+    this.despawnTick(players, env.hostileEnabled);
 
-    const chunks = this.eligibleChunks(p.x, p.z);
+    const chunks = this.eligibleChunks(players);
     const counts = this.countMobs();
     const s = this.stats;
     s.monsterCap = scaledCap(SPAWN_CONFIG.monsterCap, chunks.length);
@@ -150,7 +162,7 @@ export class Spawner {
     if (IS_OPAQUE[start] && IS_SOLID[start]) return 0;
 
     const types = typesIn(category);
-    const p = env.player;
+    const players = [env.player, ...(env.others ?? [])];
     const blockAt = (bx: number, by: number, bz: number) => w.getBlock(bx, by, bz);
     let spawned = 0;
     for (let pack = 0; pack < SPAWN_CONFIG.packAttemptsPerChunk; pack++) {
@@ -162,7 +174,7 @@ export class Spawner {
         const mz = z + triangular(rng, SPAWN_CONFIG.packSpread);
         const fx = mx + 0.5;
         const fz = mz + 0.5;
-        const dist = Math.hypot(fx - p.x, y - p.y, fz - p.z);
+        const dist = this.nearest(players, fx, y, fz);
         if (dist < SPAWN_CONFIG.minPlayerDistance || dist > SPAWN_CONFIG.spawnSphereRadius) continue;
         if (!w.chunkAt(Math.floor(mx / 16), Math.floor(mz / 16))?.light) continue;
         const light = w.getLight(mx, y, mz);
@@ -182,14 +194,14 @@ export class Spawner {
   }
 
   /** Despawning for non-persistent mobs; Peaceful also clears hostiles. */
-  private despawnTick(p: { x: number; y: number; z: number }, hostileEnabled: boolean) {
+  private despawnTick(players: { x: number; y: number; z: number }[], hostileEnabled: boolean) {
     for (const mob of [...this.entities.mobs.values()]) {
       if (mob.hostile && !hostileEnabled) {
         this.entities.remove(mob);
         continue;
       }
       if (mob.persistent) continue;
-      const distance = Math.hypot(mob.pos.x - p.x, mob.pos.y - p.y, mob.pos.z - p.z);
+      const distance = this.nearest(players, mob.pos.x, mob.pos.y, mob.pos.z);
       if (distance > SPAWN_CONFIG.despawnRandomDistance) mob.farSeconds += 1 / 20;
       else mob.farSeconds = 0;
       if (shouldDespawn({ persistent: mob.persistent, distance, farSeconds: mob.farSeconds, roll: this.rng() })) this.entities.remove(mob);

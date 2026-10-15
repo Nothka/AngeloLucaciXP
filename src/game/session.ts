@@ -27,6 +27,10 @@ import { raycast, type RayHit } from "./player/raycast";
 import { SMELT_XP } from "./items/smelting";
 import { runCommand, type CommandResult } from "./commands";
 import { choosePlayer, cloudSave } from "./save/cloud";
+import { HostNet } from "./net/host";
+import { GuestNet } from "./net/guest";
+import type { NetGame } from "./net/game";
+import type { NetPlayerState, PlayerSave } from "./net/protocol";
 import { blockIndex, CHUNK_SIZE } from "./config";
 import type { Chunk } from "./world/chunk";
 import { World, type ChunkStore } from "./world/world";
@@ -51,6 +55,10 @@ import { TORCH_FX_RANGE, TorchParticles, hasFlame } from "./render/torchParticle
 
 class DbChunkStore implements ChunkStore {
   constructor(private worldId: string, private keys: Set<string>) {}
+  /** Chunks that have been saved at some point ("cx,cz"). */
+  savedKeys() {
+    return [...this.keys];
+  }
   has(cx: number, cz: number) {
     return this.keys.has(`${cx},${cz}`);
   }
@@ -87,7 +95,7 @@ export const VOID_DAMAGE_Y = -64;
 const CREATIVE_HOTBAR = [B.GRASS, B.DIRT, B.STONE, B.COBBLESTONE, B.PLANKS, B.LOG, B.GLASS, B.TORCH, B.CRAFTING_TABLE];
 
 /** One open world: terrain streaming, the player, items and saving. */
-export class Session {
+export class Session implements NetGame {
   readonly world: World;
   readonly player: Player;
   readonly inventory = new Inventory();
@@ -156,7 +164,12 @@ export class Session {
   private spawnPending: { x: number; z: number; y: number | null };
   private daylight = 1;
 
-  static async open(meta: WorldMeta, pool: WorkerPool, materials: BlockMaterials, audio: Audio, events: SessionEvents, persist = true) {
+  static async open(meta: WorldMeta, pool: WorkerPool, materials: BlockMaterials, audio: Audio, events: SessionEvents, persist = true, guest: GuestNet | null = null) {
+    if (guest) {
+      // A friend's world: nothing is saved here, changed chunks come from the host.
+      const s = new Session(meta, pool, materials, audio, events, null, new Set(), guest);
+      return s;
+    }
     const keys = persist ? await listChunkKeys(meta.id).catch(() => new Set<string>()) : new Set<string>();
     const entityKeys = persist ? await listEntityKeys(meta.id).catch(() => new Set<string>()) : new Set<string>();
     // The player (inventory, armor, XP, health, position) also lives in the cloud; a newer copy there wins.
@@ -173,9 +186,10 @@ export class Session {
     store: DbChunkStore | null,
     /** Chunks whose animals were already generated (and saved) at some point. */
     private entityKeys: Set<string> = new Set(),
+    guest: GuestNet | null = null,
   ) {
     this.store = store;
-    this.world = new World(meta.seed, pool, materials, store);
+    this.world = new World(meta.seed, pool, materials, guest ? guest.store : store);
     this.player = new Player(this.world);
     this.player.mode = meta.mode;
     this.time = meta.time;
@@ -208,7 +222,8 @@ export class Session {
     this.group.add(this.entities.group, this.projectiles.group, this.xpOrbs.group);
     this.spawner = new Spawner(this.world, this.entities);
     this.world.onChunkLoaded = (chunk) => {
-      this.chunkEntitiesIn(chunk.cx, chunk.cz, (x, y, z) => chunk.get(x, y, z));
+      if (this.net instanceof GuestNet) this.net.chunkLoaded(chunk.cx, chunk.cz);
+      else this.chunkEntitiesIn(chunk.cx, chunk.cz, (x, y, z) => chunk.get(x, y, z));
       this.scanCrops(chunk);
     };
     this.world.onChunkUnloaded = (chunk) => {
@@ -250,7 +265,16 @@ export class Session {
         }
       },
     });
-    this.world.onBlockChange = (x, y, z, before, after) => this.blockUpdates.onChange(x, y, z, before, after);
+    this.world.onBlockChange = (x, y, z, before, after) => {
+      // In a friend's world the host runs the world's rules (water, redstone,
+      // things popping off): our own edits just go to the host.
+      if (this.net instanceof GuestNet) {
+        if (!this.net.applying) this.net.blockChanged(x, y, z, after);
+        return;
+      }
+      this.blockUpdates.onChange(x, y, z, before, after);
+      if (this.net instanceof HostNet) this.net.blockChanged(x, y, z, after);
+    };
     this.fluid.onWashedAway = (x, y, z, id) => {
       const drop = BLOCKS[id]?.drop;
       if (drop !== null && drop !== undefined && this.player.mode === "survival") this.drops.spawn(drop, 1, x + 0.5, y + 0.3, z + 0.5);
@@ -269,9 +293,10 @@ export class Session {
       this.vitals.load(p.vitals);
       this.spawnPending = { x: p.pos[0], z: p.pos[2], y: p.pos[1] };
     } else {
-      const spawn = this.world.generator.findSpawn();
+      const sp = meta.spawnPoint;
+      const spawn = sp ? { x: sp[0] + 0.5, y: sp[1], z: sp[2] + 0.5 } : this.world.generator.findSpawn();
       this.player.teleport(spawn.x, spawn.y, spawn.z);
-      this.spawnPending = { x: spawn.x, z: spawn.z, y: null };
+      this.spawnPending = { x: spawn.x, z: spawn.z, y: sp ? sp[1] : null };
       if (meta.mode === "creative") CREATIVE_HOTBAR.forEach((id, i) => (this.inventory.slots[i] = { id, count: 64 }));
     }
 
@@ -322,15 +347,199 @@ export class Session {
       },
       onUseBlock: (x, y, z, id) => this.useBlock(x, y, z, id),
       useItem: (hit) => this.useItem(hit),
-      onSwing: () => this.onSwing?.(),
+      onSwing: () => this.swung(),
       onDigTick: (id) => {
         const t = this.interaction.target;
         if (t) this.playAt(BLOCKS[id].sound, "dig", t.x, t.y, t.z);
       },
     });
+    // Joining a friend: link up once everything above exists.
+    if (guest) this.attachNet(guest);
   }
 
   onSwing: (() => void) | null = null;
+  /** Counts every swing, so other players see them even if an update is lost. */
+  private swingCount = 0;
+  private swung() {
+    this.swingCount++;
+    this.onSwing?.();
+  }
+
+  /* ------------------------------------------------------------ multiplayer */
+
+  /** Hosting this world for friends, or playing in a friend's world. */
+  net: HostNet | GuestNet | null = null;
+
+  get role(): "solo" | "host" | "guest" {
+    return this.net instanceof HostNet ? "host" : this.net instanceof GuestNet ? "guest" : "solo";
+  }
+
+  private get hostNet() {
+    return this.net instanceof HostNet ? this.net : null;
+  }
+
+  private attachNet(net: HostNet | GuestNet) {
+    this.net = net;
+    this.group.add(net.remotes.group);
+    if (net instanceof HostNet) {
+      // Everything that appears in our world is shown to the guests.
+      this.drops.host = { spawned: (d) => net.dropSpawned(d), removed: (id) => net.dropRemoved(id), counted: (id, n) => net.dropCounted(id, n) };
+      this.xpOrbs.host = { spawned: (o) => net.orbSpawned(o), removed: (id) => net.orbRemoved(id) };
+      this.projectiles.onShoot = (from, vel) => net.arrowShot(from, vel);
+    } else {
+      net.attach(this);
+      // In a friend's world, the host makes every item, orb and arrow; ours only show theirs.
+      this.drops.guest = {
+        spawn: (item, count, x, y, z, vel, delay, wear) => net.throwItem(item, count, x, y, z, vel, delay, wear),
+        pick: (id) => net.pick(id),
+      };
+      this.xpOrbs.guest = { spawn: (points, x, y, z) => net.orb(points, x, y, z) };
+      this.projectiles.visualOnly = true;
+      // Moving items in a friend's furnace: tell the host.
+      this.inventory.onChange(() => {
+        const open = this.guestFurnace;
+        if (!open?.opened || this.net !== net) return;
+        open.changedAt = performance.now();
+        net.furnaceChanged(open.p, open.f);
+      });
+    }
+  }
+
+  /* ---- what the host's world tells a guest */
+
+  saveGuest(id: string, name: string, p: PlayerSave) {
+    this.meta.guests ??= {};
+    this.meta.guests[id] = { name, player: p, savedAt: Date.now() };
+  }
+
+  /** A returning friend's progress: by their id, or (if their browser forgot it) by their name. */
+  guestSave(id: string, name: string): PlayerSave | null {
+    const guests = this.meta.guests ?? {};
+    if (guests[id]) return guests[id].player;
+    const byName = Object.values(guests).filter((g) => g.name.toLowerCase() === name.toLowerCase()).sort((a, b) => b.savedAt - a.savedAt)[0];
+    return byName?.player ?? null;
+  }
+
+  playerSave(): PlayerSave {
+    return this.snapshotMeta().player!;
+  }
+
+  creditKill(type: string, hostile: boolean, weapon: number) {
+    this.events.emit("mobKilled", { type: type as MobType, hostile, weapon, byPlayer: true });
+  }
+
+  feedFromGuest(mob: Mob, item: number): boolean {
+    if (!mob.def?.breedFood?.includes(item) || mob.dead) return false;
+    if (feed(mob, SPAWN_CONFIG.growUpSeconds) === "refused") return false;
+    if (mob.baby && mob.age >= SPAWN_CONFIG.growUpSeconds) mob.growUp();
+    this.audio.mobSound(mob.type, "eat", mob.pos.x, mob.pos.y + mob.height * 0.7, mob.pos.z, mob.baby);
+    return true;
+  }
+
+  fedConfirmed(item: number) {
+    const mob = this.interaction.entityTarget as Mob | null;
+    if (mob?.pos) this.audio.mobSound(mob.type, "eat", mob.pos.x, mob.pos.y + mob.height * 0.7, mob.pos.z, mob.baby);
+    if (this.player.mode === "survival") this.inventory.take(item, 1);
+    this.events.emit("animalFed", { type: mob?.type ?? "" });
+  }
+
+  receiveItem(item: number, count: number, wear?: number) {
+    if (this.vitals.dead) {
+      this.throwStack({ id: item, count, wear });
+      return;
+    }
+    const left = this.inventory.add(item, count, wear);
+    if (left < count) {
+      this.audio.pickup();
+      this.events.emit("itemPickedUp", { id: item, count: count - left });
+    }
+    // No room: back on the ground it goes.
+    if (left > 0) this.drops.spawn(item, left, this.player.pos.x, this.player.pos.y + 0.5, this.player.pos.z, undefined, 2, wear);
+  }
+
+  receiveXp(points: number) {
+    this.xp.add(points);
+    this.audio.xpOrb();
+  }
+
+  /** The furnace a guest has open, kept in step with the host's. */
+  private guestFurnace: { p: [number, number, number]; f: FurnaceState; opened: boolean; changedAt: number } | null = null;
+
+  furnaceUpdate(p: [number, number, number], f: FurnaceState) {
+    const open = this.guestFurnace;
+    if (!open || open.p.join() !== p.join()) return;
+    // The host's fire and cooking always; its slots unless we just moved something (ours is on its way).
+    open.f.burnLeft = f.burnLeft;
+    open.f.burnTotal = f.burnTotal;
+    open.f.cook = f.cook;
+    if (performance.now() - open.changedAt > 500) {
+      open.f.input = f.input;
+      open.f.fuel = f.fuel;
+      open.f.output = f.output;
+      open.f.xp = f.xp;
+    }
+    if (!open.opened) {
+      open.opened = true;
+      this.hooks.openFurnace(open.f);
+    }
+  }
+
+  /** The game closed a container screen: stop following a friend's furnace. */
+  containerClosed() {
+    const open = this.guestFurnace;
+    if (!open || !(this.net instanceof GuestNet)) return;
+    this.net.furnaceChanged(open.p, open.f);
+    this.net.furnaceClosed(open.p);
+    this.guestFurnace = null;
+  }
+
+  /** Opens this world to friends; resolves to the room code. */
+  async openToFriends(name: string): Promise<HostNet> {
+    if (this.net instanceof HostNet) return this.net;
+    if (this.net) throw new Error("You are in someone else's world");
+    const host = await HostNet.open(this, name);
+    this.attachNet(host);
+    return host;
+  }
+
+  playerState(): NetPlayerState {
+    const p = this.player;
+    return {
+      x: +p.pos.x.toFixed(3), y: +p.pos.y.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(3), pitch: +p.pitch.toFixed(3),
+      held: this.inventory.held?.id ?? 0, sneak: p.sneaking, swings: this.swingCount, dead: this.vitals.dead, creative: p.mode === "creative",
+    };
+  }
+
+  worldInfo() {
+    return { name: this.meta.name, seed: this.meta.seed, mode: this.meta.mode };
+  }
+
+  spawn(): [number, number, number] {
+    const sp = this.meta.spawnPoint;
+    if (sp) return sp;
+    const s = this.world.generator.findSpawn();
+    return [Math.floor(s.x), Math.floor(s.y), Math.floor(s.z)];
+  }
+
+  modifiedChunks() {
+    const keys = new Set(this.store?.savedKeys() ?? []);
+    for (const c of this.world.chunks.values()) if (c.unsaved) keys.add(`${c.cx},${c.cz}`);
+    return [...keys];
+  }
+
+  async chunkData(cx: number, cz: number) {
+    const loaded = this.world.chunkAt(cx, cz);
+    if (loaded) return loaded.blocks.slice();
+    return this.store?.has(cx, cz) ? loadChunk(this.meta.id, cx, cz) : null;
+  }
+
+  applyEdits(c: number[]) {
+    for (let i = 0; i + 3 < c.length; i += 4) {
+      const [x, y, z, id] = [c[i], c[i + 1], c[i + 2], c[i + 3]];
+      if (![x, y, z, id].every(Number.isInteger) || id < 0 || id > 255 || !BLOCKS[id]) continue;
+      this.world.setBlock(x, y, z, id);
+    }
+  }
   /** Short action-bar message, e.g. explaining why something did nothing. */
   onHint: ((text: string) => void) | null = null;
   private hintsShown = new Set<string>();
@@ -375,11 +584,18 @@ export class Session {
   attack(target: Attackable): number {
     const weapon = this.inventory.held?.id ?? 0;
     const damage = attackDamage(weapon);
-    target.hurt(damage, { weapon, from: { x: this.player.pos.x, z: this.player.pos.z } });
+    const remoteId = this.net instanceof GuestNet ? this.entities.remoteId(target as Mob) : null;
+    if (remoteId !== null && this.net instanceof GuestNet) {
+      // The mob lives in the host's world: the host applies the hit (and its knockback).
+      this.net.hit(remoteId, damage, weapon, this.player.pos.x, this.player.pos.z);
+      (target as Mob).hurtTime = 0;
+    } else {
+      target.hurt(damage, { weapon, from: { x: this.player.pos.x, z: this.player.pos.z } });
+    }
     this.wearHeld(wearFor(weapon, "attack"));
     this.events.emit("attack", { weapon, damage, target: target.name });
     this.onAttack?.(target, damage);
-    this.onSwing?.();
+    this.swung();
     return damage;
   }
 
@@ -423,6 +639,11 @@ export class Session {
   }
 
   private onMobKilled(mob: Mob) {
+    // A friend's kill counts for them, not for our achievements.
+    if (mob.lastHitBy !== "self") {
+      if (mob.killedByPlayer) this.hostNet?.creditKill(mob.lastHitBy, mob.type, mob.hostile, mob.lastWeapon);
+      return;
+    }
     this.events.emit("mobKilled", { type: mob.type, hostile: mob.hostile, weapon: mob.lastWeapon, byPlayer: mob.killedByPlayer });
   }
 
@@ -506,13 +727,15 @@ export class Session {
         const eye = this.player.eye();
         const look = this.player.look();
         eye.addScaledVector(look, 0.4);
-        this.projectiles.shoot(eye, look.multiplyScalar(48 * power), { fromPlayer: true, shooter: null, damage: arrowDamage(power), pickup: !creative });
+        const vel = look.multiplyScalar(48 * power);
+        this.projectiles.shoot(eye, vel, { fromPlayer: true, shooter: null, damage: arrowDamage(power), pickup: !creative });
+        if (this.net instanceof GuestNet) this.net.shoot(eye, vel, arrowDamage(power), !creative);
         if (!creative) {
           this.inventory.take(I.ARROW, 1);
           this.wearHeld(1);
         }
         this.audio.bowShot();
-        this.onSwing?.();
+        this.swung();
       }
     }
     this.bowDraw = 0;
@@ -641,14 +864,18 @@ export class Session {
         time: this.playTime,
         daylight: this.daylight,
         target: targetable ? { x: p.pos.x, y: p.pos.y, z: p.pos.z } : null,
-        hurtTarget: (mob, amount) => this.hurtPlayer(amount, "mob", mob.pos.x, mob.pos.z),
+        hurtTarget: (mob, amount) => (mob.targetId === "self" ? this.hurtPlayer(amount, "mob", mob.pos.x, mob.pos.z) : this.hostNet?.hurtGuest(mob.targetId, amount, "mob", mob.pos.x, mob.pos.z)),
+        others: this.hostNet?.bodies(),
         holder: alive && this.inventory.held ? { x: p.pos.x, y: p.pos.y, z: p.pos.z, item: this.inventory.held.id } : null,
+        holders: this.hostNet?.holders(),
         // Overcast skies keep the undead from burning.
         isDay: this.daylight > 0.75 && !this.weather.raining,
       });
       if (this.mobRules.mobs) this.projectiles.update(dt, this.entities.solidAt, {
         player: () => (alive ? { x: p.pos.x, y: p.pos.y, z: p.pos.z, half: p.half, height: p.height } : null),
-        hitPlayer: (damage, from) => this.hurtPlayer(damage, "arrow", from.x, from.z),
+        hitPlayer: (damage, from, id) => (id === "self" ? this.hurtPlayer(damage, "arrow", from.x, from.z) : this.hostNet?.hurtGuest(id, damage, "arrow", from.x, from.z)),
+        others: () => this.hostNet?.bodies() ?? [],
+        pickupFor: (id) => this.hostNet?.giveArrow(id),
         mobs: () => this.entities.mobs.values(),
         hitMob: (mob, damage, from) => {
           mob.hurt(damage, { weapon: I.BOW, from: { x: from.x, z: from.z } });
@@ -661,28 +888,36 @@ export class Session {
         },
         thud: (x, y, z) => this.audio.arrowHit(x, y, z),
       });
-      this.xpOrbs.update(dt, this.entities.solidAt, alive && p.mode === "survival" ? p.pos.clone().setY(p.pos.y + 0.8) : null, (value) => {
+      const hosting = this.net instanceof HostNet ? this.net : null;
+      const others = hosting ? hosting.bodies() : [];
+      this.xpOrbs.update(dt, this.entities.solidAt, alive && p.mode === "survival" ? p.pos.clone().setY(p.pos.y + 0.8) : null, (value, who) => {
+        if (who !== "self") return hosting?.giveXp(who, value);
         this.xp.add(value);
         this.audio.xpOrb();
-      }, this.playTime);
+      }, this.playTime, others.map((o) => ({ id: o.id, pos: new THREE.Vector3(o.x, o.y + 0.8, o.z) })));
       this.updateBow(dt, input, controls && alive);
 
-      this.spawner.update(dt, {
+      const guest = this.net instanceof GuestNet;
+      if (!guest) this.spawner.update(dt, {
         player: { x: p.pos.x, y: p.pos.y, z: p.pos.z },
         timeTicks: this.time,
         passiveEnabled: this.mobRules.mobs,
+        others: this.hostNet?.positions(),
         hostileEnabled: this.mobRules.mobs && !this.mobRules.peaceful,
         skyDim: Math.round(this.weather.rain * 3 + this.weather.thunder * 5),
       });
 
-      this.redstone.tick(dt);
-      this.falling.update(dt);
-      this.furnaces.tick(dt, (x, y, z) => (this.world.isLoaded(x, z) ? this.world.getBlock(x, y, z) : null), (out) => SMELT_XP[out] ?? 0);
-      this.updatePlates(dt, alive);
-      this.updateCrops(dt);
+      if (!guest) {
+        this.redstone.tick(dt);
+        this.falling.update(dt);
+        this.furnaces.tick(dt, (x, y, z) => (this.world.isLoaded(x, z) ? this.world.getBlock(x, y, z) : null), (out) => SMELT_XP[out] ?? 0);
+        this.updatePlates(dt, alive);
+        this.updateCrops(dt);
+      }
       this.updateFishing(dt);
       if (this.weather.update(dt)) this.onLightning?.();
-      this.updateSnowfall(dt);
+      if (!guest) this.updateSnowfall(dt);
+      this.net?.update(dt, (x, y, z) => this.world.getLight(x, y, z), this.daylight);
       this.torchFx.update(dt, p.eye(), this.nearbyTorches());
       this.ambientTimer -= dt;
       if (this.ambientTimer <= 0) {
@@ -704,7 +939,7 @@ export class Session {
 
       // Water flows on its own clock, a quarter second per step.
       this.fluidTimer += dt;
-      while (this.fluidTimer >= 0.25) {
+      while (this.fluidTimer >= 0.25 && !guest) {
         this.fluidTimer -= 0.25;
         this.fluid.tick();
       }
@@ -805,6 +1040,13 @@ export class Session {
       return true;
     }
     if (isFurnace(id)) {
+      if (this.net instanceof GuestNet) {
+        // The furnace burns in the host's world: ask for its contents, then open it.
+        const p: [number, number, number] = [x, y, z];
+        this.guestFurnace = { p, f: { input: null, fuel: null, output: null, burnLeft: 0, burnTotal: 0, cook: 0, xp: 0 }, opened: false, changedAt: 0 };
+        this.net.furnaceOpen(p);
+        return true;
+      }
       this.hooks.openFurnace(this.furnaces.get(x, y, z));
       return true;
     }
@@ -812,7 +1054,7 @@ export class Session {
       const on = !switchOn(id);
       w.setBlock(x, y, z, leverBlock(switchFace(id), on));
       this.audio.switchClick(on, x + 0.5, y + 0.5, z + 0.5);
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     if (isButton(id)) {
@@ -820,7 +1062,7 @@ export class Session {
       const face = switchFace(id);
       w.setBlock(x, y, z, buttonBlock(face, true));
       this.audio.switchClick(true, x + 0.5, y + 0.5, z + 0.5);
-      this.onSwing?.();
+      this.swung();
       // Stone buttons spring back after a second.
       this.redstone.schedule(`button:${x},${y},${z}`, 1, () => {
         if (w.getBlock(x, y, z) === buttonBlock(face, true)) {
@@ -835,7 +1077,7 @@ export class Session {
       // Iron doors only open with redstone.
       if (s.iron) return true;
       setDoorOpen(w, x, s.upper ? y - 1 : y, z, !s.open);
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     return false;
@@ -848,16 +1090,23 @@ export class Session {
       this.audio.mobSound("cow", "milk", mob.pos.x, mob.pos.y + mob.height * 0.5, mob.pos.z);
       if (this.player.mode === "survival") this.swapHeld(I.MILK_BUCKET);
       else this.inventory.add(I.MILK_BUCKET, 1);
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     if (!held || !mob.def?.breedFood?.includes(held.id) || mob.dead) return false;
+    const remoteId = this.net instanceof GuestNet ? this.entities.remoteId(mob) : null;
+    if (remoteId !== null && this.net instanceof GuestNet) {
+      // The host decides whether it eats (it may already be in love); we use the food up when it does.
+      this.net.feed(remoteId, held.id);
+      this.swung();
+      return true;
+    }
     if (feed(mob, SPAWN_CONFIG.growUpSeconds) === "refused") return false;
     if (mob.baby && mob.age >= SPAWN_CONFIG.growUpSeconds) mob.growUp();
     this.audio.mobSound(mob.type, "eat", mob.pos.x, mob.pos.y + mob.height * 0.7, mob.pos.z, mob.baby);
     if (this.player.mode === "survival") this.inventory.removeFromSlot(this.inventory.selected, 1);
     this.events.emit("animalFed", { type: mob.type });
-    this.onSwing?.();
+    this.swung();
     return true;
   }
 
@@ -874,7 +1123,7 @@ export class Session {
       w.setBlock(hit.x, hit.y, hit.z, farmlandFor(w, hit.x, hit.y, hit.z));
       this.playAt("grass", "place", hit.x, hit.y, hit.z);
       this.wearHeld(1);
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     if (held.id === I.BUCKET) {
@@ -884,7 +1133,7 @@ export class Session {
       this.audio.splash({ x: water.x + 0.5, y: water.y + 0.5, z: water.z + 0.5 });
       if (survival) this.swapHeld(I.WATER_BUCKET);
       this.events.emit("itemPickedUp", { id: I.WATER_BUCKET, count: 1 });
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     if (held.id === I.WATER_BUCKET) {
@@ -899,7 +1148,7 @@ export class Session {
       if (!w.setBlock(x, y, z, B.WATER)) return false;
       this.audio.splash({ x: x + 0.5, y: y + 0.5, z: z + 0.5 });
       if (survival) this.swapHeld(I.BUCKET);
-      this.onSwing?.();
+      this.swung();
       return true;
     }
     if (held.id === I.FISHING_ROD) {
@@ -933,7 +1182,7 @@ export class Session {
 
   /** Cast the line, or reel it in (catching a fish if one is biting). */
   private useRod() {
-    this.onSwing?.();
+    this.swung();
     if (!this.bobber) {
       const b = new FishingBobber(this.rodTip(), this.player.look(), this.weather.raining);
       b.onBite = () => this.audio.bobber(true, b.pos.x, b.pos.y, b.pos.z);
@@ -1144,6 +1393,15 @@ export class Session {
 
   /** Runs a chat command such as "/time set night". */
   command(text: string): CommandResult {
+    if (this.net instanceof GuestNet && text.trim().startsWith("/") && !/^\/(help|\?)\b/.test(text.trim())) {
+      return { ok: false, message: "Only the host can use commands in their world" };
+    }
+    const result = this.runCommandText(text);
+    if (result.ok && this.net instanceof HostNet) this.net.skyChanged();
+    return result;
+  }
+
+  private runCommandText(text: string): CommandResult {
     const session = this;
     const p = this.player;
     return runCommand(text, {
@@ -1279,7 +1537,17 @@ export class Session {
     return this.saving;
   }
 
+  /** Leaves multiplayer: closes the room (host) or the connection (guest). */
+  async leaveNet() {
+    const net = this.net;
+    if (!net) return;
+    this.net = null;
+    this.group.remove(net.remotes.group);
+    await net.close();
+  }
+
   dispose() {
+    void this.leaveNet();
     this.achievements.dispose();
     this.events.clear();
     this.fluid.clear();

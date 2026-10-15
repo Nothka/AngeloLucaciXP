@@ -24,7 +24,12 @@ interface Arrow extends ArrowOptions {
 export interface ProjectileHooks {
   /** The player's collision box (feet position, half width, height), or null when untargetable. */
   player(): { x: number; y: number; z: number; half: number; height: number } | null;
-  hitPlayer(damage: number, from: THREE.Vector3): void;
+  /** `id` says which player when there are others (multiplayer); "self" is this machine's player. */
+  hitPlayer(damage: number, from: THREE.Vector3, id: string): void;
+  /** A friend walked over an arrow they may keep (multiplayer host). */
+  pickupFor?(id: string): void;
+  /** Other players' collision boxes (multiplayer host). */
+  others?(): Iterable<{ id: string; x: number; y: number; z: number; half: number; height: number }>;
   mobs(): Iterable<Mob>;
   hitMob(mob: Mob, damage: number, from: THREE.Vector3): void;
   /** Returns true if the arrow went into the inventory. */
@@ -65,11 +70,17 @@ export class ProjectileManager {
   private tmp = new THREE.Vector3();
   private dir = new THREE.Vector3();
 
+  /** Guests: arrows here only show the host's; they hit nothing. */
+  visualOnly = false;
+  /** Host: tell the guests an arrow was loosed (so they see it fly). */
+  onShoot: ((from: THREE.Vector3, vel: THREE.Vector3) => void) | null = null;
+
   get count() {
     return this.arrows.length;
   }
 
   shoot(from: THREE.Vector3, vel: THREE.Vector3, opts: ArrowOptions) {
+    this.onShoot?.(from, vel);
     const mesh = new THREE.Mesh(this.shape.geometry, this.shape.material);
     mesh.frustumCulled = false;
     this.group.add(mesh);
@@ -95,8 +106,22 @@ export class ProjectileManager {
       if (a.stuck) {
         a.stuckTime += dt;
         if (a.stuckTime > STUCK_SECONDS) this.remove(a);
-        else if (a.pickup && player && a.stuckTime > 0.4 && Math.abs(a.pos.x - player.x) < 1.2 && Math.abs(a.pos.z - player.z) < 1.2 && a.pos.y > player.y - 0.5 && a.pos.y < player.y + player.height + 0.5) {
-          if (hooks.pickup()) this.remove(a);
+        else if (a.stuckTime > 0.4) {
+          const near = (p: { x: number; y: number; z: number; height: number }) =>
+            Math.abs(a.pos.x - p.x) < 1.2 && Math.abs(a.pos.z - p.z) < 1.2 && a.pos.y > p.y - 0.5 && a.pos.y < p.y + p.height + 0.5;
+          if (this.visualOnly) {
+            // A friend's world: walking over an arrow, the host hands it over; this copy just goes.
+            if (player && near(player)) this.remove(a);
+          } else if (a.pickup && player && near(player)) {
+            if (hooks.pickup()) this.remove(a);
+          } else if (a.pickup) {
+            for (const o of hooks.others?.() ?? []) {
+              if (!near(o)) continue;
+              hooks.pickupFor?.(o.id);
+              this.remove(a);
+              break;
+            }
+          }
         }
         continue;
       }
@@ -121,21 +146,26 @@ export class ProjectileManager {
           break;
         }
       }
-      for (const mob of hooks.mobs()) {
+      let hitId = "self";
+      for (const mob of this.visualOnly ? [] : hooks.mobs()) {
         if (mob === a.shooter || mob.dead) continue;
         const t = rayAABB(a.pos, this.dir, mob.pos.x - mob.half, mob.pos.y, mob.pos.z - mob.half, mob.pos.x + mob.half, mob.pos.y + mob.height, mob.pos.z + mob.half);
         if (t !== null && t <= step && t < hitT) { hitT = t; hitKind = "mob"; hitMob = mob; }
       }
-      if (player && !a.fromPlayer) {
-        const t = rayAABB(a.pos, this.dir, player.x - player.half, player.y, player.z - player.half, player.x + player.half, player.y + player.height, player.z + player.half);
-        if (t !== null && t <= step && t < hitT) { hitT = t; hitKind = "player"; }
+      if (!a.fromPlayer && !this.visualOnly) {
+        // Players' arrows never hit players (co-op); mobs' arrows hit whoever is in the way.
+        const targets = [...(player ? [{ id: "self", ...player }] : []), ...(hooks.others?.() ?? [])];
+        for (const p of targets) {
+          const t = rayAABB(a.pos, this.dir, p.x - p.half, p.y, p.z - p.half, p.x + p.half, p.y + p.height, p.z + p.half);
+          if (t !== null && t <= step && t < hitT) { hitT = t; hitKind = "player"; hitId = p.id; }
+        }
       }
 
       if (hitKind === "mob" && hitMob) {
         hooks.hitMob(hitMob, a.damage, a.pos.clone().sub(this.dir));
         this.remove(a);
       } else if (hitKind === "player") {
-        hooks.hitPlayer(a.damage, a.pos.clone().sub(this.dir));
+        hooks.hitPlayer(a.damage, a.pos.clone().sub(this.dir), hitId);
         this.remove(a);
       } else if (hitKind === "block") {
         a.pos.addScaledVector(this.dir, hitT + 0.15);

@@ -34,6 +34,8 @@ export interface WorldMeta {
   /** Commands allowed in this world. */
   cheats?: boolean;
   weather?: { kind: "clear" | "rain" | "thunder"; left: number };
+  /** Friends who played here when it was open to them: their progress, by player id. */
+  guests?: Record<string, { name: string; player: NonNullable<WorldMeta["player"]>; savedAt: number }>;
   /** Small top-down preview shown in the world list. */
   thumbnail?: string;
 }

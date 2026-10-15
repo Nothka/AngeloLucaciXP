@@ -9,6 +9,8 @@ export interface Settings {
   clouds: boolean;
   mobs: boolean;
   difficulty: "peaceful" | "normal";
+  /** Name other players see in multiplayer. */
+  playerName: string;
 }
 
 const KEY = "blockvale:settings:v1";
@@ -24,18 +26,22 @@ export const DEFAULT_SETTINGS: Settings = {
   clouds: true,
   mobs: true,
   difficulty: "normal",
+  playerName: "",
 };
 
 /** Options are a per-viewer convenience, so they live in localStorage (falling back to defaults). */
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    if (raw) return withName({ ...DEFAULT_SETTINGS, ...JSON.parse(raw) });
   } catch {
     // Storage blocked or corrupt: defaults are fine.
   }
-  return { ...DEFAULT_SETTINGS };
+  return withName({ ...DEFAULT_SETTINGS });
 }
+
+/** Everyone starts with a name like "Player417" until they pick one. */
+const withName = (s: Settings): Settings => (s.playerName ? s : { ...s, playerName: `Player${100 + Math.floor(Math.random() * 900)}` });
 
 export function saveSettings(s: Settings) {
   try {

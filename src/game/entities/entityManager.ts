@@ -7,7 +7,7 @@ import type { EntityRecord } from "../save/db";
 import { Mob, type MobSpawnOptions } from "./mob";
 import { updateAI, type AIContext } from "./mobAI";
 import { MobRenderer } from "./mobModels";
-import { woolFor, type MobType } from "./mobTypes";
+import { MOB_LIST, woolFor, type MobType } from "./mobTypes";
 import { solidTester, type SolidAt } from "./physics";
 import { SPAWN_CONFIG } from "./spawnConfig";
 import {
@@ -36,7 +36,15 @@ export interface EntityFrame {
   hurtTarget(mob: Mob, amount: number): void;
   /** The player and what they hold, so animals can follow their food. */
   holder?: { x: number; y: number; z: number; item: number } | null;
+  /** Other players holding something (multiplayer host): animals follow their food too. */
+  holders?: { x: number; y: number; z: number; item: number }[];
+  /** Other players hostile mobs may go after (multiplayer host); each mob picks the nearest. */
+  others?: { id: string; x: number; y: number; z: number }[];
 }
+
+/** A mob as sent to guests: id, type, x, y, z, yaw, flags, colour, hit count. */
+export type MobSnapshot = [number, number, number, number, number, number, number, number, number];
+const F_BABY = 1, F_DEAD = 2, F_BURNING = 4, F_AIMING = 8, F_LOVE = 16, F_GROUND = 32, F_ATTACK = 64;
 
 const DEATH_SECONDS = 0.6;
 
@@ -45,6 +53,8 @@ export class EntityManager {
   readonly mobs = new Map<number, Mob>();
   readonly renderer = new MobRenderer();
   readonly hearts = new HeartParticles();
+  /** Guests: the host's mobs we mirror, by the host's id for them. */
+  private remoteById = new Map<number, Mob>();
   readonly solidAt: SolidAt;
   /** Mob id -> key of the chunk it currently stands in. */
   private owner = new Map<number, string>();
@@ -70,6 +80,7 @@ export class EntityManager {
   }
 
   remove(mob: Mob) {
+    if (mob.remote) this.remoteById.delete(mob.netId);
     this.mobs.delete(mob.id);
     this.owner.delete(mob.id);
   }
@@ -97,12 +108,37 @@ export class EntityManager {
       isDay: frame.isDay,
     };
     this.updateAnimalLife(dt, frame);
+    const others = frame.others ?? [];
     for (const mob of [...this.mobs.values()]) {
+      if (mob.remote) {
+        // A copy of the host's mob: it just follows the host.
+        mob.followRemote(dt);
+        if (mob.pendingSound) {
+          this.hooks.sound(mob, mob.pendingSound);
+          mob.pendingSound = null;
+        }
+        if (mob.dead && (mob.deathTime += dt) >= DEATH_SECONDS) this.remove(mob);
+        continue;
+      }
       const bx = Math.floor(mob.pos.x);
       const bz = Math.floor(mob.pos.z);
       // Mobs in a column that is not loaded wait (their chunk is about to unload or load).
       if (!this.world.isLoaded(bx, bz)) continue;
       mob.inWater = isWater(this.world.getBlock(bx, Math.floor(mob.pos.y + mob.height * 0.4), bz));
+      // With other players around, each mob goes after whoever is nearest.
+      ctx.target = frame.target;
+      mob.targetId = "self";
+      if (others.length && mob.hostile) {
+        let best = frame.target ? mob.pos.distanceToSquared(new THREE.Vector3(frame.target.x, frame.target.y, frame.target.z)) : Infinity;
+        for (const o of others) {
+          const d = (o.x - mob.pos.x) ** 2 + (o.y - mob.pos.y) ** 2 + (o.z - mob.pos.z) ** 2;
+          if (d < best) {
+            best = d;
+            ctx.target = o;
+            mob.targetId = o.id;
+          }
+        }
+      }
       updateAI(mob, dt, ctx);
       mob.physics(dt, this.solidAt);
       mob.age += dt;
@@ -132,7 +168,7 @@ export class EntityManager {
    * is a constant din), love and breeding, following food, and eggs.
    */
   private updateAnimalLife(dt: number, frame: EntityFrame) {
-    const holder = frame.holder ?? null;
+    const holders = [...(frame.holder ? [frame.holder] : []), ...(frame.holders ?? [])];
     const lovers: Mob[] = [];
     for (const mob of this.mobs.values()) {
       if (mob.dead) continue;
@@ -150,6 +186,14 @@ export class EntityManager {
       }
       if (mob.grazing > 0) mob.grazing -= dt;
       if (mob.hostile) continue;
+      if (mob.remote) {
+        // Love and breeding happen in the host's world; we only show the hearts.
+        if (mob.love > 0 && (mob.heartTimer -= dt) <= 0) {
+          mob.heartTimer = 0.7;
+          this.hearts.emit(mob.pos.x, mob.pos.y + mob.height + 0.2, mob.pos.z);
+        }
+        continue;
+      }
       mob.breedCooldown = Math.max(0, mob.breedCooldown - dt);
       if (mob.love > 0) {
         mob.love = Math.max(0, mob.love - dt);
@@ -164,9 +208,17 @@ export class EntityManager {
       // Animals follow a player holding the food they breed with.
       const food = mob.def.breedFood;
       mob.tempter = null;
-      if (holder && food?.includes(holder.item) && mob.panicTime <= 0) {
-        const d = Math.hypot(holder.x - mob.pos.x, holder.z - mob.pos.z);
-        if (d < TEMPT_RANGE && Math.abs(holder.y - mob.pos.y) < 4) mob.tempter = { x: holder.x, z: holder.z };
+      if (food && mob.panicTime <= 0) {
+        // Whoever nearby holds its food.
+        let best = TEMPT_RANGE;
+        for (const h of holders) {
+          if (!food.includes(h.item) || Math.abs(h.y - mob.pos.y) >= 4) continue;
+          const d = Math.hypot(h.x - mob.pos.x, h.z - mob.pos.z);
+          if (d < best) {
+            best = d;
+            mob.tempter = { x: h.x, z: h.z };
+          }
+        }
       }
       if (mob.type === "chicken" && !mob.baby) {
         mob.eggTimer -= dt;
@@ -236,6 +288,57 @@ export class EntityManager {
     // Eating makes lambs grow up a minute sooner.
     if (mob.baby) mob.age += 60;
     this.hooks.sound(mob, "graze");
+  }
+
+  /** Mobs within `radius` of a point, for sending to a guest. */
+  snapshot(x: number, z: number, radius: number): MobSnapshot[] {
+    const out: MobSnapshot[] = [];
+    const r2 = radius * radius;
+    for (const m of this.mobs.values()) {
+      if ((m.pos.x - x) ** 2 + (m.pos.z - z) ** 2 > r2) continue;
+      const flags = (m.baby ? F_BABY : 0) | (m.dead ? F_DEAD : 0) | (m.burning ? F_BURNING : 0) | (m.aiming ? F_AIMING : 0)
+        | (m.love > 0 ? F_LOVE : 0) | (m.onGround ? F_GROUND : 0) | (m.attackAnim < 0.25 ? F_ATTACK : 0);
+      const r = (v: number) => Math.round(v * 100) / 100;
+      out.push([m.id, MOB_LIST.findIndex((d) => d.type === m.type), r(m.pos.x), r(m.pos.y), r(m.pos.z), r(m.yaw), flags, m.color, m.hurtCount]);
+    }
+    return out;
+  }
+
+  /** Guests: bring our copies in line with the host's mobs (new ones appear, missing ones go). */
+  applySnapshot(list: MobSnapshot[]) {
+    const seen = new Set<number>();
+    for (const [nid, ti, x, y, z, yaw, flags, color, hurts] of list) {
+      const def = MOB_LIST[ti];
+      if (!def) continue;
+      seen.add(nid);
+      let mob = this.remoteById.get(nid);
+      if (!mob) {
+        mob = this.spawn(def.type, x, y, z, { color, baby: !!(flags & F_BABY), yaw });
+        mob.remote = true;
+        mob.netId = nid;
+        mob.hurtCount = hurts;
+        this.remoteById.set(nid, mob);
+      }
+      mob.netTarget = { x, y, z, yaw };
+      if (mob.baby && !(flags & F_BABY)) mob.growUp();
+      mob.burning = !!(flags & F_BURNING);
+      mob.aiming = !!(flags & F_AIMING);
+      mob.love = flags & F_LOVE ? 1 : 0;
+      mob.onGround = !!(flags & F_GROUND);
+      if (flags & F_ATTACK && mob.attackAnim > 0.5) mob.attackAnim = 0;
+      if (hurts > mob.hurtCount) {
+        mob.hurtCount = hurts;
+        mob.hurtTime = 0;
+        mob.pendingSound = flags & F_DEAD ? "death" : "hurt";
+      }
+      if (flags & F_DEAD && mob.deathTime < 0) mob.deathTime = 0;
+    }
+    for (const [nid, mob] of [...this.remoteById]) if (!seen.has(nid) && !mob.dead) this.remove(mob);
+  }
+
+  /** The host's id for one of our copies (guests), to say which mob we hit or fed. */
+  remoteId(mob: Mob) {
+    return mob.remote ? mob.netId : null;
   }
 
   private kill(mob: Mob) {

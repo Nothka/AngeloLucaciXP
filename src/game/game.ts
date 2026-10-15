@@ -11,6 +11,9 @@ import { getTextures } from "./render/textures";
 import { ViewModel } from "./render/viewmodel";
 import { deleteWorld, listWorlds, newWorldId, putWorld, type WorldMeta } from "./save/db";
 import { Session } from "./session";
+import { GuestNet } from "./net/guest";
+import { HostNet } from "./net/host";
+import { cleanName } from "./net/protocol";
 import { cloudSave } from "./save/cloud";
 import { loadSettings, saveSettings, type Settings } from "./settings";
 import { installUiTextures, setClickSound, updateGuiScale, h } from "./ui/dom";
@@ -127,6 +130,20 @@ export class Game {
       respawn: () => this.respawn(),
       currentAchievements: () =>
         this.session ? { state: this.session.achievements.state, worldName: this.session.meta.name } : null,
+      playerName: () => this.settings.playerName,
+      setPlayerName: (name) => {
+        this.settings.playerName = cleanName(name);
+        saveSettings(this.settings);
+      },
+      joinWorld: (code, name) => this.joinWorld(code, name),
+      multiplayer: () => {
+        const net = this.session?.net;
+        if (net instanceof HostNet) return { role: "host", code: net.code, players: net.playerCount, names: net.names };
+        if (net instanceof GuestNet) return { role: "guest", code: net.code };
+        return { role: "solo" };
+      },
+      openToFriends: () => this.openToFriends(),
+      leaveWorld: () => this.leaveToTitle(),
       setGameMode: (mode) => {
         this.session?.setMode(mode);
         this.hud.showHint(mode === "creative" ? "Creative: double-tap Space to fly, E for all blocks" : "Survival: mine and craft to get blocks");
@@ -166,6 +183,7 @@ export class Game {
     window.addEventListener("resize", () => this.resize());
     window.addEventListener("message", (e) => this.onMessage(e));
     document.addEventListener("visibilitychange", () => {
+      this.updateBackgroundTicker();
       if (document.visibilityState === "hidden") void this.session?.save().catch(() => {});
     });
     window.addEventListener("pagehide", () => void this.session?.save().catch(() => {}));
@@ -281,13 +299,14 @@ export class Game {
     await this.startSession(meta);
   }
 
-  private async startSession(meta: WorldMeta) {
+  private async startSession(meta: WorldMeta, guest: GuestNet | null = null) {
     this.state = "loading";
     this.menus.showLoading("Loading world", 0);
     const session = await Session.open(meta, this.pool, this.materials, this.audio, {
       openCrafting: () => this.openContainer("crafting"),
       openFurnace: (furnace) => this.openContainer("furnace", furnace),
-    });
+    }, !guest, guest);
+    if (guest) this.wireNet(guest);
     this.disposePanorama();
     this.session = session;
     session.onSwing = () => this.viewModel.startSwing();
@@ -311,6 +330,109 @@ export class Game {
     this.chat.clear();
     this.loadingStarted = performance.now();
     this.menus.showLoading("Building terrain", 0);
+  }
+
+  /* ---------------------------------------------------------------- multiplayer */
+
+  /** Connects to a friend's world and loads it (terrain from the seed, their changes from them). */
+  private async joinWorld(code: string, name: string) {
+    const guest = await GuestNet.join(code, name);
+    const w = guest.welcome;
+    const now = Date.now();
+    const meta: WorldMeta = {
+      id: `mp-${guest.code}`, name: w.world.name, seed: w.world.seed, seedText: String(w.world.seed), mode: w.world.mode,
+      created: now, lastPlayed: now, time: w.time, player: null, spawnPoint: w.spawn, cheats: false, weather: w.weather,
+    };
+    // Back where you were, with your things, if you've played here before.
+    meta.player = w.you ?? null;
+    guest.onClosed = (reason, unexpected) => void this.connectionLost(code, name, reason, unexpected);
+    await this.startSession(meta, guest);
+    this.updateBackgroundTicker();
+  }
+
+  /** The link to the host dropped: try to get back in a few times before giving up. */
+  private async connectionLost(code: string, name: string, reason: string, unexpected: boolean) {
+    this.leaveToTitle(unexpected ? "" : reason);
+    if (!unexpected) return;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      this.menus.showLoading(`Connection lost. Reconnecting (try ${attempt} of 3)...`, null);
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        await this.joinWorld(code, name);
+        this.chat.print("Reconnected", "info");
+        return;
+      } catch {
+        // Try again.
+      }
+    }
+    this.showTitle();
+    this.menus.showJoin(`Disconnected: ${reason}`);
+  }
+
+  /*
+   * Browsers almost stop a hidden tab's animation frames, which would freeze
+   * a shared world for everyone. While hidden, a tiny worker's timer (which
+   * the browser doesn't hold back the same way) keeps the game ticking.
+   */
+  private bgWorker: Worker | null = null;
+  private bgLast = 0;
+
+  private updateBackgroundTicker() {
+    const want = document.visibilityState === "hidden" && !!this.session?.net;
+    if (want && !this.bgWorker) {
+      const src = "setInterval(() => postMessage(0), 50);";
+      this.bgWorker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+      this.bgLast = performance.now();
+      this.bgWorker.onmessage = () => this.backgroundTick();
+    } else if (!want && this.bgWorker) {
+      this.bgWorker.terminate();
+      this.bgWorker = null;
+    }
+  }
+
+  private backgroundTick() {
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - this.bgLast) / 1000);
+    this.bgLast = now;
+    const session = this.session;
+    if (!session || document.visibilityState !== "hidden") return;
+    session.update(dt, this.input, false, this.settings.renderDistance);
+  }
+
+  private async openToFriends(): Promise<string> {
+    const session = this.session;
+    if (!session) throw new Error("No world is open");
+    const host = await session.openToFriends(this.settings.playerName);
+    this.wireNet(host);
+    this.updateBackgroundTicker();
+    this.chat.print(`Your world is open to friends (up to 5 players). Room code: ${host.code}`, "info");
+    return host.code;
+  }
+
+  private wireNet(net: HostNet | GuestNet) {
+    net.onChat = (name, text) => this.chat.print(`<${name}> ${text}`);
+    net.onInfo = (text) => this.chat.print(text, "info");
+  }
+
+  /** Leaves a friend's world (or loses the connection) and goes back to the menu. */
+  private leaveToTitle(reason = "") {
+    const session = this.session;
+    if (session) {
+      if (this.state === "container") this.containers.close();
+      if (this.state === "chat") this.chat.close();
+      this.scene.remove(session.group);
+      session.dispose();
+      if (this.weatherFx) this.scene.remove(this.weatherFx.group);
+      this.weatherFx = null;
+      this.audio.setRain(0);
+      this.session = null;
+    }
+    this.input.captureKeys = false;
+    this.expectUnlock = true;
+    this.input.exitLock();
+    this.updateBackgroundTicker();
+    this.showTitle();
+    if (reason) this.menus.showJoin(`Disconnected: ${reason}`);
   }
 
   private enterWorld() {
@@ -359,6 +481,7 @@ export class Game {
     this.weatherFx = null;
     this.audio.setRain(0);
     this.session = null;
+    this.updateBackgroundTicker();
     this.showTitle();
   }
 
@@ -409,6 +532,7 @@ export class Game {
 
   private closeContainer(relock = true) {
     this.containers.close();
+    this.session?.containerClosed();
     this.state = "playing";
     this.input.captureKeys = true;
     if (relock) {
@@ -441,7 +565,8 @@ export class Game {
     const session = this.session;
     if (!session) return;
     if (!text.startsWith("/")) {
-      this.chat.print(`<Player> ${text}`);
+      this.chat.print(`<${session.net?.selfName ?? "Player"}> ${text}`);
+      session.net?.chat(text);
       return;
     }
     const result = session.command(text);
@@ -469,7 +594,7 @@ export class Game {
   private onKeyDown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     if (target?.tagName === "INPUT") return;
-    if (e.code === "F3" || e.code === "F1") e.preventDefault();
+    if (e.code === "F3" || e.code === "F1" || (e.code === "Tab" && this.state === "playing")) e.preventDefault();
     if (this.state === "container") {
       if (e.code === "KeyE" || e.code === "Escape") {
         e.preventDefault();
@@ -540,7 +665,8 @@ export class Game {
       this.setFov(s.fov, dt);
     } else if (session) {
       const controls = this.state === "playing" && this.input.locked;
-      if (this.state === "paused" || this.state === "saving") {
+      // A world open to friends keeps running while you're in the menu.
+      if ((this.state === "paused" || this.state === "saving") && !session.net) {
         session.world.update(session.player.pos.x, session.player.pos.z);
       } else {
         session.update(dt, this.input, controls, s.renderDistance);
@@ -560,7 +686,15 @@ export class Game {
         const timedOut = performance.now() - this.loadingStarted > 25000;
         if ((session.ready && progress >= 1) || (session.ready && timedOut)) this.enterWorld();
       }
-      if (this.state === "playing" && controls && session.shouldAutosave()) {
+      // Hold Tab to see who's here.
+    if (session?.net && this.state === "playing" && this.input.keys.has("Tab")) {
+      const net = session.net;
+      const names = net instanceof HostNet ? net.names : [net.selfName, ...net.remotes.names()];
+      this.hud.setPlayerList(names, `Players (${names.length}/5) · Room ${net.code}`);
+    } else {
+      this.hud.setPlayerList(null);
+    }
+    if (this.state === "playing" && controls && session.shouldAutosave()) {
         this.hud.showToast("Saving world...", 1.5);
         void session.save(undefined, false).catch(() => this.hud.showToast("Could not save", 3));
       }
@@ -728,6 +862,8 @@ export class Game {
       `Spawn cycle: ${sp.avgMs.toFixed(3)} ms avg, ${sp.maxMs.toFixed(2)} ms max`,
       `Weather: ${session.weather.kind} (${Math.round(session.weather.left)} s left) · ${isCold(col) ? "snowy" : "rainy"} biome · temp ${(col.temperature ?? 0).toFixed(2)}`,
       `Fluid queue: ${session.fluid.pending} · Redstone queue: ${session.redstone.pending} · Falling: ${session.falling.count}`,
+      session.net instanceof HostNet ? `Multiplayer: hosting room ${session.net.code} · ${session.net.names.join(", ")}`
+        : session.net instanceof GuestNet ? `Multiplayer: in room ${session.net.code} · ${session.net.remotes.count + 1} players` : "Multiplayer: off",
       `Cheats: ${session.cheats ? "on" : "off"}${session.meta.spawnPoint ? ` · Spawn point: ${session.meta.spawnPoint.join(" ")}` : ""}`,
     ];
   }

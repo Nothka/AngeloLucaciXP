@@ -100,6 +100,19 @@ export class Mob implements Body, Attackable {
   /** Walk toward this point (a player holding food), set by the entity manager each frame. */
   tempter: { x: number; z: number } | null = null;
 
+  // Multiplayer.
+  /** A copy of a mob in the host's world: no AI or physics here, it follows the host's updates. */
+  remote = false;
+  /** The host's id for this mob (remote copies only). */
+  netId = 0;
+  netTarget: { x: number; y: number; z: number; yaw: number } | null = null;
+  /** Counts hits, so a hit is never missed between two updates. */
+  hurtCount = 0;
+  /** Which player this mob is after ("self" = this machine's player). */
+  targetId = "self";
+  /** Who landed the last hit ("self", or a friend's id), for kill credit. */
+  lastHitBy = "self";
+
   constructor(readonly type: MobType, x: number, y: number, z: number, opts: MobSpawnOptions = {}) {
     this.def = MOB_TYPES[type];
     this.pos = new THREE.Vector3(x, y, z);
@@ -145,6 +158,7 @@ export class Mob implements Body, Attackable {
     if (source.weapon >= 0) {
       this.lastWeapon = source.weapon;
       this.killedByPlayer = true;
+      this.lastHitBy = "self";
     }
     if (source.from) {
       const dx = this.pos.x - source.from.x;
@@ -158,11 +172,33 @@ export class Mob implements Body, Attackable {
     if (!this.hostile) this.panicTime = 4;
     else if (source.weapon >= 0) this.angry = 30;
     if (this.health <= 0) this.deathTime = 0;
+    this.hurtCount++;
     // Pain interrupts the idle chatter: a hurt sound now, then the quiet period again.
     this.pendingSound = this.health <= 0 ? "death" : "hurt";
     this.ambientCounter = -AMBIENT_QUIET_TICKS;
     this.love = 0;
     this.partner = null;
+  }
+
+  /** Remote copy: glide to where the host last saw the mob, animating legs as it goes. */
+  followRemote(dt: number) {
+    this.hurtTime += dt;
+    this.attackAnim = Math.min(1, this.attackAnim + dt / 0.4);
+    const t = this.netTarget;
+    if (!t) return;
+    const bx = this.pos.x, bz = this.pos.z;
+    if (this.pos.distanceToSquared(new THREE.Vector3(t.x, t.y, t.z)) > 64) this.pos.set(t.x, t.y, t.z);
+    else {
+      const k = 1 - Math.exp(-dt * 10);
+      this.pos.x += (t.x - this.pos.x) * k;
+      this.pos.y += (t.y - this.pos.y) * k;
+      this.pos.z += (t.z - this.pos.z) * k;
+    }
+    this.yaw += Math.atan2(Math.sin(t.yaw - this.yaw), Math.cos(t.yaw - this.yaw)) * (1 - Math.exp(-dt * 10));
+    const moved = Math.hypot(this.pos.x - bx, this.pos.z - bz);
+    this.moveAmount += (Math.min(1, moved / dt / 2.5) - this.moveAmount) * Math.min(1, dt * 10);
+    this.walkPhase += moved * 2.2;
+    if (this.onGround) this.stepDist += moved;
   }
 
   /** Gravity, buoyancy, steering toward the AI's wish and the shared AABB sweep. */

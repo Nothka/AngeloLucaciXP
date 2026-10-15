@@ -133,8 +133,8 @@ class CloudSave {
     return Object.values(config).every((v) => typeof v === "string" && v.trim().length > 0);
   }
 
-  /** Signs in anonymously the first time it is needed; resolves to null when the cloud is unavailable. */
-  private connect() {
+  /** Signs in anonymously the first time it is needed; resolves to null when the cloud is unavailable. Shared with multiplayer. */
+  connect() {
     this.ready ??= (async () => {
       if (!this.configured) {
         this.message = "Firebase is not configured";

@@ -126,6 +126,13 @@ export class World {
     this.offsetsFor = rd;
   }
 
+  /**
+   * Other places to keep loaded (the players who joined a hosted world), so
+   * edits and water there are simulated by the host. Loaded, not drawn.
+   */
+  extraCenters: { x: number; z: number }[] = [];
+  private static readonly EXTRA_RADIUS = 4;
+
   /** Streams chunks around (px, pz): generate, mesh, and unload, nearest first. */
   update(px: number, pz: number) {
     if (this.disposed) return;
@@ -157,11 +164,24 @@ export class World {
       }
     }
 
+    const er = World.EXTRA_RADIUS;
+    const extra = this.extraCenters.map((c) => [floorDiv(Math.floor(c.x), CHUNK_SIZE), floorDiv(Math.floor(c.z), CHUNK_SIZE)]);
+    for (const [ecx, ecz] of extra) {
+      for (let dz = -er; dz <= er; dz++) {
+        for (let dx = -er; dx <= er; dx++) {
+          if (dx * dx + dz * dz > er * er || this.pool.freeSlots <= 0 || this.loading.size >= maxLoading) continue;
+          const key = chunkKey(ecx + dx, ecz + dz);
+          if (!this.chunks.has(key) && !this.loading.has(key)) this.loadChunk(ecx + dx, ecz + dz, key);
+        }
+      }
+    }
+    const nearExtra = (cx: number, cz: number) => extra.some(([ex, ez]) => (cx - ex) ** 2 + (cz - ez) ** 2 <= (er + 2) * (er + 2));
+
     const keep = (rd + 3) * (rd + 3);
     for (const [key, chunk] of this.chunks) {
       const dx = chunk.cx - pcx;
       const dz = chunk.cz - pcz;
-      if (dx * dx + dz * dz > keep) {
+      if (dx * dx + dz * dz > keep && !nearExtra(chunk.cx, chunk.cz)) {
         if (chunk.unsaved) this.store?.save(chunk);
         this.onChunkUnloaded?.(chunk);
         chunk.disposeMeshes(this.group);
