@@ -46,6 +46,7 @@ import { Spawner } from "./entities/spawner";
 import type { Mob } from "./entities/mob";
 import { MOB_LIST, MOB_TYPES, type MobType } from "./entities/mobTypes";
 import { feed } from "./entities/animalLife";
+import { farmlandFor, growthChance, isFarmland } from "./world/farming";
 import { TORCH_FX_RANGE, TorchParticles, hasFlame } from "./render/torchParticles";
 
 class DbChunkStore implements ChunkStore {
@@ -108,8 +109,9 @@ export class Session {
   private blockUpdates: BlockUpdates;
   /** Pressure plates held down, with seconds until they spring back once nothing stands on them. */
   private plates = new Map<string, number>();
-  /** Wheat crops in loaded chunks, by chunk key. */
+  /** Wheat crops and farmland in loaded chunks, by chunk key. */
   private crops = new Map<string, Set<string>>();
+  private farmland = new Map<string, Set<string>>();
   private cropTimer = 0;
   private ambientTimer = 0;
   private snowTimer = 0;
@@ -212,6 +214,7 @@ export class Session {
     this.world.onChunkUnloaded = (chunk) => {
       this.chunkEntitiesOut(chunk.cx, chunk.cz);
       this.crops.delete(`${chunk.cx},${chunk.cz}`);
+      this.farmland.delete(`${chunk.cx},${chunk.cz}`);
       this.torches.delete(`${chunk.cx},${chunk.cz}`);
     };
     this.fluid = new FluidSimulator(this.world);
@@ -239,6 +242,7 @@ export class Session {
           for (const st of this.furnaces.remove(x, y, z)) this.drops.spawn(st.id, st.count, x + 0.5, y + 0.5, z + 0.5);
         }
         if (isWheat(after)) this.cropSet(x, z).add(`${x},${y},${z}`);
+        if (isFarmland(after)) this.chunkSet(this.farmland, x, z).add(`${x},${y},${z}`);
         if (hasFlame(after)) this.torchSet(x, z).set(`${x},${y},${z}`, [x, y, z]);
         // A door's lower half swinging (by hand or by redstone).
         if (isDoor(before) && isDoor(after) && !doorState(after).upper && doorState(before).open !== doorState(after).open) {
@@ -309,6 +313,9 @@ export class Session {
       },
       onBlockPlaced: (x, y, z, id) => {
         this.playAt(BLOCKS[id].sound, "place", x, y, z);
+        if (id === B.WHEAT_0 && this.world.getBlock(x, y - 1, z) === B.FARMLAND) {
+          this.hint("dry-farmland", "Seeds only grow with water within 4 blocks of the farmland");
+        }
         // Count a wall torch as a torch (and a lever state as a lever) for achievements.
         const placed = getItem(id) ? id : BLOCKS[id]?.drop ?? id;
         this.events.emit("blockPlaced", { id: placed, x, y, z });
@@ -863,7 +870,8 @@ export class Session {
     if (getItem(held.id)?.tool?.type === "hoe") {
       if (!hit || (hit.id !== B.GRASS && hit.id !== B.DIRT && hit.id !== B.SNOWY_GRASS) || hit.ny === -1) return false;
       if (w.getBlock(hit.x, hit.y + 1, hit.z) !== B.AIR) return false;
-      w.setBlock(hit.x, hit.y, hit.z, B.FARMLAND);
+      // Moist straight away if there is water near.
+      w.setBlock(hit.x, hit.y, hit.z, farmlandFor(w, hit.x, hit.y, hit.z));
       this.playAt("grass", "place", hit.x, hit.y, hit.z);
       this.wearHeld(1);
       this.onSwing?.();
@@ -1025,11 +1033,15 @@ export class Session {
     }
   }
 
-  private cropSet(x: number, z: number) {
+  private chunkSet(map: Map<string, Set<string>>, x: number, z: number) {
     const key = `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
-    let set = this.crops.get(key);
-    if (!set) this.crops.set(key, (set = new Set()));
+    let set = map.get(key);
+    if (!set) map.set(key, (set = new Set()));
     return set;
+  }
+
+  private cropSet(x: number, z: number) {
+    return this.chunkSet(this.crops, x, z);
   }
 
   private torchSet(x: number, z: number) {
@@ -1045,13 +1057,15 @@ export class Session {
     for (let i = 0; i < b.length; i++) {
       const id = b[i];
       const crop = id >= B.WHEAT_0 && id <= B.WHEAT_7;
-      if (!crop && !FLAME[id]) continue;
+      const soil = isFarmland(id);
+      if (!crop && !soil && !FLAME[id]) continue;
       const x = i % CHUNK_SIZE;
       const z = Math.floor(i / CHUNK_SIZE) % CHUNK_SIZE;
       const y = Math.floor(i / (CHUNK_SIZE * CHUNK_SIZE));
       if (blockIndex(x, y, z) !== i) continue;
       const wx = chunk.cx * CHUNK_SIZE + x, wz = chunk.cz * CHUNK_SIZE + z;
       if (crop) this.cropSet(wx, wz).add(`${wx},${y},${wz}`);
+      else if (soil) this.chunkSet(this.farmland, wx, wz).add(`${wx},${y},${wz}`);
       else this.torchSet(wx, wz).set(`${wx},${y},${wz}`, [wx, y, wz]);
     }
   }
@@ -1075,12 +1089,27 @@ export class Session {
     }
   }
 
-  /** Wheat grows a stage every half minute or so, faster with water nearby. */
+  /**
+   * Once a second: farmland turns moist or dry with the water around it, and
+   * wheat on moist farmland grows a stage every 25 seconds or so on average.
+   */
   private updateCrops(dt: number) {
     this.cropTimer += dt;
     if (this.cropTimer < 1) return;
     this.cropTimer -= 1;
     const w = this.world;
+    for (const set of this.farmland.values()) {
+      for (const k of set) {
+        const [x, y, z] = k.split(",").map(Number);
+        const id = w.getBlock(x, y, z);
+        if (!isFarmland(id)) {
+          set.delete(k);
+          continue;
+        }
+        const want = farmlandFor(w, x, y, z);
+        if (want !== id) w.setBlock(x, y, z, want);
+      }
+    }
     for (const set of this.crops.values()) {
       for (const k of set) {
         const [x, y, z] = k.split(",").map(Number);
@@ -1089,18 +1118,12 @@ export class Session {
           set.delete(k);
           continue;
         }
-        // Needs some light to grow.
+        // Needs moist soil and some light.
         const light = w.getLight(x, y, z);
-        if (Math.max(light >> 4, light & 15) < 9) continue;
-        const chance = this.nearWater(x, y - 1, z) ? 1 / 25 : 1 / 50;
-        if (Math.random() < chance) w.setBlock(x, y, z, id + 1);
+        const chance = growthChance(w.getBlock(x, y - 1, z), Math.max(light >> 4, light & 15));
+        if (chance > 0 && Math.random() < chance) w.setBlock(x, y, z, id + 1);
       }
     }
-  }
-
-  private nearWater(x: number, y: number, z: number) {
-    for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) if (isWater(this.world.getBlock(x + dx, y, z + dz))) return true;
-    return false;
   }
 
   /** The furnace screen hands over its output: bank the smelting XP and count it toward achievements. */
