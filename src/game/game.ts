@@ -11,14 +11,16 @@ import { getTextures } from "./render/textures";
 import { ViewModel } from "./render/viewmodel";
 import { deleteWorld, listWorlds, newWorldId, putWorld, type WorldMeta } from "./save/db";
 import { Session } from "./session";
+import { cloudSave } from "./save/cloud";
 import { loadSettings, saveSettings, type Settings } from "./settings";
 import { installUiTextures, setClickSound, updateGuiScale, h } from "./ui/dom";
 import { Hud } from "./ui/hud";
 import { InventoryScreen, type ContainerMode } from "./ui/inventoryScreen";
 import { Menus } from "./ui/menus";
-import { BLOCKS, B, IS_SOLID, getItem, isWater } from "./world/blocks";
+import { BLOCKS, B, getItem } from "./world/blocks";
 import { Chat } from "./ui/chat";
 import { WeatherRenderer } from "./render/weather";
+import { rainLandsAt } from "./world/weather";
 import type { FurnaceState } from "./world/furnaces";
 import { itemIcon } from "./render/items";
 import { internalSkyLight } from "./entities/spawnRules";
@@ -113,7 +115,11 @@ export class Game {
       listWorlds,
       createWorld: (name, seedText, mode, cheats) => void this.createWorld(name, seedText, mode, cheats),
       playWorld: (meta) => void this.startSession(meta),
-      deleteWorld,
+      deleteWorld: async (id) => {
+        await deleteWorld(id);
+        void cloudSave.remove(id);
+      },
+      cloudStatus: () => cloudSave.describe(),
       quitGame: () => this.quit(),
       resume: () => this.resume(),
       saveAndQuit: () => void this.saveAndQuit(),
@@ -299,15 +305,7 @@ export class Game {
     };
     this.scene.add(session.group);
     this.weatherFx = new WeatherRenderer({
-      topAt: (x, z) => {
-        for (let y = 127; y > 0; y--) {
-          const id = session.world.getBlock(x, y, z);
-          // Leaves and glass keep the rain off too; plants and torches do not.
-          if (id !== B.AIR && (IS_SOLID[id] || isWater(id) || (BLOCKS[id]?.pass === "cutout" && BLOCKS[id]?.shape === "cube"))) return y + 1;
-        }
-        return 0;
-      },
-      coldAt: (x, z) => isCold(session.world.generator.column(x, z)),
+      topAt: (x, z) => rainLandsAt(session.world, x, z),
     });
     this.scene.add(this.weatherFx.group);
     this.chat.clear();
@@ -564,7 +562,7 @@ export class Game {
       }
       if (this.state === "playing" && controls && session.shouldAutosave()) {
         this.hud.showToast("Saving world...", 1.5);
-        void session.save().catch(() => this.hud.showToast("Could not save", 3));
+        void session.save(undefined, false).catch(() => this.hud.showToast("Could not save", 3));
       }
       this.placeCamera(dt);
       time = session.time;
@@ -578,8 +576,9 @@ export class Game {
     u.u_skyTint.value.copy(sky.skyTint);
     u.u_time.value = this.elapsed;
     if (session) session.daylightFactor = sky.daylight;
+    if (session) session.torchFx.setViewport(this.renderer.domElement.height, this.camera.fov);
     if (this.weatherFx && session) {
-      this.weatherFx.update(dt, this.camera.position, this.state === "loading" ? 0 : session.weather.rain, sky.daylight, this.elapsed);
+      this.weatherFx.update(dt, this.camera.position, this.state === "loading" ? 0 : session.weather.rain, session.snowMix, sky.daylight, this.elapsed);
     }
     const underwater = !!session && this.state !== "loading" && session.player.headInWater;
     const rd = this.state === "title" ? this.panorama?.renderDistance ?? 6 : s.renderDistance;
@@ -592,14 +591,17 @@ export class Game {
       u.u_fogFar.value = rd * CHUNK_SIZE - 4;
       u.u_fogNear.value = u.u_fogFar.value * 0.62;
     }
+    // Under the bottom of the world the light drains away: the sky goes black the deeper you fall.
+    const abyss = session && this.state !== "loading" && this.state !== "title" ? Math.max(0, Math.min(1, -session.player.pos.y / 24)) : 0;
+    if (abyss > 0) u.u_fogColor.value.multiplyScalar(1 - abyss);
     const fog = this.scene.fog as THREE.Fog;
     fog.color.setRGB(u.u_fogColor.value.x, u.u_fogColor.value.y, u.u_fogColor.value.z, THREE.SRGBColorSpace);
     fog.near = u.u_fogNear.value;
     fog.far = underwater ? u.u_fogFar.value : u.u_fogFar.value * 2.4;
     this.hud.underwater.classList.toggle("bv-hidden", !underwater);
     // Under water the sky disappears into the fog, as it would through murky water.
-    this.sky.group.visible = !underwater;
-    if (underwater) this.sky.clouds.visible = false;
+    this.sky.group.visible = !underwater && abyss < 0.85;
+    if (underwater || abyss > 0.5) this.sky.clouds.visible = false;
     this.renderer.setClearColor(fog.color);
 
     this.renderer.info.reset();

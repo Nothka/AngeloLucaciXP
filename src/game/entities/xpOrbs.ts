@@ -64,7 +64,7 @@ export class XpOrbManager {
   update(dt: number, solidAt: SolidAt, target: THREE.Vector3 | null, collect: (value: number) => void, time: number) {
     for (const orb of [...this.orbs]) {
       orb.age += dt;
-      if (orb.age > 300) {
+      if (orb.age > 300 || orb.pos.y < -64) {
         this.remove(orb);
         continue;
       }

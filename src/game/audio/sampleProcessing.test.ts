@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prepareSample } from "./sampleProcessing";
+import { prepareSample, splitCalls } from "./sampleProcessing";
 
 const RATE = 8000;
 
@@ -50,7 +50,29 @@ describe("sample preparation", () => {
     expect(out.length).toBeLessThanOrEqual(2 * RATE);
   });
 
+  it("can keep a shorter part of the call, fading it out", () => {
+    const full = prepareSample([clip(0.5, 1)], RATE);
+    const short = prepareSample([clip(0.5, 1)], RATE, { keep: 0.8 });
+    expect(short.length / full.length).toBeCloseTo(0.8, 1);
+    // The fade covers the end, not just the last few samples.
+    expect(Math.abs(short[short.length - Math.round(RATE * 0.02)])).toBeLessThan(0.1);
+  });
+
   it("returns nothing for silence", () => {
     expect(prepareSample([new Float32Array(RATE)], RATE).length).toBe(0);
+  });
+
+  it("splits a run of calls into separate clips", () => {
+    // Three 0.3 s oinks with 0.25 s of quiet between them.
+    const parts = [clip(0.5, 0.3, 0.1, 0.25), clip(0.4, 0.3, 0, 0.25), clip(0.6, 0.3, 0, 0.3)];
+    const all = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
+    let o = 0;
+    for (const p of parts) {
+      all.set(p, o);
+      o += p.length;
+    }
+    const calls = splitCalls([all], RATE);
+    expect(calls).toHaveLength(3);
+    for (const c of calls) expect(c.length / RATE).toBeLessThan(0.45);
   });
 });

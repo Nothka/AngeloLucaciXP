@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { B, I, doorState, isLever, switchFace } from "./blocks";
+import { B, I, doorState, isLever, isWallTorch, supportDir, supports, switchFace, wallTorchFace } from "./blocks";
+import { matchRecipe } from "../items/crafting";
 import { doorFacing, placementFor } from "./placement";
 import { BlockUpdates, blockDrops } from "./blockUpdates";
 
@@ -21,6 +22,19 @@ describe("placement", () => {
     expect(isLever(plan[0].id)).toBe(true);
     expect(switchFace(plan[0].id)).toBe(3); // support lies at -X
     expect(placementFor(B.LEVER, hit(B.STONE, 0, -1, 0), 0)).toBeNull();
+  });
+
+  it("stands torches on floors and hangs them on walls, never on ceilings", () => {
+    expect(placementFor(B.TORCH, hit(B.STONE, 0, 1, 0), 0)).toEqual([{ x: 0, y: 2, z: 0, id: B.TORCH }]);
+    const wall = placementFor(B.TORCH, hit(B.STONE, 0, 0, 1), 0)![0];
+    expect(isWallTorch(wall.id)).toBe(true);
+    expect(wall).toMatchObject({ x: 0, y: 1, z: 1 });
+    // It hangs on the block that was clicked (one step back toward -Z).
+    expect(supportDir(wall.id)).toEqual([0, 0, -1]);
+    expect(wallTorchFace(placementFor(B.TORCH, hit(B.STONE, -1, 0, 0), 0)![0].id)).toBe(4);
+    expect(placementFor(B.TORCH, hit(B.STONE, 0, -1, 0), 0)).toBeNull();
+    const rs = placementFor(B.REDSTONE_TORCH, hit(B.STONE, 1, 0, 0), 0)![0].id;
+    expect(rs).toBe(B.REDSTONE_WALL_TORCH + 2);
   });
 
   it("plants seeds only on top of farmland", () => {
@@ -69,6 +83,15 @@ describe("block updates", () => {
     expect(popped).toEqual([B.TORCH, B.WIRE_0]);
   });
 
+  it("drops a wall torch when its wall is broken", () => {
+    const { w, popped } = world();
+    w.setBlock(0, 1, 0, B.STONE);
+    w.setBlock(1, 1, 0, B.WALL_TORCH + 2); // face 3: hangs on the block at -X
+    w.setBlock(0, 1, 0, B.AIR);
+    expect(w.getBlock(1, 1, 0)).toBe(B.AIR);
+    expect(popped).toEqual([B.WALL_TORCH + 2]);
+  });
+
   it("breaking either half of a door removes the other", () => {
     const { w } = world();
     w.setBlock(0, 1, 0, B.WOODEN_DOOR);
@@ -99,5 +122,33 @@ describe("block drops", () => {
     expect(blockDrops(B.BIRCH_LEAVES, () => 0.01)).toEqual([{ id: I.STICK, count: 1 }]);
     expect(blockDrops(B.LEAVES, () => 0.01)).toEqual([{ id: I.APPLE, count: 1 }]);
     expect(blockDrops(B.GLASS)).toEqual([]);
+  });
+});
+
+describe("snow", () => {
+  it("settles on full blocks and leaves, not on ice, glass or plants", () => {
+    for (const ok of [B.GRASS, B.STONE, B.SNOWY_GRASS, B.LEAVES, B.SPRUCE_LEAVES]) expect(supports(B.SNOW_LAYER, ok)).toBe(true);
+    for (const no of [B.ICE, B.AIR, B.TALL_GRASS, B.WATER, B.TORCH]) expect(supports(B.SNOW_LAYER, no)).toBe(false);
+  });
+
+  it("gives a snowball when cleared away, and a snow block gives four", () => {
+    expect(blockDrops(B.SNOW_LAYER)).toEqual([{ id: I.SNOWBALL, count: 1 }]);
+    expect(blockDrops(B.SNOW)).toEqual([{ id: I.SNOWBALL, count: 4 }]);
+  });
+
+  it("packs four snowballs back into a snow block", () => {
+    const s = { id: I.SNOWBALL, count: 1 };
+    expect(matchRecipe([s, s, s, s], 2)?.id).toBe(B.SNOW);
+  });
+
+  it("melts away with the block under it, and is built over like tall grass", () => {
+    const { w, popped } = world();
+    w.setBlock(0, 1, 0, B.STONE);
+    w.setBlock(0, 2, 0, B.SNOW_LAYER);
+    // Clicking the snow puts the block in its place rather than on top of it.
+    expect(placementFor(B.DIRT, { x: 0, y: 2, z: 0, nx: 0, ny: 1, nz: 0, id: B.SNOW_LAYER }, 0)).toEqual([{ x: 0, y: 2, z: 0, id: B.DIRT }]);
+    w.setBlock(0, 1, 0, B.AIR);
+    expect(w.getBlock(0, 2, 0)).toBe(B.AIR);
+    expect(popped).toEqual([B.SNOW_LAYER]);
   });
 });

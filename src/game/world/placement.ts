@@ -1,4 +1,4 @@
-import { ATTACH_DIRS, B, BLOCKS, I, buttonBlock, doorBlock, getItem, leverBlock, type AttachFace } from "./blocks";
+import { ATTACH_DIRS, B, BLOCKS, I, buttonBlock, doorBlock, getItem, leverBlock, torchOn, type AttachFace } from "./blocks";
 
 export interface PlaceHit {
   x: number;
@@ -46,6 +46,12 @@ export function placementFor(itemId: number, hit: PlaceHit, yaw: number): Planne
     case B.LEVER: {
       const f = attachFace();
       return f === null ? null : [{ x, y, z, id: leverBlock(f, false) }];
+    }
+    case B.TORCH:
+    case B.REDSTONE_TORCH: {
+      // On top of a block it stands; on a side it hangs on the wall; never on a ceiling.
+      const f = attachFace();
+      return f === null ? null : [{ x, y, z, id: torchOn(itemId, f) }];
     }
     case B.BUTTON: {
       const f = attachFace();

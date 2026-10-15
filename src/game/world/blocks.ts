@@ -104,6 +104,12 @@ export enum B {
   WATER_FLOW_6 = 131,
   WATER_FLOW_7 = 132,
   WATER_FALLING = 133,
+  /** Torches on the side of a block: base + face - 1 (faces 1..4 as in ATTACH_DIRS). */
+  WALL_TORCH = 134,
+  REDSTONE_WALL_TORCH = 138,
+  REDSTONE_WALL_TORCH_OFF = 142,
+  /** A thin layer of snow (2/16 of a block) lying on top of the block below. */
+  SNOW_LAYER = 146,
 }
 
 export enum I {
@@ -155,6 +161,7 @@ export enum I {
   WOODEN_DOOR = 299,
   IRON_DOOR = 300,
   EGG = 301,
+  SNOWBALL = 303,
   MILK_BUCKET = 302,
   IRON_PICKAXE = 310,
   IRON_AXE = 311,
@@ -178,10 +185,10 @@ export enum I {
 /** Armor slots, top to bottom. */
 export type ArmorSlot = 0 | 1 | 2 | 3;
 
-export type Shape = "none" | "cube" | "cross" | "torch" | "liquid" | "wire" | "lever" | "button" | "plate" | "door";
+export type Shape = "none" | "cube" | "cross" | "torch" | "liquid" | "wire" | "lever" | "button" | "plate" | "door" | "layer";
 export type RenderPass = "opaque" | "cutout" | "water";
 export type ToolType = "pickaxe" | "axe" | "shovel" | "sword" | "hoe";
-export type SoundKind = "grass" | "stone" | "wood" | "sand" | "glass" | "cloth" | "none";
+export type SoundKind = "grass" | "stone" | "wood" | "sand" | "snow" | "glass" | "cloth" | "none";
 
 export interface BlockDef {
   id: number;
@@ -280,9 +287,13 @@ define(B.TALL_GRASS, "Tall Grass", all(TILE.tall_grass), { ...plant, drop: null,
 define(B.FLOWER_YELLOW, "Dandelion", all(TILE.flower_yellow), plant);
 define(B.FLOWER_RED, "Poppy", all(TILE.flower_red), plant);
 define(B.SNOWY_GRASS, "Snowy Grass", { top: TILE.snow, bottom: TILE.dirt, side: TILE.grass_side_snow }, {
-  hardness: 0.6, tool: "shovel", drop: B.DIRT, sound: "cloth",
+  hardness: 0.6, tool: "shovel", drop: B.DIRT, sound: "snow",
 });
-define(B.SNOW, "Snow Block", all(TILE.snow), { hardness: 0.2, tool: "shovel", sound: "cloth" });
+define(B.SNOW, "Snow Block", all(TILE.snow), { hardness: 0.2, tool: "shovel", sound: "snow", drop: I.SNOWBALL, dropCount: [4, 4] });
+define(B.SNOW_LAYER, "Snow", all(TILE.snow), {
+  shape: "layer", pass: "cutout", solid: false, opaque: false, lightOpacity: 0, hardness: 0.1, tool: "shovel",
+  sound: "snow", replaceable: true, needsSupport: true, drop: I.SNOWBALL,
+});
 
 // ---- terrain and decoration
 define(B.GRAVEL, "Gravel", all(TILE.gravel), { hardness: 0.6, tool: "shovel", sound: "sand", gravity: true });
@@ -334,6 +345,12 @@ define(B.REDSTONE_TORCH_OFF, "Redstone Torch (off)", all(TILE.redstone_torch_off
   shape: "torch", pass: "cutout", solid: false, opaque: false, lightOpacity: 0, hardness: 0, sound: "wood", needsSupport: true,
   drop: B.REDSTONE_TORCH, noItem: true,
 });
+for (let f = 0; f < 4; f++) {
+  const wall = { shape: "torch", pass: "cutout", solid: false, opaque: false, lightOpacity: 0, hardness: 0, sound: "wood", needsSupport: true, noItem: true } as const;
+  define(B.WALL_TORCH + f, "Torch", all(TILE.torch), { ...wall, emit: 14, drop: B.TORCH });
+  define(B.REDSTONE_WALL_TORCH + f, "Redstone Torch", all(TILE.redstone_torch_on), { ...wall, emit: 7, drop: B.REDSTONE_TORCH });
+  define(B.REDSTONE_WALL_TORCH_OFF + f, "Redstone Torch (off)", all(TILE.redstone_torch_off), { ...wall, drop: B.REDSTONE_TORCH });
+}
 for (let i = 0; i < 10; i++) {
   const thin = { pass: "cutout", solid: false, opaque: false, lightOpacity: 0, hardness: 0.5, needsSupport: true } as const;
   define(B.LEVER + i, "Lever", { top: TILE.cobblestone, bottom: TILE.cobblestone, side: TILE.lever }, {
@@ -402,7 +419,7 @@ export function waterHeight16(id: number, above: number): number {
   return Math.max(2, Math.round((16 * (l + 1)) / 9));
 }
 
-const SHAPES: Shape[] = ["none", "cube", "cross", "torch", "liquid", "wire", "lever", "button", "plate", "door"];
+const SHAPES: Shape[] = ["none", "cube", "cross", "torch", "liquid", "wire", "lever", "button", "plate", "door", "layer"];
 const PASSES: RenderPass[] = ["opaque", "cutout", "water"];
 for (const def of defs) {
   if (!def) continue;
@@ -448,7 +465,23 @@ export function doorState(id: number) {
 export const doorBlock = (iron: boolean, facing: number, open: boolean, upper: boolean) =>
   (iron ? B.IRON_DOOR : B.WOODEN_DOOR) + (facing & 3) * 4 + (open ? 2 : 0) + (upper ? 1 : 0);
 
-export const isRedstoneTorch = (id: number) => id === B.REDSTONE_TORCH || id === B.REDSTONE_TORCH_OFF;
+const inRange4 = (id: number, base: number) => id >= base && id < base + 4;
+/** A torch on the side of a block (any kind), and which face it hangs on (1..4, as in ATTACH_DIRS). */
+export const isWallTorch = (id: number) => inRange4(id, B.WALL_TORCH) || inRange4(id, B.REDSTONE_WALL_TORCH) || inRange4(id, B.REDSTONE_WALL_TORCH_OFF);
+export const wallTorchFace = (id: number) => (((id - B.WALL_TORCH) % 4) + 1) as AttachFace;
+export const isRedstoneTorch = (id: number) =>
+  id === B.REDSTONE_TORCH || id === B.REDSTONE_TORCH_OFF || inRange4(id, B.REDSTONE_WALL_TORCH) || inRange4(id, B.REDSTONE_WALL_TORCH_OFF);
+export const isLitRedstoneTorch = (id: number) => id === B.REDSTONE_TORCH || inRange4(id, B.REDSTONE_WALL_TORCH);
+/** The same redstone torch (standing or on the same wall), lit or not. */
+export const redstoneTorchLit = (id: number, lit: boolean) => {
+  if (!isWallTorch(id)) return lit ? B.REDSTONE_TORCH : B.REDSTONE_TORCH_OFF;
+  return (lit ? B.REDSTONE_WALL_TORCH : B.REDSTONE_WALL_TORCH_OFF) + wallTorchFace(id) - 1;
+};
+/** A torch placed against face 0 (the floor: standing) or 1..4 (a wall). */
+export function torchOn(item: number, face: AttachFace): number {
+  if (face === 0) return item;
+  return (item === B.REDSTONE_TORCH ? B.REDSTONE_WALL_TORCH : B.WALL_TORCH) + face - 1;
+}
 export const isPlate = (id: number) => id === B.PRESSURE_PLATE || id === B.PRESSURE_PLATE_ON;
 
 /** Where a block's support lies, or null if it never needs one. */
@@ -456,6 +489,7 @@ export function supportDir(id: number): [number, number, number] | null {
   const def = defs[id];
   if (!def?.needsSupport) return null;
   if (isLever(id) || isButton(id)) return ATTACH_DIRS[switchFace(id)];
+  if (isWallTorch(id)) return ATTACH_DIRS[wallTorchFace(id)];
   return [0, -1, 0];
 }
 
@@ -466,6 +500,11 @@ export function supports(id: number, supporter: number): boolean {
     return supporter === B.GRASS || supporter === B.DIRT || supporter === B.FARMLAND || supporter === B.SNOWY_GRASS;
   }
   if (isDoor(id) && doorState(id).upper) return isDoor(supporter) && !doorState(supporter).upper;
+  // Snow settles on any full block, leaves included, but slides off ice.
+  if (id === B.SNOW_LAYER) {
+    const leafy = supporter === B.LEAVES || supporter === B.BIRCH_LEAVES || supporter === B.SPRUCE_LEAVES || supporter === B.JUNGLE_LEAVES;
+    return supporter !== B.ICE && IS_SOLID[supporter] === 1 && (IS_OPAQUE[supporter] === 1 || leafy);
+  }
   return IS_SOLID[supporter] === 1 && IS_OPAQUE[supporter] === 1;
 }
 
@@ -540,6 +579,7 @@ item(I.FISHING_ROD, "Fishing Rod", { maxStack: 1, durability: 64 });
 item(I.WOODEN_DOOR, "Wooden Door");
 item(I.IRON_DOOR, "Iron Door");
 item(I.EGG, "Egg", { maxStack: 16 });
+item(I.SNOWBALL, "Snowball", { maxStack: 16 });
 item(I.MILK_BUCKET, "Milk Bucket", { maxStack: 1, drink: { leaves: I.BUCKET } });
 // Food values follow the classic table (hunger points, saturation).
 item(I.BREAD, "Bread", { food: { hunger: 5, saturation: 6 } });
@@ -614,7 +654,7 @@ export const CREATIVE_ITEMS: number[] = [
   // Natural
   B.GRASS, B.DIRT, B.STONE, B.COBBLESTONE, B.SAND, B.GRAVEL, B.SANDSTONE, B.CLAY, B.OBSIDIAN,
   B.LOG, B.BIRCH_LOG, B.SPRUCE_LOG, B.JUNGLE_LOG, B.LEAVES, B.BIRCH_LEAVES, B.SPRUCE_LEAVES, B.JUNGLE_LEAVES, B.BEDROCK,
-  B.PLANKS, B.BRICKS, B.GLASS, B.SNOW, B.ICE, B.TALL_GRASS, B.FLOWER_YELLOW, B.FLOWER_RED, B.SNOWY_GRASS,
+  B.PLANKS, B.BRICKS, B.GLASS, B.SNOW, B.SNOW_LAYER, B.ICE, B.TALL_GRASS, B.FLOWER_YELLOW, B.FLOWER_RED, B.SNOWY_GRASS,
   B.WOOL_WHITE, B.WOOL_LIGHT_GRAY, B.WOOL_GRAY, B.WOOL_BLACK, B.WOOL_BROWN, B.WOOL_PINK, B.CRAFTING_TABLE, B.FURNACE, B.TORCH,
   // Ores and minerals
   B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.DIAMOND_ORE, B.LAPIS_ORE, B.REDSTONE_ORE, I.COAL, I.IRON_INGOT, I.GOLD_INGOT,
@@ -626,5 +666,5 @@ export const CREATIVE_ITEMS: number[] = [
   I.BOW, I.ARROW, I.FISHING_ROD, I.IRON_HELMET, I.IRON_CHESTPLATE, I.IRON_LEGGINGS, I.IRON_BOOTS,
   // Food and farming
   I.SEEDS, I.WHEAT, I.BREAD, I.APPLE, I.RAW_PORKCHOP, I.COOKED_PORKCHOP, I.RAW_MEAT, I.STEAK, I.RAW_CHICKEN,
-  I.COOKED_CHICKEN, I.RAW_FISH, I.COOKED_FISH, I.EGG,
+  I.COOKED_CHICKEN, I.RAW_FISH, I.COOKED_FISH, I.EGG, I.SNOWBALL,
 ];

@@ -1,7 +1,7 @@
 import { CHUNK_HEIGHT, CHUNK_SIZE } from "../config";
 import {
   B, FLUID_LEVEL, IS_OPAQUE, PASS_CODE, SHAPE_CODE, TILE, TILE_BOTTOM, TILE_FRONT, TILE_SIDE, TILE_TOP,
-  doorState, switchFace, switchOn, waterHeight16, wirePower,
+  doorState, isLitRedstoneTorch, isRedstoneTorch, isWallTorch, switchFace, switchOn, wallTorchFace, waterHeight16, wirePower,
 } from "../world/blocks";
 import { wireShape } from "../world/redstone";
 import { R, RA, rIndex } from "../world/lighting";
@@ -306,7 +306,11 @@ export function meshChunk(rb: Uint8Array, sky: Uint8Array, blk: Uint8Array): Chu
         const id = rb[ri];
         const shape = SHAPE_CODE[id];
         if (shape === 2) emitCross(solid, x, y, z, TILE_SIDE[id], sky[ri], blk[ri]);
-        else if (shape === 3) emitTorch(solid, x, y, z, TILE_SIDE[id], sky[ri], id === B.REDSTONE_TORCH_OFF ? blk[ri] : 15);
+        else if (shape === 3) {
+          const bl = isRedstoneTorch(id) && !isLitRedstoneTorch(id) ? blk[ri] : 15;
+          if (isWallTorch(id)) emitWallTorch(solid, x, y, z, wallTorchFace(id), TILE_SIDE[id], sky[ri], bl);
+          else emitTorch(solid, x, y, z, TILE_SIDE[id], sky[ri], bl);
+        }
         else if (shape >= 5) emitSpecial(solid, rb, x, y, z, id, sky[ri], blk[ri]);
       }
     }
@@ -341,6 +345,10 @@ export function emitBox(
   b: MeshBuilder, bx: number, by: number, bz: number,
   min: number[], max: number[], layer: number | number[], sl: number, bl: number,
   topUV?: [number, number, number, number],
+  /** Slants the box: its top is moved by this many pixels along X and Z (whole pixels, so corners stay on the grid). */
+  shear?: [number, number],
+  /** Faces to leave out (0 +X, 1 -X, 2 top, 3 bottom, 4 +Z, 5 -Z), e.g. ones hidden by a neighbour. */
+  skip?: (face: number) => boolean,
 ) {
   const c = [0, 0, 0];
   for (let a = 0; a < 3; a++) {
@@ -349,6 +357,7 @@ export function emitBox(
     for (let side = 0; side < 2; side++) {
       const sign = side === 0 ? 1 : -1;
       const face = a * 2 + side;
+      if (skip?.(face)) continue;
       for (let k = 0; k < 4; k++) {
         c[a] = sign > 0 ? max[a] : min[a];
         c[u] = k === 1 || k === 2 ? max[u] : min[u];
@@ -362,7 +371,8 @@ export function emitBox(
           tv = c[2] === min[2] ? topUV[1] : topUV[3];
         }
         const l = typeof layer === "number" ? layer : layer[face];
-        b.vertex(bx * 16 + c[0], by * 16 + c[1], bz * 16 + c[2], face, tu, tv, l, sl, bl, 0);
+        const lean = shear && c[1] === max[1] ? shear : [0, 0];
+        b.vertex(bx * 16 + c[0] + lean[0], by * 16 + c[1], bz * 16 + c[2] + lean[1], face, tu, tv, l, sl, bl, 0);
       }
       b.endQuad(sign < 0 ? 2 : 0);
     }
@@ -371,6 +381,17 @@ export function emitBox(
 
 function emitTorch(b: MeshBuilder, x: number, y: number, z: number, layer: number, sl: number, bl = 15) {
   emitBox(b, x, y, z, [7, 0, 7], [9, 10, 9], layer, sl, bl, [7, 8, 9, 10]);
+}
+
+/**
+ * A torch hanging on a wall: its foot rests against the block it hangs on,
+ * a few pixels up, and it leans out into the room like the classic one.
+ */
+function emitWallTorch(b: MeshBuilder, x: number, y: number, z: number, face: number, layer: number, sl: number, bl: number) {
+  const [a, c] = attachedBox(face, 7, 9, 3, 13, 0, 2);
+  // Lean 4 px away from the wall at the top.
+  const away = [[0, 0], [0, 4], [0, -4], [4, 0], [-4, 0]][face] as [number, number];
+  emitBox(b, x, y, z, a, c, layer, sl, bl, [7, 8, 9, 10], away);
 }
 
 /**
@@ -432,6 +453,17 @@ function emitSpecial(b: MeshBuilder, rb: Uint8Array, x: number, y: number, z: nu
   }
   if (shape === 8) {
     emitBox(b, x, y, z, [1, 0, 1], [15, id === B.PRESSURE_PLATE_ON ? 1 : 2, 15], TILE.stone, sl, bl);
+    return;
+  }
+  if (shape === 10) {
+    // A snow layer, 2/16 tall, lying on the block below: no bottom face (it sits on that block's top),
+    // and no side face against a solid neighbour or another layer of snow.
+    const covered = (dx: number, dz: number) => {
+      const n = at(dx, 0, dz);
+      return IS_OPAQUE[n] === 1 || SHAPE_CODE[n] === 10;
+    };
+    const hidden = [covered(1, 0), covered(-1, 0), false, true, covered(0, 1), covered(0, -1)];
+    emitBox(b, x, y, z, [0, 0, 0], [16, 2, 16], TILE_TOP[id], sl, bl, undefined, undefined, (f) => hidden[f]);
     return;
   }
   if (shape === 9) {

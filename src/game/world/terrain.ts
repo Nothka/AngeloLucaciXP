@@ -1,6 +1,6 @@
 import { CHUNK_HEIGHT, CHUNK_SIZE, CHUNK_VOLUME, SEA_LEVEL, blockIndex } from "../config";
 import { SimplexNoise, hash2, hash3, lerp, smoothstep } from "../noise";
-import { B } from "./blocks";
+import { B, supports } from "./blocks";
 
 export enum Biome {
   OCEAN,
@@ -256,6 +256,18 @@ export class TerrainGenerator {
         this.column(wx, wz, col);
         const tree = this.treeAt(wx, wz, col);
         if (tree) this.placeTree(blocks, tx, col.height + 1, tz, tree.trunk, wx, wz, tree.kind);
+      }
+    }
+    // Cold places start under a thin layer of snow, on the ground and on treetops alike.
+    for (let z = 0; z < CHUNK_SIZE; z++) {
+      for (let x = 0; x < CHUNK_SIZE; x++) {
+        if (!isCold(this.column(ox + x, oz + z, col))) continue;
+        for (let y = CHUNK_HEIGHT - 2; y > 0; y--) {
+          const id = blocks[blockIndex(x, y, z)];
+          if (id === B.AIR) continue;
+          if (supports(B.SNOW_LAYER, id)) blocks[blockIndex(x, y + 1, z)] = B.SNOW_LAYER;
+          break;
+        }
       }
     }
     return blocks;

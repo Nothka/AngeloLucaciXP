@@ -15,17 +15,18 @@ import type { GameMode } from "./player/player";
 import { Vitals } from "./player/vitals";
 import {
   BLOCKS, B, I, IS_SOLID, doorState, getItem, isButton, isDoor, isLever, isPlate, isWater, isWheat, leverBlock,
-  buttonBlock, switchFace, switchOn,
+  buttonBlock, supports, switchFace, switchOn,
 } from "./world/blocks";
 import { BlockUpdates, blockDrops, blockXp } from "./world/blockUpdates";
 import { FallingBlocks } from "./world/gravity";
 import { FurnaceRegistry, type FurnaceState } from "./world/furnaces";
 import { RedstoneSim, setDoorOpen } from "./world/redstone";
-import { Weather, type WeatherKind } from "./world/weather";
+import { Weather, rainHearing, rainLandsAt, snowShareAround, type WeatherKind } from "./world/weather";
 import { FishingBobber } from "./entities/fishing";
 import { raycast, type RayHit } from "./player/raycast";
 import { SMELT_XP } from "./items/smelting";
 import { runCommand, type CommandResult } from "./commands";
+import { choosePlayer, cloudSave } from "./save/cloud";
 import { blockIndex, CHUNK_SIZE } from "./config";
 import type { Chunk } from "./world/chunk";
 import { World, type ChunkStore } from "./world/world";
@@ -45,6 +46,7 @@ import { Spawner } from "./entities/spawner";
 import type { Mob } from "./entities/mob";
 import { MOB_LIST, MOB_TYPES, type MobType } from "./entities/mobTypes";
 import { feed } from "./entities/animalLife";
+import { TORCH_FX_RANGE, TorchParticles, hasFlame } from "./render/torchParticles";
 
 class DbChunkStore implements ChunkStore {
   constructor(private worldId: string, private keys: Set<string>) {}
@@ -75,6 +77,12 @@ const isFurnace = (id: number) => id === B.FURNACE || id === B.FURNACE_LIT;
 const USABLE_ITEMS = new Set<number>([I.BUCKET, I.WATER_BUCKET, I.MILK_BUCKET, I.FISHING_ROD, I.SEEDS, I.REDSTONE, I.WOODEN_DOOR, I.IRON_DOOR, I.BOW]);
 const usableBlock = (id: number) => id === B.CRAFTING_TABLE || isFurnace(id) || isLever(id) || isButton(id) || (isDoor(id) && !doorState(id).iron);
 
+/** Block ids with a live flame, for fast chunk scans. */
+const FLAME = new Uint8Array(256).map((_, id) => (hasFlame(id) ? 1 : 0));
+
+/** Height below which the void hurts (64 blocks under the bottom of the world). */
+export const VOID_DAMAGE_Y = -64;
+
 const CREATIVE_HOTBAR = [B.GRASS, B.DIRT, B.STONE, B.COBBLESTONE, B.PLANKS, B.LOG, B.GLASS, B.TORCH, B.CRAFTING_TABLE];
 
 /** One open world: terrain streaming, the player, items and saving. */
@@ -104,7 +112,15 @@ export class Session {
   private crops = new Map<string, Set<string>>();
   private cropTimer = 0;
   private ambientTimer = 0;
+  private snowTimer = 0;
+  /** 0 = rain, 1 = snow where the player is, eased so crossing a biome edge fades one into the other. */
+  snowMix = 0;
+  private snowTarget = -1;
   bobber: FishingBobber | null = null;
+  /** Flames, smoke and sparks rising off nearby torches. */
+  readonly torchFx = new TorchParticles();
+  /** Torches with a live flame in loaded chunks, by chunk key. */
+  private torches = new Map<string, Map<string, [number, number, number]>>();
   readonly entities: EntityManager;
   readonly projectiles = new ProjectileManager();
   readonly xpOrbs = new XpOrbManager();
@@ -141,6 +157,8 @@ export class Session {
   static async open(meta: WorldMeta, pool: WorkerPool, materials: BlockMaterials, audio: Audio, events: SessionEvents, persist = true) {
     const keys = persist ? await listChunkKeys(meta.id).catch(() => new Set<string>()) : new Set<string>();
     const entityKeys = persist ? await listEntityKeys(meta.id).catch(() => new Set<string>()) : new Set<string>();
+    // The player (inventory, armor, XP, health, position) also lives in the cloud; a newer copy there wins.
+    if (persist) meta.player = choosePlayer(meta, await cloudSave.pull(meta.id));
     return new Session(meta, pool, materials, audio, events, persist ? new DbChunkStore(meta.id, keys) : null, entityKeys);
   }
 
@@ -173,7 +191,9 @@ export class Session {
       bred: (baby) => this.events.emit("animalBred", { type: baby.type }),
       sound: (mob, sound) => {
         if (sound === "step") {
-          const under = this.world.getBlock(Math.floor(mob.pos.x), Math.floor(mob.pos.y - 0.2), Math.floor(mob.pos.z));
+          const mx = Math.floor(mob.pos.x), mz = Math.floor(mob.pos.z);
+          const feet = this.world.getBlock(mx, Math.floor(mob.pos.y + 0.01), mz);
+          const under = feet === B.SNOW_LAYER ? feet : this.world.getBlock(mx, Math.floor(mob.pos.y - 0.2), mz);
           this.audio.blockAt(BLOCKS[under]?.sound ?? "none", "step", mob.pos.x, mob.pos.y, mob.pos.z);
         } else if (sound === "graze") {
           // Grazing is the grass block's own break sound, a little lower.
@@ -192,6 +212,7 @@ export class Session {
     this.world.onChunkUnloaded = (chunk) => {
       this.chunkEntitiesOut(chunk.cx, chunk.cz);
       this.crops.delete(`${chunk.cx},${chunk.cz}`);
+      this.torches.delete(`${chunk.cx},${chunk.cz}`);
     };
     this.fluid = new FluidSimulator(this.world);
     this.redstone = new RedstoneSim(this.world);
@@ -218,6 +239,11 @@ export class Session {
           for (const st of this.furnaces.remove(x, y, z)) this.drops.spawn(st.id, st.count, x + 0.5, y + 0.5, z + 0.5);
         }
         if (isWheat(after)) this.cropSet(x, z).add(`${x},${y},${z}`);
+        if (hasFlame(after)) this.torchSet(x, z).set(`${x},${y},${z}`, [x, y, z]);
+        // A door's lower half swinging (by hand or by redstone).
+        if (isDoor(before) && isDoor(after) && !doorState(after).upper && doorState(before).open !== doorState(after).open) {
+          this.audio.door(doorState(after).open, x + 0.5, y + 1, z + 0.5);
+        }
       },
     });
     this.world.onBlockChange = (x, y, z, before, after) => this.blockUpdates.onChange(x, y, z, before, after);
@@ -225,7 +251,7 @@ export class Session {
       const drop = BLOCKS[id]?.drop;
       if (drop !== null && drop !== undefined && this.player.mode === "survival") this.drops.spawn(drop, 1, x + 0.5, y + 0.3, z + 0.5);
     };
-    this.group.add(this.world.group, this.drops.group, this.selection.group, this.falling.group);
+    this.group.add(this.world.group, this.drops.group, this.selection.group, this.falling.group, this.torchFx.group);
 
     if (meta.player) {
       const p = meta.player;
@@ -283,7 +309,9 @@ export class Session {
       },
       onBlockPlaced: (x, y, z, id) => {
         this.playAt(BLOCKS[id].sound, "place", x, y, z);
-        this.events.emit("blockPlaced", { id, x, y, z });
+        // Count a wall torch as a torch (and a lever state as a lever) for achievements.
+        const placed = getItem(id) ? id : BLOCKS[id]?.drop ?? id;
+        this.events.emit("blockPlaced", { id: placed, x, y, z });
       },
       onUseBlock: (x, y, z, id) => this.useBlock(x, y, z, id),
       useItem: (hit) => this.useItem(hit),
@@ -533,11 +561,13 @@ export class Session {
   /** Middle click: grab the targeted block into the hotbar. */
   pickBlock() {
     const t = this.interaction.target;
-    if (!t || !getItem(t.id)) return;
+    // Block states without an item of their own (wall torches, lit furnaces...) pick their item.
+    const id = t ? (getItem(t.id) ? t.id : BLOCKS[t.id]?.drop ?? null) : null;
+    if (id === null || !getItem(id)) return;
     const slots = this.inventory.slots;
-    const existing = slots.findIndex((s, i) => i < HOTBAR_SIZE && s?.id === t.id);
+    const existing = slots.findIndex((s, i) => i < HOTBAR_SIZE && s?.id === id);
     if (existing >= 0) this.inventory.selected = existing;
-    else if (this.player.mode === "creative") slots[this.inventory.selected] = { id: t.id, count: 64 };
+    else if (this.player.mode === "creative") slots[this.inventory.selected] = { id, count: 64 };
     this.inventory.changed();
   }
 
@@ -622,7 +652,7 @@ export class Session {
           if (left === 0) this.audio.pickup();
           return left === 0;
         },
-        thud: (x, y, z) => this.playAt("wood", "step", Math.floor(x), Math.floor(y), Math.floor(z)),
+        thud: (x, y, z) => this.audio.arrowHit(x, y, z),
       });
       this.xpOrbs.update(dt, this.entities.solidAt, alive && p.mode === "survival" ? p.pos.clone().setY(p.pos.y + 0.8) : null, (value) => {
         this.xp.add(value);
@@ -645,14 +675,25 @@ export class Session {
       this.updateCrops(dt);
       this.updateFishing(dt);
       if (this.weather.update(dt)) this.onLightning?.();
+      this.updateSnowfall(dt);
+      this.torchFx.update(dt, p.eye(), this.nearbyTorches());
       this.ambientTimer -= dt;
       if (this.ambientTimer <= 0) {
         this.ambientTimer = 0.25;
-        const eye = p.eye();
-        const sky = this.world.getLight(Math.floor(eye.x), Math.floor(eye.y), Math.floor(eye.z)) >> 4;
-        const cold = isColdAt(this, Math.floor(p.pos.x), Math.floor(p.pos.z));
-        this.audio.setRain(cold ? 0 : this.weather.rain, sky < 14 ? 1 : 0);
+        // Snow or rain is decided where you stand, for all the weather around you.
+        const target = snowShareAround(p.pos.x, p.pos.z, (x, z) => isColdAt(this, x, z)) >= 0.5 ? 1 : 0;
+        if (this.snowTarget < 0) this.snowMix = target;
+        this.snowTarget = target;
+        const rain = this.weather.rain * (1 - this.snowMix);
+        if (rain < 0.01) {
+          this.audio.setRain(0);
+        } else {
+          // Heard from where it lands nearby: fades as you dig down, muffled under a roof.
+          const heard = rainHearing(p.eye(), (x, z) => rainLandsAt(this.world, x, z));
+          this.audio.setRain(rain * heard.volume, heard.covered);
+        }
       }
+      if (this.snowTarget >= 0) this.snowMix += (this.snowTarget - this.snowMix) * (1 - Math.exp(-dt / 0.8));
 
       // Water flows on its own clock, a quarter second per step.
       this.fluidTimer += dt;
@@ -681,7 +722,7 @@ export class Session {
         }
         if (sheep >= 3) this.events.emit("flockSeen", { count: sheep });
       }
-      if (p.mode === "creative" && p.pos.y < -40) p.teleport(p.pos.x, this.surfaceY(Math.floor(p.pos.x), Math.floor(p.pos.z)) + 1, p.pos.z);
+      this.updateVoid(dt);
     }
     const t = this.interaction.target;
     if (t && controls) this.selection.show(t.x, t.y, t.z, t.id, this.interaction.progress);
@@ -701,14 +742,6 @@ export class Session {
     ex.sprint = ex.swim = ex.jumps = ex.sprintJumps = 0;
     this.vitals.tick(dt, p.headInWater);
 
-    if (p.pos.y < -8) {
-      this.voidTimer += dt;
-      if (this.voidTimer >= 0.5) {
-        this.voidTimer = 0;
-        this.vitals.damage(4, "void");
-      }
-    }
-
     // Eating: hold right click with food for 1.6 s.
     const held = this.inventory.held;
     const heldDef = held ? getItem(held.id) : undefined;
@@ -718,15 +751,16 @@ export class Session {
       this.eating += dt / 1.6;
       this.eatSoundTimer -= dt;
       if (this.eatSoundTimer <= 0) {
-        this.audio.eat();
-        this.eatSoundTimer = 0.22;
+        if (drink) this.audio.drink();
+        else this.audio.eat();
+        this.eatSoundTimer = drink ? 0.5 : 0.22;
       }
       if (this.eating >= 1) {
         if (food) this.vitals.eat(food.hunger, food.saturation);
         this.events.emit("itemEaten", { id: held!.id });
         if (drink) this.swapHeld(drink.leaves);
         else this.inventory.removeFromSlot(this.inventory.selected, 1);
-        this.audio.burp();
+        if (!drink) this.audio.burp();
         this.eating = 0;
         input.buttons.delete(2);
       }
@@ -794,7 +828,6 @@ export class Session {
       // Iron doors only open with redstone.
       if (s.iron) return true;
       setDoorOpen(w, x, s.upper ? y - 1 : y, z, !s.open);
-      this.playAt("wood", "place", x, y, z);
       this.onSwing?.();
       return true;
     }
@@ -963,6 +996,35 @@ export class Session {
     }
   }
 
+  /**
+   * While it snows, snow settles on open ground in cold places and still
+   * water there freezes over, a few random columns per nearby chunk each
+   * second, so the land turns white over a few minutes.
+   */
+  private updateSnowfall(dt: number) {
+    if (!this.weather.raining || this.weather.rain < 0.5) return;
+    this.snowTimer += dt;
+    if (this.snowTimer < 1) return;
+    this.snowTimer -= 1;
+    const w = this.world;
+    const pcx = Math.floor(this.player.pos.x / CHUNK_SIZE), pcz = Math.floor(this.player.pos.z / CHUNK_SIZE);
+    for (let dz = -4; dz <= 4; dz++) {
+      for (let dx = -4; dx <= 4; dx++) {
+        if (!w.chunkAt(pcx + dx, pcz + dz) || Math.random() > 0.35) continue;
+        for (let k = 0; k < 4; k++) {
+          const x = (pcx + dx) * CHUNK_SIZE + Math.floor(Math.random() * CHUNK_SIZE);
+          const z = (pcz + dz) * CHUNK_SIZE + Math.floor(Math.random() * CHUNK_SIZE);
+          if (!isColdAt(this, x, z)) continue;
+          const top = rainLandsAt(w, x, z);
+          if (top <= 0 || top >= CHUNK_HEIGHT) continue;
+          const below = w.getBlock(x, top - 1, z);
+          if (below === B.WATER) w.setBlock(x, top - 1, z, B.ICE);
+          else if (w.getBlock(x, top, z) === B.AIR && supports(B.SNOW_LAYER, below)) w.setBlock(x, top, z, B.SNOW_LAYER);
+        }
+      }
+    }
+  }
+
   private cropSet(x: number, z: number) {
     const key = `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
     let set = this.crops.get(key);
@@ -970,16 +1032,46 @@ export class Session {
     return set;
   }
 
+  private torchSet(x: number, z: number) {
+    const key = `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
+    let set = this.torches.get(key);
+    if (!set) this.torches.set(key, (set = new Map()));
+    return set;
+  }
+
+  /** A chunk came in: note its crops (they grow) and torches (they smoke). */
   private scanCrops(chunk: Chunk) {
     const b = chunk.blocks;
     for (let i = 0; i < b.length; i++) {
-      if (b[i] < B.WHEAT_0 || b[i] > B.WHEAT_7) continue;
+      const id = b[i];
+      const crop = id >= B.WHEAT_0 && id <= B.WHEAT_7;
+      if (!crop && !FLAME[id]) continue;
       const x = i % CHUNK_SIZE;
       const z = Math.floor(i / CHUNK_SIZE) % CHUNK_SIZE;
       const y = Math.floor(i / (CHUNK_SIZE * CHUNK_SIZE));
       if (blockIndex(x, y, z) !== i) continue;
       const wx = chunk.cx * CHUNK_SIZE + x, wz = chunk.cz * CHUNK_SIZE + z;
-      this.cropSet(wx, wz).add(`${wx},${y},${wz}`);
+      if (crop) this.cropSet(wx, wz).add(`${wx},${y},${wz}`);
+      else this.torchSet(wx, wz).set(`${wx},${y},${wz}`, [wx, y, wz]);
+    }
+  }
+
+  /** Torches near the player that still have a flame (gone ones are forgotten). */
+  private *nearbyTorches(): Generator<[number, number, number, number]> {
+    const p = this.player.pos;
+    const r = Math.ceil(TORCH_FX_RANGE / CHUNK_SIZE);
+    const pcx = Math.floor(p.x / CHUNK_SIZE), pcz = Math.floor(p.z / CHUNK_SIZE);
+    for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      const set = this.torches.get(`${pcx + dx},${pcz + dz}`);
+      if (!set) continue;
+      for (const [k, [x, y, z]] of set) {
+        const id = this.world.getBlock(x, y, z);
+        if (!hasFlame(id)) {
+          set.delete(k);
+          continue;
+        }
+        yield [x, y, z, id];
+      }
     }
   }
 
@@ -1066,6 +1158,23 @@ export class Session {
   /** Called when lightning strikes (for the flash and thunder). */
   onLightning: (() => void) | null = null;
 
+  /**
+   * Below the bedrock there is nothing to land on. Like the classic game,
+   * the void only starts hurting 64 blocks under the bottom of the world, so
+   * you fall for a few seconds first, then take 4 damage every half second.
+   * It catches Creative players too.
+   */
+  private updateVoid(dt: number) {
+    if (this.player.pos.y >= VOID_DAMAGE_Y || this.vitals.dead) {
+      this.voidTimer = 0;
+      return;
+    }
+    this.voidTimer -= dt;
+    if (this.voidTimer > 0) return;
+    this.voidTimer = 0.5;
+    this.vitals.damage(4, "void");
+  }
+
   /** Back to the world spawn with full health and an empty inventory. */
   respawn() {
     this.vitals.reset();
@@ -1110,8 +1219,12 @@ export class Session {
     };
   }
 
-  /** Writes edited chunks and the player/world metadata. Concurrent calls share one save. */
-  save(thumbnail?: string): Promise<void> {
+  /**
+   * Writes edited chunks and the player/world metadata, then uploads the
+   * player to the cloud (`cloudNow` false lets frequent autosaves be throttled).
+   * Concurrent calls share one save.
+   */
+  save(thumbnail?: string, cloudNow = true): Promise<void> {
     if (!this.store) return Promise.resolve();
     if (this.saving) return this.saving;
     const chunks = this.world.unsavedChunks();
@@ -1131,6 +1244,7 @@ export class Session {
         }));
         this.store!.markSaved(chunks);
         await putWorld(meta);
+        void cloudSave.push(meta, cloudNow);
       } catch (err) {
         for (const c of chunks) c.unsaved = true;
         console.error("[blockvale] save failed", err);
@@ -1148,6 +1262,7 @@ export class Session {
     this.fluid.clear();
     this.redstone.clear();
     this.falling.clear();
+    this.torchFx.clear();
     this.removeBobber();
     this.entities.clear();
     this.projectiles.clear();

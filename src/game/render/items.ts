@@ -389,6 +389,7 @@ export function itemSprite(id: number): Pixels {
     case I.FLINT: p = lump(["#3a3a3a", "#5a5a5a", "#2a2a2a"], "#101010"); break;
     case I.WHEAT: p = wheatItem(); break;
     case I.SEEDS: p = seeds(); break;
+    case I.SNOWBALL: p = food(["..xxxx..", ".xyyxxx.", "xyyxxxxx", "xyxxxxxx", "xxxxxxxz", "xxxxxxzz", ".xxxxzz.", "..zzzz.."], { x: "#eef4f8", y: "#ffffff", z: "#b9c9d6" }, "#5f7686", 4); break;
     case I.EGG: p = food(["..xxxx..", ".xxxxxx.", ".xyxxxx.", "xyxxxxxx", "xxxxxxxx", "xxxxxxxz", ".xxxxxz.", "..zzzz.."], { x: "#e9dcc0", y: "#fbf5e6", z: "#c7b48f" }, "#5a4a30", 4); break;
     case I.BREAD: p = food(["..xxxxxxxx..", ".xyxxyxxyxx.", "xxxxxxxxxxxx", "xxxxxxxxxxxx", ".zzzzzzzzzz."], { x: "#c8862f", y: "#e8b860", z: "#9a5f22" }, "#3a2008", 6); break;
     case I.RAW_PORKCHOP: p = food(["..xxxxx..", ".xxxxxxx.", "xxxyxxxxx", "xxxxxxxyx", ".xxxxxxx.", "..xxxxx.."], { x: "#f0a0a0", y: "#ffffff" }, "#5a1a1a", 5); break;

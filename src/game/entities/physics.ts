@@ -14,10 +14,14 @@ export interface Body {
 
 export type SolidAt = (x: number, y: number, z: number) => boolean;
 
-/** Solid-block test shared by the player and mobs: unloaded columns act solid so nothing falls out of the world. */
+/**
+ * Solid-block test shared by the player and mobs. Unloaded columns act solid
+ * so nothing falls through terrain that is still streaming in; below the
+ * bottom of the world there is nothing at all (the void).
+ */
 export function solidTester(world: { getBlock(x: number, y: number, z: number): number; isLoaded(x: number, z: number): boolean }): SolidAt {
   return (x, y, z) => {
-    if (y < 0) return true;
+    if (y < 0) return false;
     if (!world.isLoaded(x, z)) return true;
     return IS_SOLID[world.getBlock(x, y, z)] === 1;
   };

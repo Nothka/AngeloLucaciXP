@@ -107,6 +107,22 @@ With the Firebase CLI, deploy them with:
 firebase deploy --only firestore:rules --project xp-react
 ```
 
+
+### Blockvale cloud saves
+The game keeps each player's inventory, armor, XP, health, hunger and position for every world in
+Firestore at `blockvale/{uid}/worlds/{worldId}` (the worlds' terrain stays in the browser's IndexedDB).
+Each browser signs in anonymously, so the rules above only let a player read and write their own documents.
+
+1) In the Firebase console: **Authentication → Get started → Sign-in method → Anonymous → Enable**.
+   If the web API key has API restrictions (Google Cloud console → APIs & Services → Credentials),
+   add **Identity Toolkit API** and **Token Service API** to its allowed APIs, or sign-in fails with
+   `auth/api-key-not-valid`.
+2) Deploy `firestore.rules` (it includes the `blockvale` rules): `npx firebase-tools deploy --only firestore:rules`,
+   or paste the file into **Firestore → Rules** and publish.
+
+The pause menu shows whether the cloud save is on and when it last synced. Without these two steps the game
+still saves locally as before.
+
 ## Scripts
 - `npm run dev` - start the Vite dev server
 - `npm run dev:api` - start the OpenAI proxy server

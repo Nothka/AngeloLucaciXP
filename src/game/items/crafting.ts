@@ -41,6 +41,7 @@ const shaped: ShapedRecipe[] = [
   { pattern: ["C", "S", "F"], key: { C: B.COBBLESTONE, S: I.STICK, F: I.FEATHER }, result: { id: I.ARROW, count: 4 } },
   { pattern: ["  S", " SX", "S X"], key: { S: I.STICK, X: I.STRING }, result: { id: I.FISHING_ROD, count: 1 } },
   { pattern: ["SS", "SS"], key: { S: B.SAND }, result: { id: B.SANDSTONE, count: 1 } },
+  { pattern: ["SS", "SS"], key: { S: I.SNOWBALL }, result: { id: B.SNOW, count: 1 } },
   { pattern: ["BB", "BB"], key: { B: I.BRICK }, result: { id: B.BRICKS, count: 1 } },
   { pattern: ["CC", "CC"], key: { C: I.CLAY_BALL }, result: { id: B.CLAY, count: 1 } },
   { pattern: ["WWW"], key: { W: I.WHEAT }, result: { id: I.BREAD, count: 1 } },

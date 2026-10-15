@@ -10,8 +10,10 @@ const vertexShader = /* glsl */ `
   varying float v_shade;
   varying float v_ao;
   varying float v_fog;
+  varying vec3 v_world;
   void main() {
     vec3 p = a_pos.xyz / 16.0;
+    v_world = (modelMatrix * vec4(p, 1.0)).xyz;
     float face = a_pos.w;
     v_shade = face < 1.5 ? 0.6 : face < 2.5 ? 1.0 : face < 3.5 ? 0.5 : face < 5.5 ? 0.8 : 0.9;
     v_uv = vec3(a_uv / 16.0, a_light.x);
@@ -36,11 +38,19 @@ const fragmentShader = /* glsl */ `
   uniform float u_opacity;
   uniform float u_alphaTest;
   uniform vec2 u_lightOverride;
+  uniform vec2 u_flameLayers;
+  varying vec3 v_world;
   varying vec3 v_uv;
   varying vec2 v_light;
   varying float v_shade;
   varying float v_ao;
   varying float v_fog;
+
+  float hash(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
 
   float curve(float f) {
     float b = f / (4.0 - 3.0 * f);
@@ -55,6 +65,19 @@ const fragmentShader = /* glsl */ `
     }
     vec4 tex = texture(u_atlas, vec3(uv, v_uv.z));
     if (tex.a < u_alphaTest) discard;
+    // Torch flames flicker: each flame pixel flares and dims a few times a
+    // second, every torch on its own beat (the flame is the bright part of the tile).
+    if ((abs(v_uv.z - u_flameLayers.x) < 0.5 || abs(v_uv.z - u_flameLayers.y) < 0.5) && tex.r > 0.8) {
+      vec3 cell = floor(v_world - 0.001);
+      float beat = floor(u_time * 9.0 + hash(cell) * 9.0);
+      vec2 px = floor(fract(uv) * 16.0);
+      float n = hash(vec3(px, beat) + cell);
+      float n2 = hash(vec3(px.yx, beat * 0.5) + cell.zxy);
+      tex.rgb *= 0.72 + 0.5 * n;
+      // Now and then a pixel burns hotter (yellow-white) or cooler (deep orange).
+      tex.g *= 0.82 + 0.3 * n2;
+      tex.rgb = min(tex.rgb, vec3(1.0));
+    }
     vec2 lightLevels = u_lightOverride.x >= 0.0 ? u_lightOverride : v_light;
     float sky = curve(lightLevels.x * u_daylight);
     float blk = curve(lightLevels.y);
@@ -75,6 +98,8 @@ export interface WorldUniforms {
   u_fogFar: { value: number };
   u_time: { value: number };
   u_waterLayer: { value: number };
+  /** Tiles whose bright pixels are a flame that flickers (torch, lit redstone torch). */
+  u_flameLayers: { value: THREE.Vector2 };
 }
 
 export function createWorldUniforms(atlas: THREE.Texture): WorldUniforms {
@@ -87,6 +112,7 @@ export function createWorldUniforms(atlas: THREE.Texture): WorldUniforms {
     u_fogFar: { value: 120 },
     u_time: { value: 0 },
     u_waterLayer: { value: TILE.water },
+    u_flameLayers: { value: new THREE.Vector2(TILE.torch, TILE.redstone_torch_on) },
   };
 }
 
