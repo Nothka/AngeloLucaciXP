@@ -26,6 +26,17 @@ export interface MenuHost {
   /** The open world's achievements, for the pause menu. */
   currentAchievements(): { state: AchievementState; worldName: string } | null;
   setGameMode(mode: GameMode): void;
+  /** Multiplayer: your name as others see it. */
+  playerName(): string;
+  setPlayerName(name: string): void;
+  /** Joins a friend's world by room code; rejects with a message to show. */
+  joinWorld(code: string, name: string): Promise<void>;
+  /** The open world's multiplayer state. */
+  multiplayer(): { role: "solo" | "host" | "guest"; code?: string; players?: number; names?: string[] };
+  /** Opens the current world to friends; resolves with the room code. */
+  openToFriends(): Promise<string>;
+  /** Leaves a friend's world. */
+  leaveWorld(): void;
 }
 
 const formatDate = (t: number) =>
@@ -62,6 +73,7 @@ export class Menus {
     logo.append(h("div.bv-splash.bv-text", {}, SPLASHES[Math.floor(Math.random() * SPLASHES.length)]));
     const buttons = h("div.bv-stack.bv-menu-buttons", {},
       button("Singleplayer", () => this.showWorlds()),
+      button("Multiplayer", () => this.showJoin()),
       button("Achievements", () => void this.showTitleAchievements(0)),
       h("div.bv-row", {},
         button("Options...", () => this.showOptions(() => this.showTitle()), "is-half"),
@@ -175,6 +187,57 @@ export class Menus {
       ),
     );
     this.mount("delete", screen);
+  }
+
+  /* ---------------------------------------------------------------- multiplayer */
+
+  /** Join a friend's world with the code from their pause menu. */
+  showJoin(error = "") {
+    const name = h("input.bv-input", { maxlength: 16, value: this.host.playerName(), spellcheck: "false" });
+    const code = h("input.bv-input", { maxlength: 7, placeholder: "e.g. K7QM2X", spellcheck: "false", autocomplete: "off" });
+    code.style.textTransform = "uppercase";
+    code.style.letterSpacing = "0.2em";
+    const status = h("div.bv-hint.bv-text", {}, error || "Your friend opens their world to friends from the pause menu and tells you the code.");
+    if (error) status.style.color = "#ff7a7a";
+    let busy = false;
+    const join = async () => {
+      if (busy) return;
+      busy = true;
+      joinBtn.disabled = true;
+      status.style.color = "";
+      status.textContent = "Connecting...";
+      this.host.setPlayerName(name.value);
+      try {
+        await this.host.joinWorld(code.value, name.value);
+      } catch (err) {
+        status.textContent = (err as Error).message || "Could not join";
+        status.style.color = "#ff7a7a";
+        busy = false;
+        joinBtn.disabled = false;
+      }
+    };
+    const joinBtn = button("Join World", () => void join(), "is-wide");
+    for (const input of [name, code]) input.addEventListener("keydown", (e) => e.key === "Enter" && void join());
+    const screen = h("div.bv-screen.is-dim", {},
+      h("div.bv-screen-title.bv-text", {}, "Join a Friend's World"),
+      h("div.bv-stack", {},
+        h("div.bv-field-label.bv-text", {}, "Your name"),
+        name,
+        h("div", { style: `height:${px(6)}` }),
+        h("div.bv-field-label.bv-text", {}, "Room code"),
+        code,
+        h("div", { style: `height:${px(6)}` }),
+        status,
+      ),
+      h("div.bv-footer", {},
+        h("div.bv-row", {},
+          joinBtn,
+          button("Cancel", () => this.showTitle(), "is-wide"),
+        ),
+      ),
+    );
+    this.mount("join", screen);
+    code.focus();
   }
 
   /* ---------------------------------------------------------------- create */
@@ -317,12 +380,13 @@ export class Menus {
         button("Resume", () => this.host.resume()),
         h("div", { style: `height:${px(8)}` }),
         button("Achievements", () => this.showGameAchievements()),
-        button(`Game Mode: ${this.host.gameMode() === "creative" ? "Creative" : "Survival"}`, () => {
+        // In a friend's world the host decides the game mode.
+        ...(this.host.multiplayer().role === "guest" ? [] : [button(`Game Mode: ${this.host.gameMode() === "creative" ? "Creative" : "Survival"}`, () => {
           this.host.setGameMode(this.host.gameMode() === "creative" ? "survival" : "creative");
           this.showPause();
-        }),
+        })]),
         button("Options...", () => this.showOptions(() => this.showPause(), true)),
-        button("Save and Quit to Title", () => this.host.saveAndQuit()),
+        ...this.multiplayerButtons(),
       ),
     );
     let status: HTMLDivElement | null = null;
@@ -338,6 +402,38 @@ export class Menus {
       setTimeout(refresh, 500);
     };
     setTimeout(refresh, 500);
+  }
+
+  /** Pause-menu buttons for hosting, or for leaving a friend's world. */
+  private multiplayerButtons(): HTMLElement[] {
+    const mp = this.host.multiplayer();
+    if (mp.role === "guest") return [button("Disconnect", () => this.host.leaveWorld())];
+    const quit = button("Save and Quit to Title", () => this.host.saveAndQuit());
+    if (mp.role === "host") {
+      const room = button("", () => void navigator.clipboard?.writeText(mp.code ?? "").catch(() => {}));
+      // Kept up to date while the menu is open, as friends come and go.
+      const refresh = () => {
+        const now = this.host.multiplayer();
+        if (now.role !== "host") return;
+        room.textContent = `Room code: ${now.code} (${now.players}/5)`;
+        room.title = `Click to copy. Playing: ${now.names?.join(", ")}`;
+        if (room.isConnected || !room.dataset.mounted) setTimeout(refresh, 500);
+        room.dataset.mounted = "1";
+      };
+      refresh();
+      return [room, quit];
+    }
+    const open = button("Open to Friends", async () => {
+      open.disabled = true;
+      open.textContent = "Opening...";
+      try {
+        await this.host.openToFriends();
+        this.showPause();
+      } catch (err) {
+        open.textContent = (err as Error).message || "Could not open the world";
+      }
+    });
+    return [open, quit];
   }
 
   showDeath(message: string) {

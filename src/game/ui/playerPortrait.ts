@@ -49,6 +49,7 @@ function materials(paint: Painter) {
     tex.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.MeshBasicMaterial({ map: tex });
     material.color.setScalar(SHADE[face]);
+    material.userData.shade = SHADE[face];
     return material;
   });
 }
@@ -64,6 +65,40 @@ function part(paint: Painter, w: number, h: number, d: number, pivot: [number, n
   return g;
 }
 
+/** The player's box figure (in pixels: feet at y = 0, 32 tall, facing +Z) with its moving parts. */
+export interface PlayerFigure {
+  root: THREE.Group;
+  head: THREE.Group;
+  body: THREE.Group;
+  armL: THREE.Group;
+  armR: THREE.Group;
+  legL: THREE.Group;
+  legR: THREE.Group;
+  /** Every material, so the figure can be tinted by the light it stands in. */
+  materials: THREE.MeshBasicMaterial[];
+}
+
+export function buildPlayerFigure(): PlayerFigure {
+  const head_ = part(head, 8, 8, 8, [0, 24, 0], 4);
+  const torso = part(body, 8, 12, 4, [0, 12, 0], 6);
+  const armL = part(arm, 4, 12, 4, [-6, 24, 0], -6);
+  const armR = part(arm, 4, 12, 4, [6, 24, 0], -6);
+  armL.rotation.z = -0.08;
+  armR.rotation.z = 0.08;
+  const legL = part(leg, 4, 12, 4, [-2, 12, 0], -6);
+  const legR = part(leg, 4, 12, 4, [2, 12, 0], -6);
+  const bodyGroup = new THREE.Group();
+  bodyGroup.add(torso, armL, armR, legL, legR);
+  const root = new THREE.Group();
+  root.add(bodyGroup, head_);
+  const materials: THREE.MeshBasicMaterial[] = [];
+  root.traverse((o) => {
+    const m = (o as THREE.Mesh).material;
+    if (Array.isArray(m)) materials.push(...(m as THREE.MeshBasicMaterial[]));
+  });
+  return { root, head: head_, body: bodyGroup, armL, armR, legL, legR, materials };
+}
+
 export class PlayerPortrait {
   readonly canvas = document.createElement("canvas");
   private renderer: THREE.WebGLRenderer | null = null;
@@ -76,17 +111,10 @@ export class PlayerPortrait {
 
   constructor() {
     // Feet at y = 0, 32 px tall, facing +Z (toward the camera).
-    this.head = part(head, 8, 8, 8, [0, 24, 0], 4);
-    const torso = part(body, 8, 12, 4, [0, 12, 0], 6);
-    const armL = part(arm, 4, 12, 4, [-6, 24, 0], -6);
-    const armR = part(arm, 4, 12, 4, [6, 24, 0], -6);
-    armL.rotation.z = -0.08;
-    armR.rotation.z = 0.08;
-    const legL = part(leg, 4, 12, 4, [-2, 12, 0], -6);
-    const legR = part(leg, 4, 12, 4, [2, 12, 0], -6);
-    this.bodyGroup = new THREE.Group();
-    this.bodyGroup.add(torso, armL, armR, legL, legR);
-    this.root.add(this.bodyGroup, this.head);
+    const figure = buildPlayerFigure();
+    this.head = figure.head;
+    this.bodyGroup = figure.body;
+    this.root.add(figure.root);
     this.scene.add(this.root);
     this.camera.position.set(0, 17, 92);
     this.camera.lookAt(0, 16.5, 0);

@@ -142,6 +142,24 @@ export class Hud {
     this.heldName.style.opacity = this.heldTimer > 0.4 ? "1" : String(this.heldTimer / 0.4);
   }
 
+  private playerList: HTMLDivElement | null = null;
+  private playerListKey = "";
+
+  /** Who's in the world (shown while Tab is held), or null to hide it. */
+  setPlayerList(names: string[] | null, title = "") {
+    const key = names ? title + names.join("|") : "";
+    if (key === this.playerListKey) return;
+    this.playerListKey = key;
+    this.playerList?.remove();
+    this.playerList = null;
+    if (!names) return;
+    this.playerList = h("div.bv-player-list.bv-text", {},
+      h("div.bv-player-list-title", {}, title),
+      ...names.map((n) => h("div.bv-player-list-name", {}, n)),
+    );
+    this.el.append(this.playerList);
+  }
+
   setDebug(left: string[] | null, right: string[] = []) {
     this.debugLeft.classList.toggle("bv-hidden", !left);
     this.debugRight.classList.toggle("bv-hidden", !left);
