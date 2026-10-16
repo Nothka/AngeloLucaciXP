@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { Pixels } from "../render/textures";
+import { MATERIAL_OF } from "../render/items";
+import { getItem } from "../world/blocks";
 
 /**
  * The inventory's player figure: a small box model in its own WebGL view
@@ -34,12 +36,24 @@ const body: Painter = (p, f) => {
 const arm: Painter = (p) => p.fill((x, y) => (y < 6 ? SHIRT[(x + y) % SHIRT.length] : y > 13 ? SKIN_DARK : SKIN));
 const leg: Painter = (p) => p.fill((x, y) => (y > 12 ? "#3a3a3a" : PANTS[(x + y) % PANTS.length]));
 
+// Armor plates in the item's colours: bright top-left edges, dark bottom-right, a few glints between.
+type Metal = { light: string; mid: string; dark: string };
+const metal = (m: Metal) => (x: number, y: number) =>
+  x === 0 || y === 0 ? m.light : x === 15 || y === 15 ? m.dark : (x * 3 + y * 7) % 11 === 0 ? m.light : m.mid;
+const helmet = (m: Metal): Painter => (p, f) => {
+  if (f === "bottom") return;
+  // Open in front so the face shows.
+  const paint = metal(m);
+  p.fill((x, y) => (f === "front" && y > 4 && x > 2 && x < 13 ? null : paint(x, y)));
+};
+const plate = (m: Metal): Painter => (p) => p.fill(metal(m));
+
 const FACES: Face[] = ["right", "left", "top", "bottom", "front", "back"];
 
 /** Same face shading as world blocks, so the figure reads as solid. */
 const SHADE: Record<Face, number> = { right: 0.78, left: 0.78, top: 1, bottom: 0.55, front: 0.92, back: 0.7 };
 
-function materials(paint: Painter) {
+function materials(paint: Painter, cutout = false) {
   return FACES.map((face) => {
     const p = new Pixels();
     paint(p, face);
@@ -47,7 +61,7 @@ function materials(paint: Painter) {
     tex.magFilter = THREE.NearestFilter;
     tex.minFilter = THREE.NearestFilter;
     tex.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshBasicMaterial({ map: tex });
+    const material = new THREE.MeshBasicMaterial({ map: tex, alphaTest: cutout ? 0.5 : 0 });
     material.color.setScalar(SHADE[face]);
     material.userData.shade = SHADE[face];
     return material;
@@ -65,6 +79,14 @@ function part(paint: Painter, w: number, h: number, d: number, pivot: [number, n
   return g;
 }
 
+/** An armor box around a body part, centred at (x, y) in the part's own space. */
+function armorPiece(parent: THREE.Group, paint: Painter, w: number, h: number, d: number, x: number, y: number) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), materials(paint, true));
+  mesh.position.set(x, y, 0);
+  parent.add(mesh);
+  return mesh;
+}
+
 /** The player's box figure (in pixels: feet at y = 0, 32 tall, facing +Z) with its moving parts. */
 export interface PlayerFigure {
   root: THREE.Group;
@@ -76,6 +98,34 @@ export interface PlayerFigure {
   legR: THREE.Group;
   /** Every material, so the figure can be tinted by the light it stands in. */
   materials: THREE.MeshBasicMaterial[];
+  torso: THREE.Group;
+  /** Armor boxes built so far, by armor item id (made the first time each piece is worn). */
+  armor: Map<number, THREE.Mesh[]>;
+}
+
+/** Shows the worn armor: item ids for head, chest, legs and feet (0 or null = none). */
+export function wearArmor(figure: PlayerFigure, ids: readonly (number | null | undefined)[]) {
+  for (const id of ids) if (id && !figure.armor.has(id)) buildArmor(figure, id);
+  for (const [id, pieces] of figure.armor) {
+    const worn = ids.includes(id);
+    for (const piece of pieces) piece.visible = worn;
+  }
+}
+
+/** A little bigger than the parts they cover; leg pieces lean outward so the two never overlap. */
+function buildArmor(f: PlayerFigure, id: number) {
+  const def = getItem(id)?.armor;
+  const pieces: THREE.Mesh[] = [];
+  f.armor.set(id, pieces);
+  if (!def) return;
+  const m = MATERIAL_OF[def.material];
+  const p = plate(m);
+  if (def.slot === 0) pieces.push(armorPiece(f.head, helmet(m), 9, 9, 9, 0, 4));
+  if (def.slot === 1) pieces.push(armorPiece(f.torso, p, 9, 13, 5, 0, 6), armorPiece(f.armL, p, 5.4, 5.4, 5.4, 0, -2), armorPiece(f.armR, p, 5.4, 5.4, 5.4, 0, -2));
+  if (def.slot === 2) pieces.push(armorPiece(f.legL, p, 4.6, 9, 4.6, -0.3, -4.5), armorPiece(f.legR, p, 4.6, 9, 4.6, 0.3, -4.5));
+  if (def.slot === 3) pieces.push(armorPiece(f.legL, p, 5, 4.5, 5, -0.5, -10), armorPiece(f.legR, p, 5, 4.5, 5, 0.5, -10));
+  // Lit along with the rest of the figure.
+  for (const piece of pieces) f.materials.push(...(piece.material as THREE.MeshBasicMaterial[]));
 }
 
 export function buildPlayerFigure(): PlayerFigure {
@@ -96,7 +146,7 @@ export function buildPlayerFigure(): PlayerFigure {
     const m = (o as THREE.Mesh).material;
     if (Array.isArray(m)) materials.push(...(m as THREE.MeshBasicMaterial[]));
   });
-  return { root, head: head_, body: bodyGroup, armL, armR, legL, legR, materials };
+  return { root, head: head_, body: bodyGroup, armL, armR, legL, legR, materials, torso, armor: new Map() };
 }
 
 export class PlayerPortrait {
@@ -105,13 +155,16 @@ export class PlayerPortrait {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(25, 51 / 72, 1, 400);
   private root = new THREE.Group();
+  private figure: PlayerFigure;
   private head: THREE.Group;
   private bodyGroup: THREE.Group;
   private raf = 0;
+  private armorKey = "";
 
   constructor() {
     // Feet at y = 0, 32 px tall, facing +Z (toward the camera).
     const figure = buildPlayerFigure();
+    this.figure = figure;
     this.head = figure.head;
     this.bodyGroup = figure.body;
     this.root.add(figure.root);
@@ -150,6 +203,15 @@ export class PlayerPortrait {
     const pitch = Math.atan((clientY - headY) / k);
     this.head.rotation.set(Math.max(-0.7, Math.min(0.7, pitch * 0.9)), Math.max(-1.1, Math.min(1.1, yaw)), 0, "YXZ");
     this.bodyGroup.rotation.y = Math.max(-0.5, Math.min(0.5, yaw * 0.4));
+    if (!this.raf) this.raf = requestAnimationFrame(() => this.render());
+  }
+
+  /** Puts on the armor worn in the inventory's armor slots. */
+  setArmor(ids: number[]) {
+    const key = ids.join();
+    if (key === this.armorKey) return;
+    this.armorKey = key;
+    wearArmor(this.figure, ids);
     if (!this.raf) this.raf = requestAnimationFrame(() => this.render());
   }
 

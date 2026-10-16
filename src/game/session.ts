@@ -41,7 +41,7 @@ import { FluidSimulator } from "./world/fluid";
 import { armorReduction, arrowDamage, attackDamage, bowPower, fallDamage, wearFor, type Attackable } from "./items/combat";
 import { DAY_TICKS } from "./config";
 import { EntityManager } from "./entities/entityManager";
-import { ProjectileManager } from "./entities/projectiles";
+import { ProjectileManager, THROWN_ITEMS } from "./entities/projectiles";
 import { XpOrbManager } from "./entities/xpOrbs";
 import { Experience } from "./player/experience";
 import { isCold } from "./world/terrain";
@@ -83,7 +83,7 @@ export interface SessionEvents {
 
 const isFurnace = (id: number) => id === B.FURNACE || id === B.FURNACE_LIT;
 /** Items with a right-click action of their own (no "can't be placed" hint for these). */
-const USABLE_ITEMS = new Set<number>([I.BUCKET, I.WATER_BUCKET, I.MILK_BUCKET, I.FISHING_ROD, I.SEEDS, I.REDSTONE, I.WOODEN_DOOR, I.IRON_DOOR, I.BOW]);
+const USABLE_ITEMS = new Set<number>([I.BUCKET, I.WATER_BUCKET, I.MILK_BUCKET, I.FISHING_ROD, I.SEEDS, I.REDSTONE, I.WOODEN_DOOR, I.IRON_DOOR, I.BOW, ...THROWN_ITEMS]);
 const usableBlock = (id: number) => id === B.CRAFTING_TABLE || isFurnace(id) || isLever(id) || isButton(id) || (isDoor(id) && !doorState(id).iron);
 
 /** Block ids with a live flame, for fast chunk scans. */
@@ -385,7 +385,7 @@ export class Session implements NetGame {
       // Everything that appears in our world is shown to the guests.
       this.drops.host = { spawned: (d) => net.dropSpawned(d), removed: (id) => net.dropRemoved(id), counted: (id, n) => net.dropCounted(id, n) };
       this.xpOrbs.host = { spawned: (o) => net.orbSpawned(o), removed: (id) => net.orbRemoved(id) };
-      this.projectiles.onShoot = (from, vel) => net.arrowShot(from, vel);
+      this.projectiles.onShoot = (from, vel, item) => net.arrowShot(from, vel, item);
     } else {
       net.attach(this);
       // In a friend's world, the host makes every item, orb and arrow; ours only show theirs.
@@ -507,6 +507,7 @@ export class Session implements NetGame {
     return {
       x: +p.pos.x.toFixed(3), y: +p.pos.y.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(3), pitch: +p.pitch.toFixed(3),
       held: this.inventory.held?.id ?? 0, sneak: p.sneaking, swings: this.swingCount, dead: this.vitals.dead, creative: p.mode === "creative",
+      armor: this.inventory.armor.map((s) => s?.id ?? 0),
     };
   }
 
@@ -871,12 +872,12 @@ export class Session implements NetGame {
         // Overcast skies keep the undead from burning.
         isDay: this.daylight > 0.75 && !this.weather.raining,
       });
-      if (this.mobRules.mobs) this.projectiles.update(dt, this.entities.solidAt, {
+      this.projectiles.update(dt, this.entities.solidAt, {
         player: () => (alive ? { x: p.pos.x, y: p.pos.y, z: p.pos.z, half: p.half, height: p.height } : null),
         hitPlayer: (damage, from, id) => (id === "self" ? this.hurtPlayer(damage, "arrow", from.x, from.z) : this.hostNet?.hurtGuest(id, damage, "arrow", from.x, from.z)),
         others: () => this.hostNet?.bodies() ?? [],
         pickupFor: (id) => this.hostNet?.giveArrow(id),
-        mobs: () => this.entities.mobs.values(),
+        mobs: () => (this.mobRules.mobs ? this.entities.mobs.values() : []),
         hitMob: (mob, damage, from) => {
           mob.hurt(damage, { weapon: I.BOW, from: { x: from.x, z: from.z } });
         },
@@ -887,6 +888,12 @@ export class Session implements NetGame {
           return left === 0;
         },
         thud: (x, y, z) => this.audio.arrowHit(x, y, z),
+        landed: (item, at) => {
+          // As in Minecraft: one egg in 8 hatches a chick, and one of those in 32 hatches four.
+          if (item !== I.EGG || !this.mobRules.mobs || Math.random() >= 1 / 8) return;
+          const chicks = Math.random() < 1 / 32 ? 4 : 1;
+          for (let i = 0; i < chicks; i++) this.entities.spawn("chicken", at.x, at.y, at.z, { baby: true, persistent: true });
+        },
       });
       const hosting = this.net instanceof HostNet ? this.net : null;
       const others = hosting ? hosting.bodies() : [];
@@ -1155,7 +1162,24 @@ export class Session implements NetGame {
       this.useRod();
       return true;
     }
+    if (THROWN_ITEMS.has(held.id)) {
+      this.throwHeld(held.id);
+      return true;
+    }
     return false;
+  }
+
+  /** Snowballs and eggs fly where you look and break where they land. */
+  private throwHeld(id: number) {
+    const eye = this.player.eye();
+    const look = this.player.look();
+    eye.addScaledVector(look, 0.4);
+    const vel = look.multiplyScalar(30);
+    this.projectiles.shoot(eye, vel, { fromPlayer: true, shooter: null, damage: 0, pickup: false, item: id });
+    if (this.net instanceof GuestNet) this.net.shoot(eye, vel, 0, false, id);
+    if (this.player.mode === "survival") this.inventory.removeFromSlot(this.inventory.selected, 1);
+    this.audio.bowShot(undefined, 0.5);
+    this.swung();
   }
 
   /** Turns one of the held items into `id` (filling or emptying a bucket). */

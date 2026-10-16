@@ -182,10 +182,33 @@ export enum I {
   IRON_HOE = 324,
   GOLDEN_HOE = 325,
   DIAMOND_HOE = 326,
+  GOLDEN_HELMET = 327,
+  GOLDEN_CHESTPLATE = 328,
+  GOLDEN_LEGGINGS = 329,
+  GOLDEN_BOOTS = 330,
+  DIAMOND_HELMET = 331,
+  DIAMOND_CHESTPLATE = 332,
+  DIAMOND_LEGGINGS = 333,
+  DIAMOND_BOOTS = 334,
 }
 
 /** Armor slots, top to bottom. */
 export type ArmorSlot = 0 | 1 | 2 | 3;
+export type ArmorMaterial = "iron" | "golden" | "diamond";
+
+/** Armor pieces by material, head to feet. */
+export const ARMOR_IDS: Record<ArmorMaterial, readonly number[]> = {
+  iron: [I.IRON_HELMET, I.IRON_CHESTPLATE, I.IRON_LEGGINGS, I.IRON_BOOTS],
+  golden: [I.GOLDEN_HELMET, I.GOLDEN_CHESTPLATE, I.GOLDEN_LEGGINGS, I.GOLDEN_BOOTS],
+  diamond: [I.DIAMOND_HELMET, I.DIAMOND_CHESTPLATE, I.DIAMOND_LEGGINGS, I.DIAMOND_BOOTS],
+};
+const ARMOR_PIECES = ["Helmet", "Chestplate", "Leggings", "Boots"];
+/** Minecraft's armor points and durability, head to feet. */
+const ARMOR_STATS: Record<ArmorMaterial, { name: string; points: number[]; durability: number[] }> = {
+  iron: { name: "Iron", points: [2, 6, 5, 2], durability: [165, 240, 225, 195] },
+  golden: { name: "Golden", points: [2, 5, 3, 1], durability: [77, 112, 105, 91] },
+  diamond: { name: "Diamond", points: [3, 8, 6, 3], durability: [363, 528, 495, 429] },
+};
 
 export type Shape = "none" | "cube" | "cross" | "torch" | "liquid" | "wire" | "lever" | "button" | "plate" | "door" | "layer";
 export type RenderPass = "opaque" | "cutout" | "water";
@@ -534,8 +557,8 @@ export interface ItemDef {
   damage?: number;
   /** Uses before the item breaks. */
   durability?: number;
-  /** Wearable: which slot (0 head .. 3 feet) and how many armor points it gives. */
-  armor?: { slot: ArmorSlot; points: number };
+  /** Wearable: which slot (0 head .. 3 feet), how many armor points it gives, and what it's made of. */
+  armor?: { slot: ArmorSlot; points: number; material: ArmorMaterial };
   /** Hold to draw, release to shoot. */
   bow?: boolean;
   /** Drunk like food is eaten (leaving `drink.leaves` behind), whatever the hunger level. */
@@ -563,10 +586,12 @@ item(I.STRING, "String");
 item(I.ARROW, "Arrow");
 item(I.FLINT, "Flint");
 item(I.BOW, "Bow", { maxStack: 1, bow: true, durability: 384, damage: 1 });
-item(I.IRON_HELMET, "Iron Helmet", { maxStack: 1, armor: { slot: 0, points: 2 }, durability: 165 });
-item(I.IRON_CHESTPLATE, "Iron Chestplate", { maxStack: 1, armor: { slot: 1, points: 6 }, durability: 240 });
-item(I.IRON_LEGGINGS, "Iron Leggings", { maxStack: 1, armor: { slot: 2, points: 5 }, durability: 225 });
-item(I.IRON_BOOTS, "Iron Boots", { maxStack: 1, armor: { slot: 3, points: 2 }, durability: 195 });
+for (const [material, ids] of Object.entries(ARMOR_IDS) as [ArmorMaterial, readonly number[]][]) {
+  const { name, points, durability } = ARMOR_STATS[material];
+  ids.forEach((id, slot) => item(id, `${name} ${ARMOR_PIECES[slot]}`, {
+    maxStack: 1, armor: { slot: slot as ArmorSlot, points: points[slot], material }, durability: durability[slot],
+  }));
+}
 item(I.IRON_INGOT, "Iron Ingot");
 item(I.GOLD_INGOT, "Gold Ingot");
 item(I.DIAMOND, "Diamond");
@@ -643,7 +668,8 @@ const ALIASES: Record<string, number> = {
   leaves: B.LEAVES, oak_leaves: B.LEAVES, torch: B.TORCH, water: I.WATER_BUCKET, gold: I.GOLD_INGOT, iron: I.IRON_INGOT,
   stone_button: B.BUTTON, button: B.BUTTON, lever: B.LEVER, pressure_plate: B.PRESSURE_PLATE, door: I.WOODEN_DOOR,
   oak_door: I.WOODEN_DOOR, gold_pickaxe: I.GOLDEN_PICKAXE, gold_sword: I.GOLDEN_SWORD, gold_axe: I.GOLDEN_AXE,
-  gold_shovel: I.GOLDEN_SHOVEL, gold_hoe: I.GOLDEN_HOE,
+  gold_shovel: I.GOLDEN_SHOVEL, gold_hoe: I.GOLDEN_HOE, gold_helmet: I.GOLDEN_HELMET, gold_chestplate: I.GOLDEN_CHESTPLATE,
+  gold_leggings: I.GOLDEN_LEGGINGS, gold_boots: I.GOLDEN_BOOTS,
 };
 export function itemByKey(key: string): number | null {
   const k = key.toLowerCase().replace(/^minecraft:/, "");
@@ -666,7 +692,7 @@ export const CREATIVE_ITEMS: number[] = [
   B.REDSTONE_TORCH, B.LEVER, B.BUTTON, B.PRESSURE_PLATE, I.WOODEN_DOOR, I.IRON_DOOR, I.BONE, I.BUCKET, I.WATER_BUCKET, I.MILK_BUCKET,
   // Tools and weapons
   ...(["wooden", "stone", "iron", "golden", "diamond"] as ToolMaterial[]).flatMap((m) => [TOOL_IDS[m].pickaxe, TOOL_IDS[m].shovel, TOOL_IDS[m].axe, TOOL_IDS[m].hoe, TOOL_IDS[m].sword]),
-  I.BOW, I.ARROW, I.FISHING_ROD, I.IRON_HELMET, I.IRON_CHESTPLATE, I.IRON_LEGGINGS, I.IRON_BOOTS,
+  I.BOW, I.ARROW, I.FISHING_ROD, ...ARMOR_IDS.iron, ...ARMOR_IDS.golden, ...ARMOR_IDS.diamond,
   // Food and farming
   I.SEEDS, I.WHEAT, I.BREAD, I.APPLE, I.RAW_PORKCHOP, I.COOKED_PORKCHOP, I.RAW_MEAT, I.STEAK, I.RAW_CHICKEN,
   I.COOKED_CHICKEN, I.RAW_FISH, I.COOKED_FISH, I.EGG, I.SNOWBALL,

@@ -6,12 +6,12 @@
 /** Game ticks per second; the idle-sound dice are rolled once per tick. */
 export const TICK = 1 / 20;
 /** Ticks of quiet after every idle or hurt sound. */
-export const AMBIENT_QUIET_TICKS = 80;
+export const AMBIENT_QUIET_TICKS = 140;
 
 /**
  * One tick of the idle-sound timer. Each tick the counter goes up by one and
- * a 1-in-1000 dice must roll under it, so after the 4 s of quiet the chance
- * keeps rising until the mob speaks: on average every ~6 s, rarely beyond 10.
+ * a 1-in-1000 dice must roll under it, so after the 7 s of quiet the chance
+ * keeps rising until the mob speaks: on average every ~9 s, rarely beyond 13.
  */
 export function ambientTick(counter: number, rand: () => number): { counter: number; play: boolean } {
   if (Math.floor(rand() * 1000) < counter) return { counter: -AMBIENT_QUIET_TICKS, play: true };

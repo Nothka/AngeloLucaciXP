@@ -5,6 +5,7 @@ import type { NetGame } from "./game";
 import { Peer } from "./peer";
 import { PROTOCOL_VERSION, STATE_HZ, base64ToBytes, cleanName, isRoomCode, normalizeRoomCode, type Message, type Welcome } from "./protocol";
 import { RemotePlayers } from "./remotePlayers";
+import { THROWN_ITEMS } from "../entities/projectiles";
 import * as THREE from "three";
 import type { FurnaceState } from "../world/furnaces";
 import { createSignaling } from "./signaling";
@@ -175,7 +176,8 @@ export class GuestNet {
         break;
       case "arrow": {
         const [x, y, z, vx, vy, vz] = m.a;
-        this.game?.projectiles.shoot(new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz), { fromPlayer: true, shooter: null, damage: 0, pickup: false });
+        const item = THROWN_ITEMS.has(m.item ?? 0) ? m.item : undefined;
+        this.game?.projectiles.shoot(new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz), { fromPlayer: true, shooter: null, damage: 0, pickup: false, item });
         break;
       }
       case "furnace":
@@ -210,8 +212,8 @@ export class GuestNet {
     this.peer.send({ t: "orb", v: points, p: [x, y, z] });
   }
 
-  shoot(from: THREE.Vector3, vel: THREE.Vector3, damage: number, pickup: boolean) {
-    this.peer.send({ t: "shoot", a: [from.x, from.y, from.z, vel.x, vel.y, vel.z], damage, pickup });
+  shoot(from: THREE.Vector3, vel: THREE.Vector3, damage: number, pickup: boolean, item = 0) {
+    this.peer.send({ t: "shoot", a: [from.x, from.y, from.z, vel.x, vel.y, vel.z], damage, pickup, item });
   }
 
   furnaceOpen(p: [number, number, number]) {

@@ -22,6 +22,12 @@ export class Input {
   private ctrlClick = false;
   private doubleTaps = new Set<string>();
   private teardown: (() => void)[] = [];
+  /**
+   * Cleared once the browser turns down raw mouse input. Re-locking without a click
+   * (closing the inventory with E or Esc) is allowed only once after we let go, so a
+   * refused first try would use that up and the plain retry would need a click.
+   */
+  private unadjusted = true;
 
   constructor(private element: HTMLElement) {
     const on = <K extends keyof DocumentEventMap>(target: Document | Window, type: K, fn: (e: DocumentEventMap[K]) => void, opts?: AddEventListenerOptions) => {
@@ -101,17 +107,23 @@ export class Input {
 
   requestLock() {
     if (this.locked) return;
+    if (!this.unadjusted) return this.requestPlainLock();
     try {
       const result = this.element.requestPointerLock({ unadjustedMovement: true }) as unknown as Promise<void> | undefined;
-      result?.catch?.(() => {
-        // Some platforms reject unadjusted movement; retry plain.
-        try {
-          const retry = this.element.requestPointerLock() as unknown as Promise<void> | undefined;
-          retry?.catch?.(() => this.onLockError?.());
-        } catch {
-          this.onLockError?.();
-        }
+      result?.catch?.((e: unknown) => {
+        // Some platforms reject unadjusted movement; retry plain, and skip asking from now on.
+        if ((e as Error)?.name === "NotSupportedError") this.unadjusted = false;
+        this.requestPlainLock();
       });
+    } catch {
+      this.onLockError?.();
+    }
+  }
+
+  private requestPlainLock() {
+    try {
+      const result = this.element.requestPointerLock() as unknown as Promise<void> | undefined;
+      result?.catch?.(() => this.onLockError?.());
     } catch {
       this.onLockError?.();
     }

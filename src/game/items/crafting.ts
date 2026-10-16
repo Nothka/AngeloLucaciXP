@@ -1,4 +1,4 @@
-import { B, I, TOOL_IDS, type ToolKind, type ToolMaterial } from "../world/blocks";
+import { ARMOR_IDS, B, I, TOOL_IDS, type ToolKind, type ToolMaterial } from "../world/blocks";
 import type { ItemStack } from "./inventory";
 
 interface ShapedRecipe {
@@ -48,10 +48,12 @@ const shaped: ShapedRecipe[] = [
   { pattern: ["I I", " I "], key: { I: I.IRON_INGOT }, result: { id: I.BUCKET, count: 1 } },
   { pattern: ["PP", "PP", "PP"], key: { P: B.PLANKS }, result: { id: I.WOODEN_DOOR, count: 3 } },
   { pattern: ["II", "II", "II"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_DOOR, count: 3 } },
-  { pattern: ["III", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_HELMET, count: 1 } },
-  { pattern: ["I I", "III", "III"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_CHESTPLATE, count: 1 } },
-  { pattern: ["III", "I I", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_LEGGINGS, count: 1 } },
-  { pattern: ["I I", "I I"], key: { I: I.IRON_INGOT }, result: { id: I.IRON_BOOTS, count: 1 } },
+  ...([[I.IRON_INGOT, ARMOR_IDS.iron], [I.GOLD_INGOT, ARMOR_IDS.golden], [I.DIAMOND, ARMOR_IDS.diamond]] as const).flatMap(([m, [helmet, chest, legs, boots]]) => [
+    { pattern: ["III", "I I"], key: { I: m }, result: { id: helmet, count: 1 } },
+    { pattern: ["I I", "III", "III"], key: { I: m }, result: { id: chest, count: 1 } },
+    { pattern: ["III", "I I", "I I"], key: { I: m }, result: { id: legs, count: 1 } },
+    { pattern: ["I I", "I I"], key: { I: m }, result: { id: boots, count: 1 } },
+  ]),
   // Redstone components.
   { pattern: ["R", "S"], key: { R: I.REDSTONE, S: I.STICK }, result: { id: B.REDSTONE_TORCH, count: 1 } },
   { pattern: ["S", "C"], key: { S: I.STICK, C: B.COBBLESTONE }, result: { id: B.LEVER, count: 1 } },

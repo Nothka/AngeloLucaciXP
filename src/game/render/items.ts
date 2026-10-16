@@ -46,7 +46,7 @@ const MATERIALS = {
   gold: { light: "#fff59a", mid: "#f2cf3a", dark: "#b8901a" },
   diamond: { light: "#c8fff8", mid: "#4fe0d4", dark: "#1f9a94" },
 };
-const MATERIAL_OF: Record<ToolMaterial, (typeof MATERIALS)["wood"]> = {
+export const MATERIAL_OF: Record<ToolMaterial, (typeof MATERIALS)["wood"]> = {
   wooden: MATERIALS.wood, stone: MATERIALS.stone, iron: MATERIALS.iron, golden: MATERIALS.gold, diamond: MATERIALS.diamond,
 };
 
@@ -337,7 +337,7 @@ function bow(draw = 0) {
   return finish(paint, "#2a1d10");
 }
 
-function armor(slot: number) {
+function armor(slot: number, m: (typeof MATERIALS)["wood"]) {
   const paint: Paint = new Map();
   const rows = [
     ["....xxxx....", "..xxxxxxxx..", ".xxxxxxxxxx.", ".xxx....xxx.", ".xx......xx.", ".xx......xx."],
@@ -347,7 +347,7 @@ function armor(slot: number) {
   ][slot];
   const top = Math.round((16 - rows.length) / 2);
   rows.forEach((row, y) => [...row].forEach((ch, x) => {
-    if (ch === "x") paint.set(key(x + 2, y + top), y === 0 || x === 0 ? "#f2f2f2" : (x + y) % 5 === 0 ? "#9a9a9a" : "#cfcfcf");
+    if (ch === "x") paint.set(key(x + 2, y + top), y === 0 || x === 0 ? m.light : (x + y) % 5 === 0 ? m.dark : m.mid);
   }));
   return finish(paint, "#2e2e2e");
 }
@@ -375,10 +375,6 @@ export function itemSprite(id: number): Pixels {
     case I.STRING: p = stringItem(); break;
     case I.ARROW: p = arrow(); break;
     case I.BOW: p = bow(); break;
-    case I.IRON_HELMET: p = armor(0); break;
-    case I.IRON_CHESTPLATE: p = armor(1); break;
-    case I.IRON_LEGGINGS: p = armor(2); break;
-    case I.IRON_BOOTS: p = armor(3); break;
     case I.IRON_INGOT: p = ingot("#ffffff", "#d8d8d8", "#9a9a9a"); break;
     case I.GOLD_INGOT: p = ingot("#fff8b0", "#f2cf3a", "#b8901a"); break;
     case I.BRICK: p = ingot("#d2785c", "#a4503a", "#7a3424"); break;
@@ -409,6 +405,11 @@ export function itemSprite(id: number): Pixels {
     case B.BUTTON: p = buttonItem(); break;
     case B.PRESSURE_PLATE: p = plateItem(); break;
     default: {
+      const worn = getItem(id)?.armor;
+      if (worn) {
+        p = armor(worn.slot, MATERIAL_OF[worn.material]);
+        break;
+      }
       const tool = TOOL_INFO.get(id);
       if (tool) {
         const m = MATERIAL_OF[tool.material];

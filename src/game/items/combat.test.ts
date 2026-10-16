@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { armorReduction, arrowDamage, bowPower, fallDamage } from "./combat";
 import { levelFromPoints, pointsForNextLevel } from "../player/experience";
 import { matchRecipe } from "./crafting";
-import { I } from "../world/blocks";
+import { I, getItem } from "../world/blocks";
 
 describe("fallDamage", () => {
   it("is free up to 3.5 blocks and gentler than one per block after", () => {
@@ -52,5 +52,18 @@ describe("experience levels", () => {
     expect(levelFromPoints(16).level).toBe(2);
     expect(levelFromPoints(352).level).toBe(16);
     expect(levelFromPoints(10).progress).toBeCloseTo(3 / 9);
+  });
+});
+
+describe("armor", () => {
+  it("is crafted from iron, gold and diamonds, and gold is weakest", () => {
+    const g = I.GOLD_INGOT, d = I.DIAMOND;
+    const helmet = (m: number) => [m, m, m, m, null, m, null, null, null].map((id) => (id ? { id, count: 1 } : null));
+    expect(matchRecipe(helmet(g), 3)?.id).toBe(I.GOLDEN_HELMET);
+    expect(matchRecipe(helmet(d), 3)?.id).toBe(I.DIAMOND_HELMET);
+    const chest = (m: number) => [m, null, m, m, m, m, m, m, m].map((id) => (id ? { id, count: 1 } : null));
+    expect(matchRecipe(chest(d), 3)?.id).toBe(I.DIAMOND_CHESTPLATE);
+    expect(getItem(I.GOLDEN_CHESTPLATE)?.armor?.points).toBeLessThan(getItem(I.IRON_CHESTPLATE)!.armor!.points);
+    expect(getItem(I.DIAMOND_CHESTPLATE)?.armor).toEqual({ slot: 1, points: 8, material: "diamond" });
   });
 });

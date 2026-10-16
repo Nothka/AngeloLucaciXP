@@ -37,6 +37,8 @@ export interface NetPlayerState {
   dead: boolean;
   /** Creative players are left alone by mobs. */
   creative: boolean;
+  /** Worn armor item ids (head, chest, legs, feet; 0 = none). Missing from older versions. */
+  armor?: number[];
 }
 
 export interface Welcome {
@@ -93,9 +95,9 @@ export type Message =
   | { t: "orb-"; ids: number[] }
   | { t: "orb"; v: number; p: [number, number, number] }
   | { t: "xp"; v: number }
-  /** Host: an arrow was loosed (to show it). Guest: we shot one (host makes the real one). */
-  | { t: "arrow"; a: [number, number, number, number, number, number] }
-  | { t: "shoot"; a: [number, number, number, number, number, number]; damage: number; pickup: boolean }
+  /** Host: an arrow (or snowball, egg) was loosed (to show it). Guest: we shot one (host makes the real one). */
+  | { t: "arrow"; a: [number, number, number, number, number, number]; item?: number }
+  | { t: "shoot"; a: [number, number, number, number, number, number]; damage: number; pickup: boolean; item?: number }
   /** Guest: open, change or close a furnace; host: its contents. */
   | { t: "furnace?"; p: [number, number, number] }
   | { t: "furnace"; p: [number, number, number]; f: FurnaceState }

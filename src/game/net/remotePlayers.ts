@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { buildPlayerFigure, type PlayerFigure } from "../ui/playerPortrait";
+import { buildPlayerFigure, wearArmor, type PlayerFigure } from "../ui/playerPortrait";
 import type { NetPlayerState } from "./protocol";
 
 const PX = 1 / 16;
@@ -97,6 +97,7 @@ class RemotePlayer {
     }
     this.swing = Math.min(1, this.swing + dt / 0.3);
     f.armR.rotation.x = sw * 0.8 - Math.sin(this.swing * Math.PI) * 1.4;
+    wearArmor(f, Array.isArray(s.armor) ? s.armor : []);
     f.body.rotation.x = s.sneak ? 0.35 : 0;
     f.root.position.y = s.sneak ? -0.12 : 0;
     // Lit like the world around them.
