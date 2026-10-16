@@ -519,6 +519,7 @@ export class InventoryScreen {
     if (!this.isOpen) return;
     for (const { el, ref } of this.slotEls.values()) renderStack(el, this.get(ref));
     renderStack(this.cursorEl, this.cursor);
+    if (this.mode === "inventory") playerPortrait().setArmor(this.host.inventory.armor.map((s) => s?.id ?? 0));
     this.updateTooltip();
   }
 

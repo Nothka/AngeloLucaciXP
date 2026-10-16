@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { Pixels } from "../render/textures";
+import { itemSprite } from "../render/items";
+import { I } from "../world/blocks";
 import { rayAABB } from "../player/raycast";
 import type { Mob } from "./mob";
 import type { SolidAt } from "./physics";
@@ -10,7 +12,12 @@ export interface ArrowOptions {
   damage: number;
   /** Can be collected once it sticks in a block. */
   pickup: boolean;
+  /** A thrown item (snowball, egg) instead of an arrow: it breaks wherever it lands. */
+  item?: number;
 }
+
+/** Items that right click throws. */
+export const THROWN_ITEMS = new Set<number>([I.SNOWBALL, I.EGG]);
 
 interface Arrow extends ArrowOptions {
   pos: THREE.Vector3;
@@ -18,7 +25,7 @@ interface Arrow extends ArrowOptions {
   age: number;
   stuck: boolean;
   stuckTime: number;
-  mesh: THREE.Mesh;
+  mesh: THREE.Object3D;
 }
 
 export interface ProjectileHooks {
@@ -35,9 +42,13 @@ export interface ProjectileHooks {
   /** Returns true if the arrow went into the inventory. */
   pickup(): boolean;
   thud(x: number, y: number, z: number): void;
+  /** A thrown item broke against a block or a mob (not called for guests' copies). */
+  landed?(item: number, at: THREE.Vector3): void;
 }
 
 const GRAVITY = 20;
+/** Thrown items fall slower than arrows, as in Minecraft. */
+const THROWN_GRAVITY = 12;
 const STUCK_SECONDS = 30;
 
 function arrowMesh(): { geometry: THREE.BufferGeometry; material: THREE.Material } {
@@ -62,7 +73,21 @@ function arrowMesh(): { geometry: THREE.BufferGeometry; material: THREE.Material
   return { geometry, material };
 }
 
-/** Arrows in flight and stuck in blocks. */
+const thrownMaterials = new Map<number, THREE.SpriteMaterial>();
+function thrownMaterial(id: number) {
+  let m = thrownMaterials.get(id);
+  if (!m) {
+    const tex = new THREE.CanvasTexture(itemSprite(id).toCanvas());
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    m = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.5 });
+    thrownMaterials.set(id, m);
+  }
+  return m;
+}
+
+/** Arrows (and thrown snowballs and eggs) in flight, and arrows stuck in blocks. */
 export class ProjectileManager {
   readonly group = new THREE.Group();
   private arrows: Arrow[] = [];
@@ -73,15 +98,21 @@ export class ProjectileManager {
   /** Guests: arrows here only show the host's; they hit nothing. */
   visualOnly = false;
   /** Host: tell the guests an arrow was loosed (so they see it fly). */
-  onShoot: ((from: THREE.Vector3, vel: THREE.Vector3) => void) | null = null;
+  onShoot: ((from: THREE.Vector3, vel: THREE.Vector3, item: number) => void) | null = null;
 
   get count() {
     return this.arrows.length;
   }
 
   shoot(from: THREE.Vector3, vel: THREE.Vector3, opts: ArrowOptions) {
-    this.onShoot?.(from, vel);
-    const mesh = new THREE.Mesh(this.shape.geometry, this.shape.material);
+    this.onShoot?.(from, vel, opts.item ?? 0);
+    let mesh: THREE.Object3D;
+    if (opts.item) {
+      mesh = new THREE.Sprite(thrownMaterial(opts.item));
+      mesh.scale.setScalar(0.3);
+    } else {
+      mesh = new THREE.Mesh(this.shape.geometry, this.shape.material);
+    }
     mesh.frustumCulled = false;
     this.group.add(mesh);
     const arrow: Arrow = { ...opts, pos: from.clone(), vel: vel.clone(), age: 0, stuck: false, stuckTime: 0, mesh };
@@ -129,7 +160,7 @@ export class ProjectileManager {
         this.remove(a);
         continue;
       }
-      a.vel.y -= GRAVITY * dt;
+      a.vel.y -= (a.item ? THROWN_GRAVITY : GRAVITY) * dt;
       a.vel.multiplyScalar(Math.exp(-0.15 * dt));
       const step = a.vel.length() * dt;
       this.dir.copy(a.vel).normalize();
@@ -161,7 +192,13 @@ export class ProjectileManager {
         }
       }
 
-      if (hitKind === "mob" && hitMob) {
+      if (a.item && hitKind) {
+        // Snowballs and eggs only knock back; then they break.
+        if (hitKind === "mob" && hitMob) hooks.hitMob(hitMob, 0, a.pos.clone().sub(this.dir));
+        a.pos.addScaledVector(this.dir, Math.max(0, hitT - 0.1));
+        if (!this.visualOnly) hooks.landed?.(a.item, a.pos);
+        this.remove(a);
+      } else if (hitKind === "mob" && hitMob) {
         hooks.hitMob(hitMob, a.damage, a.pos.clone().sub(this.dir));
         this.remove(a);
       } else if (hitKind === "player") {

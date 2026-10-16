@@ -87,7 +87,8 @@ export class Interaction {
         this.host.attackEntity?.(this.entityTarget);
         this.host.onSwing();
       }
-      if (input.clicked.has(2) && this.host.useEntity?.(this.entityTarget)) input.buttons.delete(2);
+      // Feeding comes first; otherwise the item is used as usual (a snowball still flies at the mob).
+      if (input.clicked.has(2) && (this.host.useEntity?.(this.entityTarget) || this.host.useItem?.(null))) input.buttons.delete(2);
       return;
     }
 

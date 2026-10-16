@@ -6,6 +6,7 @@ import type { DropNet } from "../entities/drops";
 import type { OrbNet } from "../entities/xpOrbs";
 import * as THREE from "three";
 import { RemotePlayers } from "./remotePlayers";
+import { THROWN_ITEMS } from "../entities/projectiles";
 import { createSignaling, type JoinRequest, type Signaling } from "./signaling";
 
 interface Guest {
@@ -196,7 +197,7 @@ export class HostNet {
         this.shooter = g;
         try {
           this.game.projectiles.shoot(new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz),
-            { fromPlayer: true, shooter: null, damage: Math.min(10, Math.max(0, m.damage)), pickup: !!m.pickup });
+            { fromPlayer: true, shooter: null, damage: Math.min(10, Math.max(0, m.damage)), pickup: !!m.pickup, item: THROWN_ITEMS.has(m.item ?? 0) ? m.item : undefined });
         } finally {
           this.shooter = null;
         }
@@ -252,9 +253,9 @@ export class HostNet {
   }
 
   /** An arrow was loosed in the host's world: everyone sees it (except whoever shot it, who already does). */
-  arrowShot(from: THREE.Vector3, vel: THREE.Vector3) {
+  arrowShot(from: THREE.Vector3, vel: THREE.Vector3, item: number) {
     const r = (v: number) => Math.round(v * 100) / 100;
-    this.broadcast({ t: "arrow", a: [r(from.x), r(from.y), r(from.z), r(vel.x), r(vel.y), r(vel.z)] }, this.shooter ?? undefined);
+    this.broadcast({ t: "arrow", a: [r(from.x), r(from.y), r(from.z), r(vel.x), r(vel.y), r(vel.z)], item }, this.shooter ?? undefined);
   }
 
   /** A guest killed one of our mobs: their achievements, not ours. */

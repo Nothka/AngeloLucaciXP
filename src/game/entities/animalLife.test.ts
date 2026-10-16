@@ -4,7 +4,7 @@ import { mobPitch } from "../audio/audio";
 import { mulberry32 } from "../noise";
 
 describe("idle sounds", () => {
-  it("are quiet for 4 seconds after speaking, then random", () => {
+  it("are quiet for 7 seconds after speaking, then random", () => {
     const rand = mulberry32(7);
     let c = -AMBIENT_QUIET_TICKS;
     for (let i = 0; i < AMBIENT_QUIET_TICKS; i++) {
@@ -14,7 +14,7 @@ describe("idle sounds", () => {
     }
   });
 
-  it("average one every 4 to 10 seconds per animal", () => {
+  it("average one every 7 to 12 seconds per animal", () => {
     const rand = mulberry32(42);
     let c = 0, ticks = 0, sounds = 0;
     const gaps: number[] = [];
@@ -29,9 +29,9 @@ describe("idle sounds", () => {
       }
     }
     const mean = (ticks * TICK) / sounds;
-    expect(mean).toBeGreaterThan(4);
-    expect(mean).toBeLessThan(10);
-    expect(Math.min(...gaps.slice(1))).toBeGreaterThanOrEqual(4);
+    expect(mean).toBeGreaterThan(7);
+    expect(mean).toBeLessThan(12);
+    expect(Math.min(...gaps.slice(1))).toBeGreaterThanOrEqual(7);
   });
 
   it("start herds out of step", () => {
